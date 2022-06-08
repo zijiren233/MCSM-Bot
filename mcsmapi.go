@@ -17,13 +17,15 @@ type Data struct {
 
 type MConfig struct {
 	McsmData []struct {
-		Order       int    `json:"order"`
-		Sendtype    string `json:"sendtype"`
-		Name        string `json:"name"`
-		Domain      string `json:"url"`
-		Remote_uuid string `json:"remote_uuid"`
-		Uuid        string `json:"uuid"`
-		Apikey      string `json:"apikey"`
+		Order       int      `json:"order"`
+		Sendtype    string   `json:"sendtype"`
+		Name        string   `json:"name"`
+		Domain      string   `json:"url"`
+		Remote_uuid string   `json:"remote_uuid"`
+		Uuid        string   `json:"uuid"`
+		Apikey      string   `json:"apikey"`
+		Group_id    string   `json:"group_id"`
+		Adminlist   []string `json:"adminlist"`
 	} `json:"mcsmdata"`
 }
 
@@ -76,7 +78,6 @@ func ReturnResult(command string, order int) {
 	var data Data
 	json.Unmarshal([]byte(ret), &data)
 	str_b := string(data.Data)
-	// fmt.Print(str_b)
 	last := strings.LastIndex(str_b, fmt.Sprint("> ", command))
 	res := str_b[last : len(str_b)-2]
 	Send_group_msg(res, order)
@@ -98,13 +99,8 @@ func RunCmd(commd string, order int) {
 }
 
 func RunningTest(order int) bool {
-	time.Sleep(1 * time.Second)
 	client := &http.Client{}
-	r2, err := http.NewRequest("GET", mconfig.McsmData[order].Domain+"/api/service/remote_service_instances", nil)
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-		os.Exit(1)
-	}
+	r2, _ := http.NewRequest("GET", mconfig.McsmData[order].Domain+"/api/service/remote_service_instances", nil)
 	q := r2.URL.Query()
 	q.Add("apikey", mconfig.McsmData[order].Apikey)
 	q.Add("page", "1")
@@ -117,7 +113,7 @@ func RunningTest(order int) bool {
 	b, _ := ioutil.ReadAll(r.Body)
 	var status Status
 	json.Unmarshal(b, &status)
-	if status.Data.Data[0].Status == 3 {
+	if status.Data.Data[0].Status == 3 || status.Data.Data[0].Status == 2 {
 		return true
 	} else {
 		return false
@@ -146,4 +142,27 @@ func Stop(order int) {
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	client.Do(r2)
+}
+
+func TestMcsmStatus(order int) {
+	client := &http.Client{}
+	r2, err := http.NewRequest("GET", mconfig.McsmData[order].Domain+"/api/service/remote_service_instances", nil)
+	if err != nil {
+		fmt.Println("检测MCSM后端连接失败，请检查配置文件是否填写正确或MCSM是否启动")
+		os.Exit(1)
+	}
+	q := r2.URL.Query()
+	q.Add("apikey", mconfig.McsmData[order].Apikey)
+	q.Add("page", "1")
+	q.Add("page_size", "1")
+	q.Add("instance_name", mconfig.McsmData[order].Name)
+	q.Add("remote_uuid", mconfig.McsmData[order].Remote_uuid)
+	r2.URL.RawQuery = q.Encode()
+	r2.Header.Set("x-requested-with", "xmlhttprequest")
+	r, err2 := client.Do(r2)
+	if err2 != nil {
+		fmt.Println("检测MCSM后端连接失败，请检查配置文件是否填写正确或MCSM是否启动")
+		os.Exit(1)
+	}
+	defer r.Body.Close()
 }

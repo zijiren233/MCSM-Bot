@@ -13,16 +13,11 @@ import (
 	"time"
 )
 
-var chan_message_id chan string
-var chan_message chan string
-
 type QConfig struct {
 	Cqhttp struct {
-		Token     string   `json:"token"`
-		Url       string   `json:"url"`
-		Qq        string   `json:"qq"`
-		Group_id  string   `json:"group_id"`
-		Adminlist []string `json:"adminlist"`
+		Token string `json:"token"`
+		Url   string `json:"url"`
+		Qq    string `json:"qq"`
 	} `json:"cqhttp"`
 }
 
@@ -56,20 +51,13 @@ func GetQConfig() QConfig {
 	return config
 }
 
-func Get_group_last_msg_id() string {
+func Get_group_last_msg_id(order int) string {
 	client := &http.Client{}
 	data := url.Values{}
-	data.Set("group_id", qconfig.Cqhttp.Group_id)
+	data.Set("group_id", mconfig.McsmData[order].Group_id)
 	data.Set("access_token", qconfig.Cqhttp.Token)
-	r2, err := http.NewRequest("GET", qconfig.Cqhttp.Url+"/get_group_msg_history"+"?"+data.Encode(), nil)
-	if err != nil {
-		return "1"
-	}
-	r, err2 := client.Do(r2)
-	if err2 != nil {
-		return "1"
-	}
-	defer r.Body.Close()
+	r2, _ := http.NewRequest("GET", qconfig.Cqhttp.Url+"/get_group_msg_history"+"?"+data.Encode(), nil)
+	r, _ := client.Do(r2)
 	b, _ := ioutil.ReadAll(r.Body)
 	strb := string(b)
 	index := strings.LastIndex(strb, `"message_id":`)
@@ -79,15 +67,13 @@ func Get_group_last_msg_id() string {
 	return ret[1:]
 }
 
-func Get_Group_New_Mesage() {
-	var tmp string
-	tmp = Get_group_last_msg_id()
-	go Get_msg()
+func Get_Group_New_Mesage_Id(order int, chan_message_id chan string) {
+	tmp := Get_group_last_msg_id(order)
 	for {
-		tmp2 := Get_group_last_msg_id()
+		tmp2 := Get_group_last_msg_id(order)
 		if tmp2 != "1" && tmp != tmp2 {
 			tmp = tmp2
-			chan_message_id <- tmp
+			chan_message_id <- tmp2
 		}
 		time.Sleep(40 * time.Millisecond)
 		/*The detection frequency is 40ms once, and it should not be set too large,
@@ -95,30 +81,40 @@ func Get_Group_New_Mesage() {
 	}
 }
 
-func Get_msg() {
+func TestCqhttpStatus(order int) {
 	client := &http.Client{}
+	data := url.Values{}
+	data.Set("group_id", mconfig.McsmData[order].Group_id)
+	data.Set("access_token", qconfig.Cqhttp.Token)
+	r2, err := http.NewRequest("GET", qconfig.Cqhttp.Url+"/get_group_msg_history"+"?"+data.Encode(), nil)
+	if err != nil {
+		fmt.Println("Cqhttp状态检测错误，请检查配置文件或Cqhttp状态")
+		os.Exit(1)
+	}
+	r, err2 := client.Do(r2)
+	if err2 != nil {
+		fmt.Println("Cqhttp状态检测错误，请检查配置文件或Cqhttp状态")
+		os.Exit(1)
+	}
+	defer r.Body.Close()
+}
+
+func Get_msg(order int, chan_message_id chan string, chan_message chan string) {
+	client := &http.Client{}
+	var mesdata MesData
 	for {
 		data := url.Values{}
-		data.Set("message_id", <-chan_message_id)
 		data.Set("access_token", qconfig.Cqhttp.Token)
-		r2, err := http.NewRequest("GET", qconfig.Cqhttp.Url+"/get_msg"+"?"+data.Encode(), nil)
-		if err != nil {
-			fmt.Printf("err: %v\n", err)
-		}
-		r, err2 := client.Do(r2)
-		if err != nil {
-			fmt.Printf("err: %v\n", err2)
-			// fmt.Println("可能是网络问题")
-		}
+		data.Set("message_id", <-chan_message_id)
+		r2, _ := http.NewRequest("GET", qconfig.Cqhttp.Url+"/get_msg"+"?"+data.Encode(), nil)
+		r, _ := client.Do(r2)
 		b, _ := ioutil.ReadAll(r.Body)
-		// fmt.Printf("b: %v\n", string(b))
-		var mesdata MesData
 		json.Unmarshal(b, &mesdata)
 		user_id := strconv.Itoa(mesdata.Data.Sender.User_id)
 		// Check admin list
-		if len(qconfig.Cqhttp.Adminlist) == 0 {
+		if len(mconfig.McsmData[order].Adminlist) == 0 {
 			chan_message <- mesdata.Data.Message
-		} else if in(user_id, qconfig.Cqhttp.Adminlist) && user_id != qconfig.Cqhttp.Qq {
+		} else if in(user_id, mconfig.McsmData[order].Adminlist) && user_id != qconfig.Cqhttp.Qq {
 			chan_message <- mesdata.Data.Message
 		}
 	}
@@ -127,22 +123,12 @@ func Get_msg() {
 func Send_group_msg(message string, order int) {
 	client := &http.Client{}
 	data := url.Values{}
-	data.Set("group_id", qconfig.Cqhttp.Group_id)
+	data.Set("group_id", mconfig.McsmData[order].Group_id)
 	data.Set("message", message)
 	data.Set("auto_escape", "false")
 	data.Set("access_token", qconfig.Cqhttp.Token)
-	r2, err := http.NewRequest("GET", qconfig.Cqhttp.Url+"/send_group_msg"+"?"+data.Encode(), nil)
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-		return
-	}
-	r3, err2 := client.Do(r2)
-	if err != nil {
-		fmt.Printf("err: %v\n", err2)
-		// fmt.Println("发送失败")
-		return
-	}
-	defer r3.Body.Close()
+	r2, _ := http.NewRequest("GET", qconfig.Cqhttp.Url+"/send_group_msg"+"?"+data.Encode(), nil)
+	client.Do(r2)
 }
 
 func in(target string, str_array []string) bool {
@@ -154,30 +140,38 @@ func in(target string, str_array []string) bool {
 	return false
 }
 
-func ProcessMessag(order int) {
+func AddQListen(order int) {
 	// 设置缓存大小为 1000 / 40 = 25
-	chan_message_id = make(chan string, 25)
-	chan_message = make(chan string, 25)
-	go Get_Group_New_Mesage()
-	go func() {
-		for {
-			if !RunningTest(order) && mstatus[mconfig.McsmData[order].Name] == 1 {
-				mstatus[mconfig.McsmData[order].Name] = 0
-				Send_group_msg(fmt.Sprint(`[CQ:at,qq=all]`, "服务器", mconfig.McsmData[order].Name, "已停止！"), order)
-			} else if RunningTest(order) && mstatus[mconfig.McsmData[order].Name] == 0 {
-				Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, qconfig.Cqhttp.Qq, `]`, "服务器", mconfig.McsmData[order].Name, "以启动！"), order)
-			}
-			time.Sleep(5 * time.Second)
-		}
-	}()
-	tmp := ""
+	TestCqhttpStatus(order)
+	TestMcsmStatus(order)
+	chan_message := make(chan string, 25)
+	chan_message_id := make(chan string, 25)
+	go Get_Group_New_Mesage_Id(order, chan_message_id)
+	go Get_msg(order, chan_message_id, chan_message)
+	go ReportStatus(order)
+	flysnowRegexp := regexp.MustCompile(`^run ([0-9]*) *([a-zA-Z]+)`)
 	for {
-		tmp = <-chan_message
-		flysnowRegexp := regexp.MustCompile(`^run ([0-9]*)(.*)`)
-		params := flysnowRegexp.FindStringSubmatch(tmp)
-		if params[2] != "" {
-			cmd := strings.TrimLeft(params[2], " ")
-			go RunCmd(cmd, order)
+		params := flysnowRegexp.FindStringSubmatch(<-chan_message)
+		if len(params) == 0 {
+			continue
+		} else if params[2] != "" {
+			// cmd := strings.TrimLeft(params[2], " ")
+			go RunCmd(params[2], order)
 		}
+	}
+}
+
+func ReportStatus(order int) {
+	for {
+		if !RunningTest(order) && statusmap[mconfig.McsmData[order].Name] == 1 {
+			statusmap[mconfig.McsmData[order].Name] = 0
+			Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器", mconfig.McsmData[order].Name, "已停止！"), order)
+		} else if RunningTest(order) && statusmap[mconfig.McsmData[order].Name] == 0 {
+			statusmap[mconfig.McsmData[order].Name] = 1
+			Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器", mconfig.McsmData[order].Name, "以启动！"), order)
+		}
+		fmt.Printf("statusmap[mconfig.McsmData[order].Name]: %v\n", statusmap[mconfig.McsmData[order].Name])
+		fmt.Printf("RunningTest(order): %v\n", RunningTest(order))
+		time.Sleep(3 * time.Second)
 	}
 }
