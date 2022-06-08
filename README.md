@@ -43,8 +43,8 @@
 
     如果 MCSM-Bot 和 CQHTTP 在同一台设备或同一个内网，则都不需要公网，MCSM-Bot 配置文件指定内网地址即可。
 
-
 - config.sample.json :
+
     ```
     { // 真正的配置文件为标准的json格式，里面不要有注释！！！
     "mcsmdata": [
