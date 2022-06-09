@@ -33,21 +33,22 @@ type MesData struct {
 
 func GetQConfig() QConfig {
 	var config QConfig
-	f, err := os.OpenFile("config.json", os.O_RDWR|os.O_CREATE, 0777)
+	f, err := os.OpenFile("config.json", os.O_RDWR, 0777)
 	if err != nil {
-		fmt.Printf("读取配置文件出错: %v\n", err)
+		fmt.Printf("读取配置文件出错1: %v\n", err)
 		os.Exit(0)
 	}
 	b, err2 := ioutil.ReadAll(f)
 	if err2 != nil {
-		fmt.Printf("读取配置文件出错: %v\n", err2)
+		fmt.Printf("读取配置文件出错2: %v\n", err2)
 		os.Exit(0)
 	}
 	err3 := json.Unmarshal(b, &config)
 	if err3 != nil {
-		fmt.Printf("读取配置文件出错: %v\n", err3)
+		fmt.Printf("读取配置文件出错3: %v\n", err3)
 		os.Exit(0)
 	}
+	defer f.Close()
 	return config
 }
 
@@ -140,24 +141,58 @@ func in(target string, str_array []string) bool {
 	return false
 }
 
+func getKeys(m map[int]int) []int {
+	keys := make([]int, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 func AddQListen(order int) {
-	// 设置缓存大小为 1000 / 40 = 25
 	TestCqhttpStatus(order)
-	TestMcsmStatus(order)
+	fmt.Println("监听实例 ", mconfig.McsmData[order].Name, " 成功！")
+	// 获取已监听的 []Order
+	i := getKeys(listenmap)
+	for j := range i {
+		if mconfig.McsmData[j].Group_id == mconfig.McsmData[order].Group_id || j == order {
+			// fmt.Println("监听相同的群/已监听")
+			listenmap[order] = 1
+			return
+		}
+	}
+	listenmap[order] = 1
+	// 设置缓存大小为 1000 / 40 = 25 每秒最多处理25条消息
 	chan_message := make(chan string, 25)
 	chan_message_id := make(chan string, 25)
 	go Get_Group_New_Mesage_Id(order, chan_message_id)
 	go Get_msg(order, chan_message_id, chan_message)
 	go ReportStatus(order)
-	flysnowRegexp := regexp.MustCompile(`^run ([0-9]*) *([a-zA-Z]+)`)
+	flysnowRegexp, _ := regexp.Compile(`^run [0-9]* *.*`)
+	flysnowRegexp2, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
 	for {
-		params := flysnowRegexp.FindStringSubmatch(<-chan_message)
-		if len(params) == 0 {
-			continue
-		} else if params[2] != "" {
-			// cmd := strings.TrimLeft(params[2], " ")
-			go RunCmd(params[2], order)
-		}
+		params := flysnowRegexp.FindString(<-chan_message)
+		go func(params string) {
+			if len(params) == 0 {
+				return
+			} else {
+				params = strings.ReplaceAll(params, "\n", "")
+				params = strings.ReplaceAll(params, "\r", "")
+				params2 := flysnowRegexp2.FindStringSubmatch(params)
+				if params2[1] == "" {
+					go RunCmd(params2[2], order)
+				} else {
+					od, _ := strconv.Atoi(params2[1])
+					if od < len(mconfig.McsmData) {
+						if mconfig.McsmData[order].Group_id == mconfig.McsmData[od].Group_id {
+							go RunCmd(params2[2], od)
+						}
+					} else {
+						go Send_group_msg("Order 错误！", order)
+					}
+				}
+			}
+		}(params)
 	}
 }
 
@@ -170,8 +205,6 @@ func ReportStatus(order int) {
 			statusmap[mconfig.McsmData[order].Name] = 1
 			Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器", mconfig.McsmData[order].Name, "以启动！"), order)
 		}
-		fmt.Printf("statusmap[mconfig.McsmData[order].Name]: %v\n", statusmap[mconfig.McsmData[order].Name])
-		fmt.Printf("RunningTest(order): %v\n", RunningTest(order))
 		time.Sleep(3 * time.Second)
 	}
 }

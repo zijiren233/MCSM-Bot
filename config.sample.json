@@ -3,7 +3,7 @@
         {
             "order": 0, // 按顺序填
             "sendtype": "QQ", // 暂时只有QQ
-            "name": "LYC_01", // MCSM里面的实例名，即基本信息里的昵称
+            "name": "server1", // MCSM里面的实例名，即基本信息里的昵称，实例名不可一样！！！
             "url": "https://mcsm.domain.com:443", // MCSM面板的地址，包含http(s)//，结尾不要有斜杠/
             "remote_uuid": "d6a27b0b13ad44ce879b5a56c88b4d34", // 守护进程的GID
             "uuid": "a8788991a64e4a06b76d539b35db1b16", // 实例的UID
