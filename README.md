@@ -1,6 +1,6 @@
 # MCSM-Bot
 
-- 一个MCSM与GO-CQHTTP的附属产物，实现我的世界服务器群组机器人!
+- 一个 **[MCSM](https://github.com/MCSManager/MCSManager)** 与 **[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)** 的附属产物，实现我的世界服务器群组机器人!
 
 - 采用高并发模式，快速高效处理多群组消息 (多群组同时处理建议网络性能高)
 
@@ -12,9 +12,7 @@
 
 ### 登录出错
 
-如果 go-cqhttp QQ机器人登录不上，可以先在和自己同一个网络环境下登录后，go-cqhttp 会生成 `session.token`
-
-和 `device.json ` ，请复制到远程vps后登录即可。
+如果 go-cqhttp QQ机器人登录不上，可以先在和自己同一个网络环境下的 windows 安装 go-cqhttp ，在 windows 下扫码登录成功后会生成 `session.token` 和 `device.json` 两个文件，请复制到远程vps后登录即可。
 
 或者用远程vps搭建节点使手机和vps在同一个网络环境再登录。
 
@@ -24,18 +22,19 @@
 
 - 启动QQ_API
 
-    下载运行 `go-cqhttp`后会生成配置文件，只需要修改`config.yml`中：
+    下载运行后选择 [0]HTTP通信，`go-cqhttp` 会生成配置文件，只需要修改 `config.yml` 中：
 
     ```
+
     account:
         uin: // 用于机器人的QQ号
-        password: // 用于机器人的QQ密码
         
     default-middlewares: &default
         access-token: // 设置任意长度字符串
+ 
     ```
 
-    修改完成后再次运行`go-cqhttp`完成登录后即可，此时API端口为默认的5700。
+    修改完成后再次运行 `go-cqhttp` 完成登录后即可，此时API端口为默认的5700。
 
 - 启动MCSM-Bot
 
