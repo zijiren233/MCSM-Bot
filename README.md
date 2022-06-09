@@ -10,7 +10,25 @@
 
 - 建议把 ``go-cqhttp`` 做为服务启动，或用 screen 运行并不再关闭，不然由于tx风控的原因每次运行都要重新登录扫码！
 
-### 登录出错
+### 开始使用
+
+- 启动QQ_API
+
+    下载 **[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)** 运行后选择 [0]HTTP通信，启动后 `go-cqhttp` 会生成配置文件，只需要修改 `config.yml` 中：
+
+    ```
+
+    account:
+        uin: // 用于机器人的QQ号
+        
+    default-middlewares: &default
+        access-token: // 设置任意长度字符串
+ 
+    ```
+
+    修改完成后再次运行 `go-cqhttp` 扫码登录后即可，此时 **QQ API** 端口为默认的5700。
+
+#### 登录出错
 
 如果 go-cqhttp QQ机器人登录不上，可以先在和自己同一个网络环境下的 windows 安装 go-cqhttp ，在 windows 下扫码登录成功后会生成 `session.token` 和 `device.json` 两个文件，请复制到远程vps后登录即可。
 
@@ -31,31 +49,12 @@
 
 -----
 
-### 开始使用
+### 启动MCSM-Bot
 
-- 启动QQ_API
+- 下载运行程序 **[MCSM-Bot](https://github.com/zijiren233/MCSM-Bot/releases)** 
+首次运行可执行程序会在当前文件夹生成配置文件 `config.json` ,按照下面的 `config.sample.json` 修改配置后再次运行即可，MCSM-Bot可以在不需要公网的环境下运行。
 
-    下载运行后选择 [0]HTTP通信，`go-cqhttp` 会生成配置文件，只需要修改 `config.yml` 中：
-
-    ```
-
-    account:
-        uin: // 用于机器人的QQ号
-        
-    default-middlewares: &default
-        access-token: // 设置任意长度字符串
- 
-    ```
-
-    修改完成后再次运行 `go-cqhttp` 完成登录后即可，此时API端口为默认的5700。
-
-- 启动MCSM-Bot
-
-    下载运行程序 **[MCSM-Bot](https://github.com/zijiren233/MCSM-Bot/releases)** 
-    首次运行可执行程序会在当前文件夹生成配置文件 `config.json` 
-    修改配置后再次运行即可，MCSM-Bot可以在不需要公网的环境下运行。
-
-    如果 MCSM-Bot 和 CQHTTP 在同一台设备或同一个内网，则都不需要公网，MCSM-Bot 配置文件指定内网地址即可。
+- 如果 MCSM-Bot 和 CQHTTP 在同一台设备或同一个内网，则都不需要公网，MCSM-Bot 配置文件指定内网地址即可。
 
 - config.sample.json :
 
@@ -103,7 +102,7 @@
 
 - 修改完成后运行MCSM-Bot即可。
 
-- 如果启动失败则为配置文件配置错误。
+- 如果启动失败则为配置文件配置错误或 MCSM/CQHTTP 服务连接失败。
 
 -----
 
