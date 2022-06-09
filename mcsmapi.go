@@ -153,6 +153,9 @@ func RunningTest(order int) bool {
 	b, _ := ioutil.ReadAll(r.Body)
 	var status Status
 	json.Unmarshal(b, &status)
+	if len(status.Data.Data) == 0 {
+		fmt.Println("未检测到实例！请检查实例状态或配置文件是否填写正确！")
+	}
 	if status.Data.Data[0].Status == 3 || status.Data.Data[0].Status == 2 {
 		return true
 	} else {
