@@ -37,12 +37,12 @@ func StartListen(order int) {
 		time.Sleep(3 * time.Second)
 		fmt.Println()
 	} else {
-		fmt.Println("实例 ", mconfig.McsmData[order].Name, " 未启动，是否启动(y/n):")
+		fmt.Print("实例 ", mconfig.McsmData[order].Name, " 未启动，是否启动(y/n):")
 		var chose string
 		fmt.Scan(&chose)
 		if chose == "y" || chose == "yes" {
 			Start(order)
-			time.Sleep(2 * time.Second)
+			time.Sleep(3 * time.Second)
 			StartListen(order)
 		}
 	}

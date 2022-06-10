@@ -183,9 +183,11 @@ func AddQListen(order int) {
 					go RunCmd(params2[2], order)
 				} else {
 					od, _ := strconv.Atoi(params2[1])
-					if od < len(mconfig.McsmData) {
+					if od < len(mconfig.McsmData) && listenmap[od] == 1 {
 						if mconfig.McsmData[order].Group_id == mconfig.McsmData[od].Group_id {
 							go RunCmd(params2[2], od)
+						} else {
+							go RunCmd(params2[2], order)
 						}
 					} else {
 						go Send_group_msg("Order 错误！", order)

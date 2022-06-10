@@ -2,7 +2,7 @@
 
 - 一个 **[MCSM](https://github.com/MCSManager/MCSManager)** 与 **[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)** 的附属产物，实现我的世界服务器群组机器人!
 
-- 采用高并发模式，快速高效处理多群组消息 (多群组同时处理建议网络性能高)
+- 采用高并发模式，快速高效处理多群组消息 (多群组同时处理建议有较高的网络性能)
 
 ### 项目相关
 
@@ -65,12 +65,12 @@
             {
                 "order": 0, // 按顺序填
                 "sendtype": "QQ", // 暂时只有QQ
-                "name": "server1", // MCSM里面的实例名，即基本信息里的昵称，实例名不可一样！！！
+                "name": "server1", // MCSM里面的实例名，即基本信息里的昵称，实例名不可重复！！！
                 "url": "https://mcsm.domain.com:443", // MCSM面板的地址，包含http(s)//，结尾不要有斜杠/
                 "remote_uuid": "d6a27b0b13ad44ce879b5a56c88b4d34", // 守护进程的GID
                 "uuid": "a8788991a64e4a06b76d539b35db1b16", // 实例的UID
                 "apikey": "vmajkfnvklNSdvkjbnfkdsnv7e0f", // 不可为空，用户中心->右上角个人资料->右方生成API密钥
-                "group_id": "234532", // 要管理的QQ群号
+                "group_id": "234532", // 要管理的QQ群号，如果多个实例要监听同一个群，那么下面的群管理员列表应该设置相同
                 "adminlist": [
                     "1145141919", // 群管理员，第一个为主管理员，只有管理员才可以发送命令
                     "1145141919" // 管理员列表可以为空，则所有用户都可以发送命令
@@ -84,9 +84,9 @@
                 "remote_uuid": "d6a27b0b13ad44ce879b5ascwfscr323",
                 "uuid": "a8788991a6acasfaca76d539b35db1b16",
                 "apikey": "6ewc6292daefvlksmdvjadnvjbf",
-                "group_id": "234532",
+                "group_id": "234532", // 多个实例监听同一个群，下面的管理员列表应设置一样
                 "adminlist": [
-                    "1145141919",
+                    "1145141919", // 多个实例监听同一个群，管理员列表应设置一样
                     "1145141919"
                 ]
             } // <--最后一个实例配置这里没有逗号！！！
@@ -99,6 +99,8 @@
     }
 
     ```
+
+    <img src="docs\sc\Sample_4.png" />
 
 - 修改完成后运行MCSM-Bot即可。
 
