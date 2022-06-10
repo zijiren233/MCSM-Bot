@@ -108,6 +108,38 @@
 
 -----
 
+### 普通命令
+
+```
+
+括号内的 order 可省略，则优先输出第一个监听此群的服务器
+
+普通命令就是可在MC控制台直接运行的命令，比如 set time day
+
+run (order) list
+
+run (order) tps
+
+...
+
+控制台内可运行的命令在群内都可以输入！
+
+```
+
+### 特殊命令
+
+```
+
+括号内的 order 可省略，则优先输出第一个监听此群的服务器
+
+run (order) status 查看服务器运行状态
+
+run (order) start 启动服务器
+
+run (order) stop 关闭服务器
+
+```
+
 ### 效果展示
 
 <img src="docs\sc\Sample_1.png" />
@@ -115,3 +147,5 @@
 <img src="docs\sc\Sample_2.png" />
 
 <img src="docs\sc\Sample_3.png" />
+
+<img src="docs\sc\Sample_5.png" />

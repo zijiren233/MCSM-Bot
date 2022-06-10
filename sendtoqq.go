@@ -52,33 +52,42 @@ func GetQConfig() QConfig {
 	return config
 }
 
-func Get_group_last_msg_id(order int) string {
+func Get_group_last_msg_id(order int, chan_last_message_id chan string) {
 	client := &http.Client{}
 	data := url.Values{}
 	data.Set("group_id", mconfig.McsmData[order].Group_id)
 	data.Set("access_token", qconfig.Cqhttp.Token)
 	r2, _ := http.NewRequest("GET", qconfig.Cqhttp.Url+"/get_group_msg_history"+"?"+data.Encode(), nil)
-	r, _ := client.Do(r2)
-	b, _ := ioutil.ReadAll(r.Body)
-	strb := string(b)
-	index := strings.LastIndex(strb, `"message_id":`)
-	getdot := string(b)[index:]
-	regexp, _ := regexp.Compile(":.*?[0-9]+")
-	ret := regexp.FindString(getdot)
-	return ret[1:]
+	for {
+		r, _ := client.Do(r2)
+		b, _ := ioutil.ReadAll(r.Body)
+		strb := string(b)
+		index := strings.LastIndex(strb, `"message_id":`)
+		if index == -1 {
+			continue
+		}
+		// fmt.Printf("index: %v\n", index)
+		getdot := string(b)[index:]
+		regexp, _ := regexp.Compile(":.*?[0-9]+")
+		ret := regexp.FindString(getdot)
+		chan_last_message_id <- ret[1:]
+		time.Sleep(40 * time.Millisecond)
+		/*The detection frequency is 40ms once, and it should not be set too large,
+		otherwise messages will be missed*/
+	}
 }
 
 func Get_Group_New_Mesage_Id(order int, chan_message_id chan string) {
-	tmp := Get_group_last_msg_id(order)
+	chan_last_message_id := make(chan string, 25)
+	go Get_group_last_msg_id(order, chan_last_message_id)
+	tmp := <-chan_last_message_id
+	var tmp2 string
 	for {
-		tmp2 := Get_group_last_msg_id(order)
+		tmp2 = <-chan_last_message_id
 		if tmp2 != "1" && tmp != tmp2 {
 			tmp = tmp2
 			chan_message_id <- tmp2
 		}
-		time.Sleep(40 * time.Millisecond)
-		/*The detection frequency is 40ms once, and it should not be set too large,
-		otherwise messages will be missed*/
 	}
 }
 
@@ -101,23 +110,26 @@ func TestCqhttpStatus(order int) {
 }
 
 func Get_msg(order int, chan_message_id chan string, chan_message chan string) {
-	client := &http.Client{}
-	var mesdata MesData
 	for {
-		data := url.Values{}
-		data.Set("access_token", qconfig.Cqhttp.Token)
-		data.Set("message_id", <-chan_message_id)
-		r2, _ := http.NewRequest("GET", qconfig.Cqhttp.Url+"/get_msg"+"?"+data.Encode(), nil)
-		r, _ := client.Do(r2)
-		b, _ := ioutil.ReadAll(r.Body)
-		json.Unmarshal(b, &mesdata)
-		user_id := strconv.Itoa(mesdata.Data.Sender.User_id)
-		// Check admin list
-		if len(mconfig.McsmData[order].Adminlist) == 0 {
-			chan_message <- mesdata.Data.Message
-		} else if in(user_id, mconfig.McsmData[order].Adminlist) && user_id != qconfig.Cqhttp.Qq {
-			chan_message <- mesdata.Data.Message
-		}
+		go func(message_id string, chan_message chan string) {
+			client := &http.Client{}
+			var mesdata MesData
+			data := url.Values{}
+			data.Set("access_token", qconfig.Cqhttp.Token)
+			data.Set("message_id", message_id)
+			r2, _ := http.NewRequest("GET", qconfig.Cqhttp.Url+"/get_msg"+"?"+data.Encode(), nil)
+			r, _ := client.Do(r2)
+			b, _ := ioutil.ReadAll(r.Body)
+			// fmt.Printf("b: %v\n", string(b))
+			json.Unmarshal(b, &mesdata)
+			user_id := strconv.Itoa(mesdata.Data.Sender.User_id)
+			// Check admin list
+			if len(mconfig.McsmData[order].Adminlist) == 0 {
+				chan_message <- mesdata.Data.Message
+			} else if in(user_id, mconfig.McsmData[order].Adminlist) && user_id != qconfig.Cqhttp.Qq {
+				chan_message <- mesdata.Data.Message
+			}
+		}(<-chan_message_id, chan_message)
 	}
 }
 
@@ -168,33 +180,46 @@ func AddQListen(order int) {
 	go Get_Group_New_Mesage_Id(order, chan_message_id)
 	go Get_msg(order, chan_message_id, chan_message)
 	go ReportStatus(order)
-	flysnowRegexp, _ := regexp.Compile(`^run [0-9]* *.*`)
-	flysnowRegexp2, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
+	flysnowRegexp, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
 	for {
 		params := flysnowRegexp.FindString(<-chan_message)
-		go func(params string) {
-			if len(params) == 0 {
+		if len(params) == 0 {
+			continue
+		}
+		// fmt.Printf("params: %v\n", params)
+		go func(params string, order int) {
+			params = strings.ReplaceAll(params, "\n", "")
+			params = strings.ReplaceAll(params, "\r", "")
+			params2 := flysnowRegexp.FindStringSubmatch(params)
+			if params2[1] != "" {
+				order, _ = strconv.Atoi(params2[1])
+			}
+			if params2[2] == "" || order >= len(mconfig.McsmData) || listenmap[order] != 1 {
 				return
-			} else {
-				params = strings.ReplaceAll(params, "\n", "")
-				params = strings.ReplaceAll(params, "\r", "")
-				params2 := flysnowRegexp2.FindStringSubmatch(params)
-				if params2[1] == "" {
-					go RunCmd(params2[2], order)
-				} else {
-					od, _ := strconv.Atoi(params2[1])
-					if od < len(mconfig.McsmData) && listenmap[od] == 1 {
-						if mconfig.McsmData[order].Group_id == mconfig.McsmData[od].Group_id {
-							go RunCmd(params2[2], od)
-						} else {
-							go RunCmd(params2[2], order)
-						}
+			}
+			if params2[2] != "" {
+				switch params2[2] {
+				case "status":
+					SendStatus(order)
+				case "start":
+					if statusmap[mconfig.McsmData[order].Name] == 0 {
+						Start(order)
+						Send_group_msg(fmt.Sprint("服务器", mconfig.McsmData[order].Name, "正在启动"), order)
 					} else {
-						go Send_group_msg("Order 错误！", order)
+						Send_group_msg(fmt.Sprint("服务器", mconfig.McsmData[order].Name, "已在启动"), order)
 					}
+				case "stop":
+					if statusmap[mconfig.McsmData[order].Name] == 1 {
+						Stop(order)
+						Send_group_msg(fmt.Sprint("服务器", mconfig.McsmData[order].Name, "正在关闭"), order)
+					} else {
+						Send_group_msg(fmt.Sprint("服务器", mconfig.McsmData[order].Name, "未在运行"), order)
+					}
+				default:
+					go RunCmd(params2[2], order)
 				}
 			}
-		}(params)
+		}(params, order)
 	}
 }
 
@@ -205,7 +230,7 @@ func ReportStatus(order int) {
 			Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器", mconfig.McsmData[order].Name, "已停止！"), order)
 		} else if RunningTest(order) && statusmap[mconfig.McsmData[order].Name] == 0 {
 			statusmap[mconfig.McsmData[order].Name] = 1
-			Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器", mconfig.McsmData[order].Name, "以启动！"), order)
+			Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器", mconfig.McsmData[order].Name, "已启动！"), order)
 		}
 		time.Sleep(3 * time.Second)
 	}

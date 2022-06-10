@@ -119,6 +119,9 @@ func ReturnResult(command string, order int) {
 	json.Unmarshal([]byte(ret), &data)
 	str_b := string(data.Data)
 	last := strings.LastIndex(str_b, fmt.Sprint("> ", command))
+	if last == -1 {
+		return
+	}
 	res := str_b[last : len(str_b)-2]
 	Send_group_msg(res, order)
 }
@@ -165,6 +168,16 @@ func RunningTest(order int) bool {
 		return true
 	} else {
 		return false
+	}
+}
+
+func SendStatus(order int) {
+	if statusmap[mconfig.McsmData[order].Name] == 1 {
+		Send_group_msg(fmt.Sprint("服务器", mconfig.McsmData[order].Name, "正在运行"), order)
+	} else if statusmap[mconfig.McsmData[order].Name] == 0 {
+		Send_group_msg(fmt.Sprint("服务器", mconfig.McsmData[order].Name, "未运行"), order)
+	} else {
+		Send_group_msg("未监听Order", order)
 	}
 }
 
