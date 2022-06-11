@@ -122,6 +122,8 @@ run (order) list
 
 run (order) tps
 
+run (order) weather clear
+
 ...
 
 控制台内可运行的命令在群内都可以输入！
