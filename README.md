@@ -69,6 +69,7 @@
                 "url": "https://mcsm.domain.com:443", // MCSM面板的地址，包含http(s)//，结尾不要有斜杠/
                 "remote_uuid": "d6a27b0b13ad44ce879b5a56c88b4d34", // 守护进程的GID
                 "uuid": "a8788991a64e4a06b76d539b35db1b16", // 实例的UID
+                "servertype": "java", // 服务器版本，支持 java 和 bedrock （基岩）
                 "apikey": "vmajkfnvklNSdvkjbnfkdsnv7e0f", // 不可为空，用户中心->右上角个人资料->右方生成API密钥
                 "group_id": "234532", // 要管理的QQ群号，如果多个实例要监听同一个群，那么下面的群管理员列表应该设置相同
                 "adminlist": [
@@ -83,6 +84,7 @@
                 "url": "http://mcsm.domain.com:24444",
                 "remote_uuid": "d6a27b0b13ad44ce879b5ascwfscr323",
                 "uuid": "a8788991a6acasfaca76d539b35db1b16",
+                "servertype": "bedrock",
                 "apikey": "6ewc6292daefvlksmdvjadnvjbf",
                 "group_id": "234532", // 多个实例监听同一个群，下面的管理员列表应设置一样
                 "adminlist": [

@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+var version = "v0.5.0"
 var mconfig MConfig
 var qconfig QConfig
 var statusmap map[string]int
@@ -50,7 +51,7 @@ func StartListen(order int) {
 
 func Chose() {
 	var chose string
-	fmt.Println("MCSM-BOT V0.1")
+	fmt.Println("MCSM-BOT", version)
 	fmt.Println("1.添加监听服务器")
 	fmt.Println("2.查看已监听列表")
 	fmt.Println("3.查看服务器状态")
