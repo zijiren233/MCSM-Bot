@@ -23,7 +23,6 @@ type MConfig struct {
 		Domain      string   `json:"url"`
 		Remote_uuid string   `json:"remote_uuid"`
 		Uuid        string   `json:"uuid"`
-		Servertype  string   `json:"servertype"`
 		Apikey      string   `json:"apikey"`
 		Group_id    string   `json:"group_id"`
 		Adminlist   []string `json:"adminlist"`
@@ -36,6 +35,10 @@ type Status struct {
 			Status int `json:"status"`
 		} `json:"data"`
 	} `json:"data"`
+}
+
+type CmdData struct {
+	Time_unix int64 `json:"time"`
 }
 
 func GetMConfig() MConfig {
@@ -53,7 +56,6 @@ func GetMConfig() MConfig {
 			"url": "https://mcsm.domain.com:443",
 			"remote_uuid": "d6a27b0b13ad44ce879b5a56c88b4d34",
 			"uuid": "a8788991a64e4a06b76d539b35db1b16",
-			"servertype": "java",
 			"apikey": "vmajkfnvklNSdvkjbnfkdsnv7e0f",
 			"group_id": "234532",
 			"adminlist": [
@@ -68,7 +70,6 @@ func GetMConfig() MConfig {
 			"url": "http://mcsm.domain.com:24444",
 			"remote_uuid": "d6a27b0b13ad44ce879b5ascwfscr323",
 			"uuid": "a8788991a6acasfaca76d539b35db1b16",
-			"servertype": "bedrock",
 			"apikey": "6ewc6292daefvlksmdvjadnvjbf",
 			"group_id": "234532",
 			"adminlist": [
@@ -93,7 +94,6 @@ func GetMConfig() MConfig {
 			"url": "https://mcsm.domain.com:443", // MCSM面板的地址，包含http(s)//，结尾不要有斜杠/
 			"remote_uuid": "d6a27b0b13ad44ce879b5a56c88b4d34", // 守护进程的GID （守护进程标识符）
 			"uuid": "a8788991a64e4a06b76d539b35db1b16", // 实例的UID （远程/本地实例标识符）
-			"servertype": "java", // 服务器版本，支持 java 和 bedrock （基岩）
 			"apikey": "vmajkfnvklNSdvkjbnfkdsnv7e0f", // 不可为空，用户中心->右上角个人资料->右方生成API密钥
 			"group_id": "234532", // 要管理的QQ群号，如果多个实例要监听同一个群，那么下面的群管理员列表应该设置相同
 			"adminlist": [
@@ -108,7 +108,6 @@ func GetMConfig() MConfig {
 			"url": "http://mcsm.domain.com:24444",
 			"remote_uuid": "d6a27b0b13ad44ce879b5ascwfscr323",
 			"uuid": "a8788991a6acasfaca76d539b35db1b16",
-			"servertype": "bedrock",
 			"apikey": "6ewc6292daefvlksmdvjadnvjbf",
 			"group_id": "234532", // 多个实例监听同一个群，下面的管理员列表应设置一样
 			"adminlist": [
@@ -141,7 +140,7 @@ func GetMConfig() MConfig {
 	return config
 }
 
-func ReturnResult(command string, order int, time_now time.Time) {
+func ReturnResult(command string, order int, time_now int64) {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", mconfig.McsmData[order].Domain+"/api/protected_instance/outputlog", nil)
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
@@ -157,49 +156,27 @@ func ReturnResult(command string, order int, time_now time.Time) {
 	}
 	defer r.Body.Close()
 	b, _ := ioutil.ReadAll(r.Body)
-	switch mconfig.McsmData[order].Servertype {
-	case "java":
-		r3, _ := regexp.Compile(`\\r+|\\n|\\u001b\[?=?[a-zA-Z]?\?*[0-9]*[hl]*>? ?[0-9;]*m*`)
-		ret := r3.ReplaceAllString(string(b), "")
-		last := strings.LastIndex(ret, `","time":`)
-		r4, _ := regexp.Compile(`([0-1][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])`)
-		index := strings.Index(ret, r4.FindString(fmt.Sprint(time_now.Add(-1*time.Second))))
-		if index == -1 {
-			index = strings.Index(ret, r4.FindString(fmt.Sprint(time_now)))
-			if index == -1 {
-				index = strings.Index(ret, r4.FindString(fmt.Sprint(time_now.Add(1*time.Second))))
-				if index == -1 {
-					return
-				}
-				Send_group_msg(ret[index-1:last], order)
-				return
-			}
-			Send_group_msg(ret[index-1:last], order)
-			return
+	r3, _ := regexp.Compile(`\\r+|\\n|\\u001b\[?=?[a-zA-Z]?\?*[0-9]*[hl]*>? ?[0-9;]*m*`)
+	ret := r3.ReplaceAllString(string(b), "")
+	last := strings.LastIndex(ret, `","time":`)
+	r4, _ := regexp.Compile(`([0-1][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])`)
+	index := strings.Index(ret, r4.FindString(time.Unix(time_now/1000, 0).Format("2006-01-02 15:04:05")))
+	if strings.IndexAny(ret[index:], `]`) == 8 {
+		ret = fmt.Sprint(ret[:index+8] + " " + ret[index+9:])
+	}
+	if index == -1 {
+		index = strings.Index(ret, r4.FindString(time.Unix((time_now/1000)+1, 0).Format("2006-01-02 15:04:05")))
+		if strings.IndexAny(ret[index:], `]`) == 8 {
+			ret = fmt.Sprint(ret[:index+8] + " " + ret[index+9:])
 		}
-		Send_group_msg(ret[index-1:last], order)
-	case "bedrock":
-		r3, _ := regexp.Compile(`\\r+|\\n|\\u001b\[?=?[a-zA-Z]?\?*[0-9]*[hl]*>? ?[0-9;]*m*`)
-		ret := r3.ReplaceAllString(string(b), "")
-		// fmt.Printf("ret: %v\n", ret)
-		last := strings.LastIndex(ret, `","time":`)
-		r4, _ := regexp.Compile(`([0-1][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])`)
-		index := strings.Index(ret, r4.FindString(fmt.Sprint(time_now.Add(-1*time.Second))))
 		if index == -1 {
-			index = strings.Index(ret, r4.FindString(fmt.Sprint(time_now)))
-			if index == -1 {
-				index = strings.Index(ret, r4.FindString(fmt.Sprint(time_now.Add(1*time.Second))))
-				if index == -1 {
-					return
-				}
-				Send_group_msg(ret[index:last], order)
-				return
-			}
-			Send_group_msg(ret[index:last], order)
+			Send_group_msg("运行命令成功！", order)
 			return
 		}
 		Send_group_msg(ret[index:last], order)
+		return
 	}
+	Send_group_msg(ret[index:last], order)
 }
 
 func RunCmd(commd string, order int) {
@@ -212,10 +189,11 @@ func RunCmd(commd string, order int) {
 	q.Add("command", commd)
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	t1 := time.Now()
-	client.Do(r2)
-	time.Sleep(100 * time.Millisecond)
-	ReturnResult(commd, order, t1)
+	r, _ := client.Do(r2)
+	b, _ := ioutil.ReadAll(r.Body)
+	var time_unix CmdData
+	json.Unmarshal(b, &time_unix)
+	ReturnResult(commd, order, time_unix.Time_unix)
 }
 
 func RunningTest(order int) bool {
