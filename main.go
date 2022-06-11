@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var version = "v0.5.0"
+var version = "v0.6.0"
 var mconfig MConfig
 var qconfig QConfig
 var statusmap map[string]int
@@ -35,7 +35,7 @@ func StartListen(order int) {
 	if RunningTest(order) {
 		go AddQListen(order)
 		statusmap[mconfig.McsmData[order].Name] = 1
-		time.Sleep(3 * time.Second)
+		time.Sleep(2 * time.Second)
 		fmt.Println()
 	} else {
 		fmt.Print("实例 ", mconfig.McsmData[order].Name, " 未启动，是否启动(y/n):")
@@ -43,7 +43,7 @@ func StartListen(order int) {
 		fmt.Scan(&chose)
 		if chose == "y" || chose == "yes" {
 			Start(order)
-			time.Sleep(3 * time.Second)
+			time.Sleep(2 * time.Second)
 			StartListen(order)
 		}
 	}

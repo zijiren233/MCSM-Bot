@@ -140,6 +140,10 @@ run (order) start 启动服务器
 
 run (order) stop 关闭服务器
 
+run (order) restart 重启服务器
+
+run (order) kill 终止服务器
+
 ```
 
 ### 效果展示

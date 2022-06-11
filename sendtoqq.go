@@ -98,12 +98,12 @@ func TestCqhttpStatus(order int) {
 	data.Set("access_token", qconfig.Cqhttp.Token)
 	r2, err := http.NewRequest("GET", qconfig.Cqhttp.Url+"/get_group_msg_history"+"?"+data.Encode(), nil)
 	if err != nil {
-		fmt.Println("Cqhttp状态检测错误，请检查配置文件或Cqhttp状态")
+		fmt.Println("Cqhttp 状态检测错误，请检查配置文件或 Cqhttp 状态")
 		os.Exit(1)
 	}
 	r, err2 := client.Do(r2)
 	if err2 != nil {
-		fmt.Println("Cqhttp状态检测错误，请检查配置文件或Cqhttp状态")
+		fmt.Println("Cqhttp 状态检测错误，请检查配置文件或 Cqhttp 状态")
 		os.Exit(1)
 	}
 	defer r.Body.Close()
@@ -204,17 +204,20 @@ func AddQListen(order int) {
 				case "start":
 					if statusmap[mconfig.McsmData[order].Name] == 0 {
 						Start(order)
-						Send_group_msg(fmt.Sprint("服务器", mconfig.McsmData[order].Name, "正在启动"), order)
+						Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 正在启动"), order)
 					} else {
-						Send_group_msg(fmt.Sprint("服务器", mconfig.McsmData[order].Name, "已在启动"), order)
 					}
 				case "stop":
 					if statusmap[mconfig.McsmData[order].Name] == 1 {
 						Stop(order)
-						Send_group_msg(fmt.Sprint("服务器", mconfig.McsmData[order].Name, "正在关闭"), order)
 					} else {
-						Send_group_msg(fmt.Sprint("服务器", mconfig.McsmData[order].Name, "未在运行"), order)
+						Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 未在运行"), order)
 					}
+				case "restart":
+					Restart(order)
+					Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 正在重启"), order)
+				case "kill":
+					Kill(order)
 				default:
 					go RunCmd(params2[2], order)
 				}
@@ -227,11 +230,11 @@ func ReportStatus(order int) {
 	for {
 		if !RunningTest(order) && statusmap[mconfig.McsmData[order].Name] == 1 {
 			statusmap[mconfig.McsmData[order].Name] = 0
-			Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器", mconfig.McsmData[order].Name, "已停止！"), order)
+			Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器 ", mconfig.McsmData[order].Name, " 已停止！"), order)
 		} else if RunningTest(order) && statusmap[mconfig.McsmData[order].Name] == 0 {
 			statusmap[mconfig.McsmData[order].Name] = 1
-			Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器", mconfig.McsmData[order].Name, "已启动！"), order)
+			Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器 ", mconfig.McsmData[order].Name, " 已启动！"), order)
 		}
-		time.Sleep(3 * time.Second)
+		time.Sleep(1500 * time.Millisecond)
 	}
 }

@@ -149,7 +149,6 @@ func ReturnResult(command string, order int, time_now int64) {
 	q.Add("uuid", mconfig.McsmData[order].Uuid)
 	q.Add("remote_uuid", mconfig.McsmData[order].Remote_uuid)
 	r2.URL.RawQuery = q.Encode()
-	time.Sleep(1 * time.Second)
 	r, err := client.Do(r2)
 	if err != nil {
 		return
@@ -281,4 +280,28 @@ func TestMcsmStatus(order int) {
 		os.Exit(1)
 	}
 	defer r.Body.Close()
+}
+
+func Restart(order int) {
+	client := &http.Client{}
+	r2, _ := http.NewRequest("GET", mconfig.McsmData[order].Domain+"/api/protected_instance/restart", nil)
+	q := r2.URL.Query()
+	q.Add("apikey", mconfig.McsmData[order].Apikey)
+	q.Add("uuid", mconfig.McsmData[order].Uuid)
+	q.Add("remote_uuid", mconfig.McsmData[order].Remote_uuid)
+	r2.URL.RawQuery = q.Encode()
+	r2.Header.Set("x-requested-with", "xmlhttprequest")
+	client.Do(r2)
+}
+
+func Kill(order int) {
+	client := &http.Client{}
+	r2, _ := http.NewRequest("GET", mconfig.McsmData[order].Domain+"/api/protected_instance/kill", nil)
+	q := r2.URL.Query()
+	q.Add("apikey", mconfig.McsmData[order].Apikey)
+	q.Add("uuid", mconfig.McsmData[order].Uuid)
+	q.Add("remote_uuid", mconfig.McsmData[order].Remote_uuid)
+	r2.URL.RawQuery = q.Encode()
+	r2.Header.Set("x-requested-with", "xmlhttprequest")
+	client.Do(r2)
 }
