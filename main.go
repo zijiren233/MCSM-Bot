@@ -14,19 +14,20 @@ var listenmap map[int]int
 
 func AddListen() {
 	fmt.Print("请输入服务器Order(-1表示启动所有):")
-	var order int
 	i := 0
-	fmt.Scan(&order)
+	fmt.Scan(&i)
 	if i >= len(mconfig.McsmData) {
 		fmt.Println("未找到此Order序号,Order序号应从0开始依次增加！")
 		time.Sleep(2 * time.Second)
-	} else if order == -1 {
+		fmt.Println()
+	} else if i == -1 {
+		i = 0
 		for i < len(mconfig.McsmData) {
 			StartListen(i)
 			i++
 		}
 	} else {
-		StartListen(order)
+		StartListen(i)
 	}
 }
 
@@ -55,6 +56,7 @@ func Chose() {
 	fmt.Println("1.添加监听服务器")
 	fmt.Println("2.查看已监听列表")
 	fmt.Println("3.查看服务器状态")
+	fmt.Println("4.动态读取配置信息(用于增加了配置信息后直接添加监听，不用重启软件。减少了配置信息不要动态读取！请重启软件！)")
 	fmt.Print("请输入序号:")
 	fmt.Scan(&chose)
 	switch chose {
@@ -67,6 +69,11 @@ func Chose() {
 		fmt.Printf("\n")
 	case "3":
 		fmt.Println(statusmap)
+		time.Sleep(2 * time.Second)
+		fmt.Printf("\n")
+	case "4":
+		mconfig = GetMConfig()
+		fmt.Println("读取配置信息成功！")
 		time.Sleep(2 * time.Second)
 		fmt.Printf("\n")
 	default:

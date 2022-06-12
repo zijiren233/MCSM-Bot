@@ -51,7 +51,6 @@ func GetMConfig() MConfig {
 	"mcsmdata": [
 		{
 			"order": 0,
-			"sendtype": "QQ",
 			"name": "server1",
 			"url": "https://mcsm.domain.com:443",
 			"remote_uuid": "d6a27b0b13ad44ce879b5a56c88b4d34",
@@ -65,7 +64,6 @@ func GetMConfig() MConfig {
 		},
 		{
 			"order": 1,
-			"sendtype": "TG",
 			"name": "server2",
 			"url": "http://mcsm.domain.com:24444",
 			"remote_uuid": "d6a27b0b13ad44ce879b5ascwfscr323",
@@ -89,7 +87,6 @@ func GetMConfig() MConfig {
 	"mcsmdata": [
 		{
 			"order": 0, // 按顺序填,此项为监听服务器的序号，从0开始依次增加，用于启动监听时填的要监听哪一个服务器
-			"sendtype": "QQ", // 暂时只有QQ
 			"name": "server1", // MCSM里面的实例名，即基本信息里的昵称，实例名不可重复！！！
 			"url": "https://mcsm.domain.com:443", // MCSM面板的地址，包含http(s)//，结尾不要有斜杠/
 			"remote_uuid": "d6a27b0b13ad44ce879b5a56c88b4d34", // 守护进程的GID （守护进程标识符）
@@ -102,8 +99,7 @@ func GetMConfig() MConfig {
 			]
 		}, // 只有一个实例则可以删掉后面的这个order，有多个则自行添加
 		{
-			"order": 1,
-			"sendtype": "TG",
+			"order": 1, // 按顺序填，0，1，2，3 ......
 			"name": "server2",
 			"url": "http://mcsm.domain.com:24444",
 			"remote_uuid": "d6a27b0b13ad44ce879b5ascwfscr323",
@@ -151,31 +147,49 @@ func ReturnResult(command string, order int, time_now int64) {
 	r2.URL.RawQuery = q.Encode()
 	r, err := client.Do(r2)
 	if err != nil {
+		Send_group_msg("获取运行结果失败！", order)
 		return
 	}
 	defer r.Body.Close()
 	b, _ := ioutil.ReadAll(r.Body)
-	r3, _ := regexp.Compile(`\\r+|\\n|\\u001b\[?=?[a-zA-Z]?\?*[0-9]*[hl]*>? ?[0-9;]*m*`)
+	r3, _ := regexp.Compile(`\\r+|\\u001b\[?=?[a-zA-Z]?\?*[0-9]*[hl]*>? ?[0-9;]*m*`)
 	ret := r3.ReplaceAllString(string(b), "")
 	last := strings.LastIndex(ret, `","time":`)
 	r4, _ := regexp.Compile(`([0-1][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])`)
 	index := strings.Index(ret, r4.FindString(time.Unix(time_now/1000, 0).Format("2006-01-02 15:04:05")))
-	if strings.IndexAny(ret[index:], `]`) == 8 {
-		ret = fmt.Sprint(ret[:index+8] + " " + ret[index+9:])
-	}
+	var data Data
 	if index == -1 {
 		index = strings.Index(ret, r4.FindString(time.Unix((time_now/1000)+1, 0).Format("2006-01-02 15:04:05")))
-		if strings.IndexAny(ret[index:], `]`) == 8 {
-			ret = fmt.Sprint(ret[:index+8] + " " + ret[index+9:])
-		}
 		if index == -1 {
-			Send_group_msg("运行命令成功！", order)
+			index = strings.Index(ret, r4.FindString(time.Unix((time_now/1000)-1, 0).Format("2006-01-02 15:04:05")))
+			if index == -1 {
+				Send_group_msg("运行命令成功！", order)
+				return
+			}
+			if strings.IndexAny(ret[index:], `]`) == 8 {
+				index -= 1
+			}
+			ret = fmt.Sprint(`{"data":"`, ret[index:last], `"}`)
+			json.Unmarshal([]byte(ret), &data)
+			Send_group_msg(data.Data, order)
 			return
 		}
-		Send_group_msg(ret[index:last], order)
+		if strings.IndexAny(ret[index:], `]`) == 8 {
+			index -= 1
+		}
+		ret = fmt.Sprint(`{"data":"`, ret[index:last], `"}`)
+		json.Unmarshal([]byte(ret), &data)
+		Send_group_msg(data.Data, order)
 		return
+
 	}
-	Send_group_msg(ret[index:last], order)
+	if strings.IndexAny(ret[index:], `]`) == 8 {
+		index -= 1
+	}
+	ret = fmt.Sprint(`{"data":"`, ret[index:last], `"}`)
+	json.Unmarshal([]byte(ret), &data)
+	Send_group_msg(data.Data, order)
+
 }
 
 func RunCmd(commd string, order int) {
@@ -189,7 +203,11 @@ func RunCmd(commd string, order int) {
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	r, _ := client.Do(r2)
-	b, _ := ioutil.ReadAll(r.Body)
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		Send_group_msg(fmt.Sprint("网络可能不稳定，", commd, "发送失败！"), order)
+		return
+	}
 	var time_unix CmdData
 	json.Unmarshal(b, &time_unix)
 	ReturnResult(commd, order, time_unix.Time_unix)
@@ -209,19 +227,16 @@ func RunningTest(order int) bool {
 	r, _ := client.Do(r2)
 	b, _ := ioutil.ReadAll(r.Body)
 	var status Status
-	err := json.Unmarshal(b, &status)
-	if err != nil {
-		fmt.Println("未检测到实例！请检查实例状态或配置文件是否填写正确！")
-		os.Exit(1)
-	}
-	if len(status.Data.Data) == 0 {
-		fmt.Println("未检测到实例！请检查实例状态或配置文件是否填写正确！")
-		os.Exit(1)
-	}
-	if status.Data.Data[0].Status == 3 || status.Data.Data[0].Status == 2 {
-		return true
-	} else {
+	json.Unmarshal(b, &status)
+	if len(status.Data.Data) == 0 && statusmap[mconfig.McsmData[order].Name] == 0 {
 		return false
+	} else if len(status.Data.Data) == 0 && statusmap[mconfig.McsmData[order].Name] == 1 {
+		return true
+	}
+	if status.Data.Data[0].Status != 3 && status.Data.Data[0].Status != 2 {
+		return false
+	} else {
+		return true
 	}
 }
 

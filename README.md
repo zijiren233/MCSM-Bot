@@ -63,8 +63,7 @@ default-middlewares: &default
     { // 真正的配置文件为标准的json格式，里面不要有注释！！！
         "mcsmdata": [
             {
-                "order": 0, // 按顺序填
-                "sendtype": "QQ", // 暂时只有QQ
+                "order": 0, // 按顺序填，0，1，2，3 ......
                 "name": "server1", // MCSM里面的实例名，即基本信息里的昵称，实例名不可重复！！！
                 "url": "https://mcsm.domain.com:443", // MCSM面板的地址，包含http(s)//，结尾不要有斜杠/
                 "remote_uuid": "d6a27b0b13ad44ce879b5a56c88b4d34", // 守护进程的GID
@@ -77,8 +76,7 @@ default-middlewares: &default
                 ]
             }, // 只有一个实例则可以删掉后面的这个order，有多个则自行添加
             {
-                "order": 1,
-                "sendtype": "TG",
+                "order": 1, // 按顺序填，0，1，2，3 ......
                 "name": "server2",
                 "url": "http://mcsm.domain.com:24444",
                 "remote_uuid": "d6a27b0b13ad44ce879b5ascwfscr323",
