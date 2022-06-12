@@ -32,9 +32,7 @@ default-middlewares: &default
 
 - 登录出错
 
-    如果 go-cqhttp QQ机器人登录不上，可以先在和自己同一个网络环境下的 windows 安装 go-cqhttp ，在 windows 下扫码登录成功后会生成 `session.token` 和 `device.json` 两个文件，请复制到远程vps后登录即可。
-
-    或者用远程vps搭建节点使手机和vps在同一个网络环境再登录。
+    如果 go-cqhttp QQ机器人登录不上，可以先在和自己同一个网络环境下的 **windows** 安装 go-cqhttp ，在 windows 下扫码登录成功后会生成 `session.token` 和 `device.json` 两个文件，请复制替换到远程 vps 后登录即可。
 
 - 如果你实在登录不上去，可以使用我提供的测试API地址
     - 方法：
