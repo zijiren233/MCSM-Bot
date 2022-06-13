@@ -82,7 +82,7 @@ default-middlewares: &default
                 "apikey": "6ewc6292daefvlksmdvjadnvjbf",
                 "group_id": "234532", // 多个实例监听同一个群，下面的管理员列表应设置一样
                 "adminlist": [
-                    "1145141919", // 多个实例监听同一个群，管理员列表应设置一样
+                    "1145141919",
                     "1145141919"
                 ]
             } // <--最后一个实例配置这里没有逗号！！！

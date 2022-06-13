@@ -23,12 +23,18 @@ type QConfig struct {
 
 type MesData struct {
 	Data struct {
-		Message string `json:"message"`
-		Sender  struct {
-			Nickname string `json:"nickname"`
-			User_id  int    `json:"user_id"`
-		} `json:"sender"`
+		Messages []struct {
+			Message    string `json:"message"`
+			User_id    int    `json:"user_id"`
+			Message_id int    `json:"message_id"`
+		} `json:"messages"`
 	} `json:"data"`
+}
+
+type Mdata struct {
+	Message    string `json:"message"`
+	User_id    int    `json:"user_id"`
+	Message_id int    `json:"message_id"`
 }
 
 func GetQConfig() QConfig {
@@ -52,40 +58,6 @@ func GetQConfig() QConfig {
 	return config
 }
 
-func Get_group_new_msg_id(order int, chan_message_id chan string) {
-	client := &http.Client{}
-	data := url.Values{}
-	data.Set("group_id", mconfig.McsmData[order].Group_id)
-	data.Set("access_token", qconfig.Cqhttp.Token)
-	r2, _ := http.NewRequest("GET", qconfig.Cqhttp.Url+"/get_group_msg_history"+"?"+data.Encode(), nil)
-	r, _ := client.Do(r2)
-	b, _ := ioutil.ReadAll(r.Body)
-	strb := string(b)
-	index := strings.LastIndex(strb, `"message_id":`)
-	getdot := string(b)[index:]
-	regexp, _ := regexp.Compile(":.*?[0-9]+")
-	ret := regexp.FindString(getdot)
-	tmp := ret[1:]
-	for {
-		r, _ = client.Do(r2)
-		b, _ = ioutil.ReadAll(r.Body)
-		strb = string(b)
-		index = strings.LastIndex(strb, `"message_id":`)
-		if index == -1 {
-			continue
-		}
-		getdot = string(b)[index:]
-		ret = regexp.FindString(getdot)
-		if ret[1:] != tmp {
-			tmp = ret[1:]
-			chan_message_id <- tmp
-		}
-		time.Sleep(40 * time.Millisecond)
-		/*The detection frequency is 40ms once, and it should not be set too large,
-		otherwise messages will be missed*/
-	}
-}
-
 func TestCqhttpStatus(order int) {
 	client := &http.Client{}
 	data := url.Values{}
@@ -104,25 +76,28 @@ func TestCqhttpStatus(order int) {
 	defer r.Body.Close()
 }
 
-func Get_msg(order int, chan_message_id chan string, chan_message chan string) {
+func Get_group_new_msg(order int, chan_message chan Mdata) {
 	client := &http.Client{}
-	var mesdata MesData
 	data := url.Values{}
+	data.Set("group_id", mconfig.McsmData[order].Group_id)
 	data.Set("access_token", qconfig.Cqhttp.Token)
+	r2, _ := http.NewRequest("GET", qconfig.Cqhttp.Url+"/get_group_msg_history"+"?"+data.Encode(), nil)
+	r, _ := client.Do(r2)
+	b, _ := ioutil.ReadAll(r.Body)
+	var mesdata MesData
+	json.Unmarshal(b, &mesdata)
+	tmp := mesdata.Data.Messages[19].Message_id
 	for {
-		go func(message_id string, chan_message chan string) {
-			data.Set("message_id", message_id)
-			r2, _ := http.NewRequest("GET", qconfig.Cqhttp.Url+"/get_msg"+"?"+data.Encode(), nil)
-			r, _ := client.Do(r2)
-			b, _ := ioutil.ReadAll(r.Body)
-			json.Unmarshal(b, &mesdata)
-			user_id := strconv.Itoa(mesdata.Data.Sender.User_id)
-			if len(mconfig.McsmData[order].Adminlist) == 0 {
-				chan_message <- mesdata.Data.Message
-			} else if in(user_id, mconfig.McsmData[order].Adminlist) && user_id != qconfig.Cqhttp.Qq {
-				chan_message <- mesdata.Data.Message
-			}
-		}(<-chan_message_id, chan_message)
+		r, _ = client.Do(r2)
+		b, _ = ioutil.ReadAll(r.Body)
+		json.Unmarshal(b, &mesdata)
+		if mesdata.Data.Messages[19].Message_id != tmp {
+			tmp = mesdata.Data.Messages[19].Message_id
+			chan_message <- mesdata.Data.Messages[19]
+		}
+		time.Sleep(40 * time.Millisecond)
+		/*The detection frequency is 40ms once, and it should not be set too large,
+		otherwise messages will be missed*/
 	}
 }
 
@@ -168,30 +143,37 @@ func AddQListen(order int) {
 	}
 	listenmap[order] = 1
 	// 设置缓存大小为 1000 / 40 = 25 每秒最多处理25条消息
-	chan_message_id := make(chan string, 25)
-	chan_message := make(chan string, 25)
+	chan_message := make(chan Mdata, 25)
 	var od int
-	go Get_group_new_msg_id(order, chan_message_id)
-	go Get_msg(order, chan_message_id, chan_message)
+	go Get_group_new_msg(order, chan_message)
 	go ReportStatus(order)
 	flysnowRegexp, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
+	var params string
+	var params2 []string
+	var mdata Mdata
 	for {
-		params := flysnowRegexp.FindString(<-chan_message)
+		mdata = <-chan_message
+		params = flysnowRegexp.FindString(mdata.Message)
 		if len(params) == 0 {
 			continue
 		}
-		params2 := flysnowRegexp.FindStringSubmatch(params)
+		params2 = flysnowRegexp.FindStringSubmatch(params)
 		if params2[1] != "" {
 			od, _ = strconv.Atoi(params2[1])
 			if od >= len(mconfig.McsmData) {
-				Send_group_msg("Order错误！", order)
+				go Send_group_msg("Order错误！", order)
 				continue
 			}
 			if mconfig.McsmData[order].Group_id != mconfig.McsmData[od].Group_id {
-				Send_group_msg("Order错误！", order)
+				go Send_group_msg("Order错误！", order)
 				continue
-			} else if listenmap[od] != 1 {
-				Send_group_msg("未开启监听！", order)
+			}
+			if !in(strconv.Itoa(mdata.User_id), mconfig.McsmData[od].Adminlist) {
+				go Send_group_msg("权限不足！", order)
+				continue
+			}
+			if listenmap[od] != 1 {
+				go Send_group_msg("未开启监听！", order)
 				continue
 			}
 		} else {
@@ -224,7 +206,7 @@ func AddQListen(order int) {
 			case "kill":
 				Kill(order)
 			default:
-				go RunCmd(params, order)
+				RunCmd(params, order)
 
 			}
 		}(params2[2], od)
