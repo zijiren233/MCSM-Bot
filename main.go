@@ -46,6 +46,8 @@ func StartListen(order int) {
 			Start(order)
 			time.Sleep(2 * time.Second)
 			StartListen(order)
+		} else {
+			fmt.Println()
 		}
 	}
 }

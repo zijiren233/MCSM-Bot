@@ -225,13 +225,22 @@ func RunningTest(order int) bool {
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	r, _ := client.Do(r2)
-	b, _ := ioutil.ReadAll(r.Body)
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		if statusmap[mconfig.McsmData[order].Name] == 0 {
+			return false
+		} else {
+			return true
+		}
+	}
 	var status Status
 	json.Unmarshal(b, &status)
-	if len(status.Data.Data) == 0 && statusmap[mconfig.McsmData[order].Name] == 0 {
-		return false
-	} else if len(status.Data.Data) == 0 && statusmap[mconfig.McsmData[order].Name] == 1 {
-		return true
+	if len(status.Data.Data) == 0 {
+		if statusmap[mconfig.McsmData[order].Name] == 0 {
+			return false
+		} else {
+			return true
+		}
 	}
 	if status.Data.Data[0].Status != 3 && status.Data.Data[0].Status != 2 {
 		return false
