@@ -17,7 +17,7 @@ type Data struct {
 
 type MConfig struct {
 	McsmData []struct {
-		Order       int      `json:"order"`
+		Order       int      `json:"id"`
 		Sendtype    string   `json:"sendtype"`
 		Name        string   `json:"name"`
 		Domain      string   `json:"url"`
@@ -50,7 +50,7 @@ func GetMConfig() MConfig {
 		f.WriteString(`{
 	"mcsmdata": [
 		{
-			"order": 0,
+			"id": 0,
 			"name": "server1",
 			"url": "https://mcsm.domain.com:443",
 			"remote_uuid": "d6a27b0b13ad44ce879b5a56c88b4d34",
@@ -59,11 +59,11 @@ func GetMConfig() MConfig {
 			"group_id": "234532",
 			"adminlist": [
 				"1145141919",
-				"1145141919"
+				"1433223"
 			]
 		},
 		{
-			"order": 1,
+			"id": 1,
 			"name": "server2",
 			"url": "http://mcsm.domain.com:24444",
 			"remote_uuid": "d6a27b0b13ad44ce879b5ascwfscr323",
@@ -71,8 +71,8 @@ func GetMConfig() MConfig {
 			"apikey": "6ewc6292daefvlksmdvjadnvjbf",
 			"group_id": "234532",
 			"adminlist": [
-				"1145141919",
-				"1145141919"
+				"114514", // 不同实例在同一个群也可以有不同的管理员
+				"1919"
 			]
 		}
 	],
@@ -83,10 +83,10 @@ func GetMConfig() MConfig {
 	}
 }`)
 		f2, _ := os.OpenFile("config.sample.json", os.O_CREATE, 0777)
-		f2.WriteString(`{
+		f2.WriteString(`{ // 真正的配置文件为标准的json格式，里面不要有注释！！！
 	"mcsmdata": [
 		{
-			"order": 0, // 按顺序填,此项为监听服务器的序号，从0开始依次增加，用于启动监听时填的要监听哪一个服务器
+			"id": 0, // 按顺序填,此项为监听服务器的序号，从0开始依次增加，用于启动监听时填的要监听哪一个服务器
 			"name": "server1", // MCSM里面的实例名，即基本信息里的昵称，实例名不可重复！！！
 			"url": "https://mcsm.domain.com:443", // MCSM面板的地址，包含http(s)//，结尾不要有斜杠/
 			"remote_uuid": "d6a27b0b13ad44ce879b5a56c88b4d34", // 守护进程的GID （守护进程标识符）
@@ -95,11 +95,11 @@ func GetMConfig() MConfig {
 			"group_id": "234532", // 要管理的QQ群号
 			"adminlist": [
 				"1145141919", // 群管理员，第一个为主管理员，只有管理员才可以发送命令
-				"1145141919" // 管理员列表可以为空，则所有用户都可以发送命令
+				"1433223" // 管理员列表可以为空，则所有用户都可以发送命令
 			]
-		}, // 只有一个实例则可以删掉后面的这个order，有多个则自行添加
+		}, // 只有一个实例可以删掉后面的服务器，有多个则自行添加
 		{
-			"order": 1, // 按顺序填，0，1，2，3 ......
+			"id": 1, // 按顺序填，0，1，2，3 ......
 			"name": "server2",
 			"url": "http://mcsm.domain.com:24444",
 			"remote_uuid": "d6a27b0b13ad44ce879b5ascwfscr323",
@@ -107,8 +107,8 @@ func GetMConfig() MConfig {
 			"apikey": "6ewc6292daefvlksmdvjadnvjbf",
 			"group_id": "234532",
 			"adminlist": [
-				"1145141919",
-				"1145141919"
+				"114514",
+				"1919"
 			]
 		} // <--最后一个实例配置这里没有逗号！！！
 	],
@@ -251,11 +251,11 @@ func RunningTest(order int) bool {
 
 func SendStatus(order int) {
 	if statusmap[mconfig.McsmData[order].Name] == 1 {
-		Send_group_msg(fmt.Sprint("服务器", mconfig.McsmData[order].Name, "正在运行"), order)
+		Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器", mconfig.McsmData[order].Name, "正在运行"), order)
 	} else if statusmap[mconfig.McsmData[order].Name] == 0 {
-		Send_group_msg(fmt.Sprint("服务器", mconfig.McsmData[order].Name, "未运行"), order)
+		Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器", mconfig.McsmData[order].Name, "未运行"), order)
 	} else {
-		Send_group_msg("未监听Order", order)
+		Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "未监听", mconfig.McsmData[order].Name), order)
 	}
 }
 

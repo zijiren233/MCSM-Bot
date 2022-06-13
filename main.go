@@ -6,18 +6,18 @@ import (
 	"time"
 )
 
-var version = "v0.6.0"
+var version = "v0.7.0"
 var mconfig MConfig
 var qconfig QConfig
 var statusmap map[string]int
 var listenmap map[int]int
 
 func AddListen() {
-	fmt.Print("请输入服务器Order(-1表示启动所有):")
+	fmt.Print("请输入服务器Id(-1表示启动所有):")
 	i := 0
 	fmt.Scan(&i)
 	if i >= len(mconfig.McsmData) {
-		fmt.Println("未找到此Order序号,Order序号应从0开始依次增加！")
+		fmt.Println("未找到此Id,Id应从0开始依次增加！")
 		time.Sleep(2 * time.Second)
 		fmt.Println()
 	} else if i == -1 {
@@ -65,11 +65,12 @@ func Chose() {
 	case "1":
 		AddListen()
 	case "2":
-		fmt.Println("Order: status")
+		fmt.Println("[服务器Id: 监听状态(1:监听中)]  没显示的Id均未监听")
 		fmt.Println(listenmap)
 		time.Sleep(2 * time.Second)
 		fmt.Printf("\n")
 	case "3":
+		fmt.Println("[服务器Name: 监听状态(1:运行 2:停止)]")
 		fmt.Println(statusmap)
 		time.Sleep(2 * time.Second)
 		fmt.Printf("\n")
@@ -89,10 +90,10 @@ func main() {
 	qconfig = GetQConfig()
 	statusmap = make(map[string]int)
 	listenmap = make(map[int]int)
-	fmt.Print("启动所有服务器?/启动Order (y/order):")
+	fmt.Print("启动所有服务器?/某个服务器ID (y/id):")
 	var chose string
 	fmt.Scan(&chose)
-	if chose == "y" || chose == "yes" {
+	if chose == "y" {
 		i := 0
 		for i < len(mconfig.McsmData) {
 			StartListen(i)
@@ -103,7 +104,7 @@ func main() {
 		if i < len(mconfig.McsmData) && i >= 0 {
 			StartListen(i)
 		} else {
-			fmt.Println("请输入正确的Order!")
+			fmt.Println("请输入正确的Id!")
 			time.Sleep(2 * time.Second)
 			fmt.Println()
 		}

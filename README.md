@@ -16,14 +16,14 @@
 
 #### 1.启动QQ_API
 
-下载 **[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)** 运行后选择 [0]HTTP通信，启动后 `go-cqhttp` 会生成配置文件，只需要修改 `config.yml` 中：
+下载 **[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)** 运行后选择 0.HTTP通信，启动后 `go-cqhttp` 会生成配置文件，只需要修改 `config.yml` 中：
 
 ```
 
-account:
+account里面的：
     uin: // 用于机器人的QQ号
     
-default-middlewares: &default
+default-middlewares里面的：
     access-token: // 设置任意长度字符串
 
 ```
@@ -61,7 +61,7 @@ default-middlewares: &default
     { // 真正的配置文件为标准的json格式，里面不要有注释！！！
         "mcsmdata": [
             {
-                "order": 0, // 按顺序填，0，1，2，3 ......
+                "id": 0, // 按顺序填,此项为监听服务器的序号，从0开始依次增加，用于启动监听时填的要监听哪一个服务器
                 "name": "server1", // MCSM里面的实例名，即基本信息里的昵称，实例名不可重复！！！
                 "url": "https://mcsm.domain.com:443", // MCSM面板的地址，包含http(s)//，结尾不要有斜杠/
                 "remote_uuid": "d6a27b0b13ad44ce879b5a56c88b4d34", // 守护进程的GID
@@ -70,11 +70,11 @@ default-middlewares: &default
                 "group_id": "234532", // 要管理的QQ群号
                 "adminlist": [
                     "1145141919", // 群管理员，第一个为主管理员，只有管理员才可以发送命令
-                    "1145141919" // 管理员列表可以为空，则所有用户都可以发送命令
+                    "1433223" // 管理员列表可以为空，则所有用户都可以发送命令
                 ]
-            }, // 只有一个实例则可以删掉后面的这个order，有多个则自行添加
+            }, // 只有一个实例可以删掉后面的服务器，有多个则自行添加
             {
-                "order": 1, // 按顺序填，0，1，2，3 ......
+                "id": 1, // 按顺序填，0，1，2，3 ......
                 "name": "server2",
                 "url": "http://mcsm.domain.com:24444",
                 "remote_uuid": "d6a27b0b13ad44ce879b5ascwfscr323",
@@ -82,8 +82,8 @@ default-middlewares: &default
                 "apikey": "6ewc6292daefvlksmdvjadnvjbf",
                 "group_id": "234532",
                 "adminlist": [
-                    "1145141919",
-                    "1145141919"
+                    "114514", // 不同实例在同一个群也可以有不同的管理员
+                    "1919"
                 ]
             } // <--最后一个实例配置这里没有逗号！！！
         ],

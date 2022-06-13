@@ -132,12 +132,15 @@ func getKeys(m map[int]int) []int {
 func AddQListen(order int) {
 	TestCqhttpStatus(order)
 	fmt.Println("监听实例 ", mconfig.McsmData[order].Name, " 成功！")
-	// 获取已监听的 []Order
+	// 获取已监听的 []ID
 	i := getKeys(listenmap)
 	for j := range i {
-		if mconfig.McsmData[j].Group_id == mconfig.McsmData[order].Group_id || j == order {
+		if mconfig.McsmData[j].Group_id == mconfig.McsmData[order].Group_id && j != order {
 			// fmt.Println("监听相同的群/已监听")
+			go ReportStatus(order)
 			listenmap[order] = 1
+			return
+		} else if j == order {
 			return
 		}
 	}
@@ -161,19 +164,19 @@ func AddQListen(order int) {
 		if params2[1] != "" {
 			od, _ = strconv.Atoi(params2[1])
 			if od >= len(mconfig.McsmData) {
-				go Send_group_msg("Order错误！", order)
+				go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, "ID错误！"), order)
 				continue
 			}
 			if mconfig.McsmData[order].Group_id != mconfig.McsmData[od].Group_id {
-				go Send_group_msg("Order错误！", order)
+				go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, "ID错误！"), order)
 				continue
 			}
 			if !in(strconv.Itoa(mdata.User_id), mconfig.McsmData[od].Adminlist) {
-				go Send_group_msg("权限不足！", order)
+				go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, "权限不足！"), order)
 				continue
 			}
 			if listenmap[od] != 1 {
-				go Send_group_msg("未开启监听！", order)
+				go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, "未开启监听！"), order)
 				continue
 			}
 		} else {
@@ -190,19 +193,21 @@ func AddQListen(order int) {
 				SendStatus(order)
 			case "start":
 				if statusmap[mconfig.McsmData[order].Name] == 0 {
+					Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 正在启动"), order)
 					Start(order)
 				} else {
 					Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 已在运行"), order)
 				}
 			case "stop":
 				if statusmap[mconfig.McsmData[order].Name] == 1 {
+					Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 正在关闭"), order)
 					Stop(order)
 				} else {
 					Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 未在运行"), order)
 				}
 			case "restart":
-				Restart(order)
 				Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 正在重启"), order)
+				Restart(order)
 			case "kill":
 				Kill(order)
 			default:
