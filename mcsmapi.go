@@ -71,7 +71,7 @@ func GetMConfig() MConfig {
 			"apikey": "6ewc6292daefvlksmdvjadnvjbf",
 			"group_id": "234532",
 			"adminlist": [
-				"114514", // 不同实例在同一个群也可以有不同的管理员
+				"114514",
 				"1919"
 			]
 		}
@@ -107,7 +107,7 @@ func GetMConfig() MConfig {
 			"apikey": "6ewc6292daefvlksmdvjadnvjbf",
 			"group_id": "234532",
 			"adminlist": [
-				"114514",
+				"114514", // 不同实例在同一个群也可以有不同的管理员
 				"1919"
 			]
 		} // <--最后一个实例配置这里没有逗号！！！

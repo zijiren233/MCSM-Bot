@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var version = "v0.7.0"
+var version = "v1.0.0"
 var mconfig MConfig
 var qconfig QConfig
 var statusmap map[string]int

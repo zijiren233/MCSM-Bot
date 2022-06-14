@@ -108,15 +108,15 @@ default-middlewares里面的：
 
 ```
 
-括号内的 order 可省略，则优先输出第一个监听此群的服务器
+括号内的 id 可省略，则优先输出第一个监听此群的服务器
 
 普通命令就是可在MC控制台直接运行的命令，比如 set time day
 
-run (order) list
+run (id) list
 
-run (order) tps
+run (id) tps
 
-run (order) weather clear
+run (id) weather clear
 
 ...
 
@@ -128,17 +128,17 @@ run (order) weather clear
 
 ```
 
-括号内的 order 可省略，则优先输出第一个监听此群的服务器
+括号内的 id 可省略，则优先输出第一个监听此群的服务器
 
-run (order) status 查看服务器运行状态
+run (id) status 查看服务器运行状态
 
-run (order) start 启动服务器
+run (id) start 启动服务器
 
-run (order) stop 关闭服务器
+run (id) stop 关闭服务器
 
-run (order) restart 重启服务器
+run (id) restart 重启服务器
 
-run (order) kill 终止服务器
+run (id) kill 终止服务器
 
 ```
 
