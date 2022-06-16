@@ -154,8 +154,7 @@ func AddQListen(order int) {
 	var params string
 	var params2 []string
 	var mdata Mdata
-	for {
-		mdata = <-chan_message
+	for mdata = range chan_message {
 		params = flysnowRegexp.FindString(mdata.Message)
 		if len(params) == 0 {
 			continue

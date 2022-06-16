@@ -155,13 +155,12 @@ func ReturnResult(command string, order int, time_now int64) {
 	r3, _ := regexp.Compile(`\\r+|\\u001b\[?=?[a-zA-Z]?\?*[0-9]*[hl]*>? ?[0-9;]*m*`)
 	ret := r3.ReplaceAllString(string(b), "")
 	last := strings.LastIndex(ret, `","time":`)
-	r4, _ := regexp.Compile(`([0-1][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])`)
-	index := strings.Index(ret, r4.FindString(time.Unix(time_now/1000, 0).Format("2006-01-02 15:04:05")))
+	index := strings.Index(ret, time.Unix(time_now/1000, 0).Format("15:04:05"))
 	var data Data
 	if index == -1 {
-		index = strings.Index(ret, r4.FindString(time.Unix((time_now/1000)+1, 0).Format("2006-01-02 15:04:05")))
+		index = strings.Index(ret, time.Unix((time_now/1000)+1, 0).Format("15:04:05"))
 		if index == -1 {
-			index = strings.Index(ret, r4.FindString(time.Unix((time_now/1000)-1, 0).Format("2006-01-02 15:04:05")))
+			index = strings.Index(ret, time.Unix((time_now/1000)-1, 0).Format("15:04:05"))
 			if index == -1 {
 				Send_group_msg("运行命令成功！", order)
 				return
