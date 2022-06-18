@@ -99,6 +99,9 @@ func Get_group_new_msg(order int, chan_message chan Mdata) {
 			continue
 		}
 		json.Unmarshal(b, &mesdata)
+		if len(mesdata.Data.Messages) == 0 {
+			continue
+		}
 		lens = len(mesdata.Data.Messages) - 1
 		if mesdata.Data.Messages[lens].Message_id != tmp {
 			tmp = mesdata.Data.Messages[lens].Message_id
