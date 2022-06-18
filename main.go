@@ -13,6 +13,10 @@ var statusmap map[string]int
 var listenmap map[int]int
 
 func AddListen() {
+	if len(mconfig.McsmData) == 1 {
+		StartListen(0)
+		return
+	}
 	fmt.Print("启动所有服务器?/某个服务器ID (y/id):")
 	var chose string
 	fmt.Scan(&chose)

@@ -156,14 +156,42 @@ func ReturnResult(command string, order int, time_now int64) {
 	ret := r3.ReplaceAllString(string(b), "")
 	last := strings.LastIndex(ret, `","time":`)
 	index := strings.Index(ret, time.Unix(time_now/1000, 0).Format("15:04:05"))
+	fmt.Printf("log: %v\n", time.Unix(time_now/1000, 0).Format("15:04:05"))
 	var data Data
 	if index == -1 {
 		index = strings.Index(ret, time.Unix((time_now/1000)+1, 0).Format("15:04:05"))
 		if index == -1 {
-			index = strings.Index(ret, time.Unix((time_now/1000)-1, 0).Format("15:04:05"))
+			index = strings.Index(ret, time.Unix((time_now/1000)+1, 0).Format("15:04:05"))
 			if index == -1 {
-				Send_group_msg("运行命令成功！", order)
-				return
+				index = strings.Index(ret, time.Unix((time_now/1000)+2, 0).Format("15:04:05"))
+				if index == -1 {
+					index = strings.Index(ret, time.Unix((time_now/1000)+3, 0).Format("15:04:05"))
+					if index == -1 {
+						index = strings.Index(ret, time.Unix((time_now/1000)-1, 0).Format("15:04:05"))
+						if index == -1 {
+							Send_group_msg("运行命令成功！", order)
+							return
+						}
+						if strings.IndexAny(ret[index:], `]`) == 8 {
+							index -= 1
+						}
+						ret = fmt.Sprint(`{"data":"`, ret[index:last], `"}`)
+						json.Unmarshal([]byte(ret), &data)
+						Send_group_msg(data.Data, order)
+					}
+					if strings.IndexAny(ret[index:], `]`) == 8 {
+						index -= 1
+					}
+					ret = fmt.Sprint(`{"data":"`, ret[index:last], `"}`)
+					json.Unmarshal([]byte(ret), &data)
+					Send_group_msg(data.Data, order)
+				}
+				if strings.IndexAny(ret[index:], `]`) == 8 {
+					index -= 1
+				}
+				ret = fmt.Sprint(`{"data":"`, ret[index:last], `"}`)
+				json.Unmarshal([]byte(ret), &data)
+				Send_group_msg(data.Data, order)
 			}
 			if strings.IndexAny(ret[index:], `]`) == 8 {
 				index -= 1
@@ -209,6 +237,7 @@ func RunCmd(commd string, order int) {
 	}
 	var time_unix CmdData
 	json.Unmarshal(b, &time_unix)
+	time.Sleep(1 * time.Second)
 	ReturnResult(commd, order, time_unix.Time_unix)
 }
 

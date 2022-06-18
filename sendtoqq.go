@@ -170,27 +170,31 @@ func AddQListen(order int) {
 		params2 = flysnowRegexp.FindStringSubmatch(params)
 		if params2[1] != "" {
 			od, _ = strconv.Atoi(params2[1])
-			if od >= len(mconfig.McsmData) {
-				go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, "ID错误！"), order)
-				continue
-			}
-			if mconfig.McsmData[order].Group_id != mconfig.McsmData[od].Group_id {
-				go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, "ID错误！"), order)
-				continue
-			}
-			if !in(strconv.Itoa(mdata.User_id), mconfig.McsmData[od].Adminlist) {
-				go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, "权限不足！"), order)
-				continue
-			}
-			if listenmap[od] != 1 {
-				go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, "未开启监听！"), order)
-				continue
-			}
 		} else {
 			od = order
 		}
+		if od >= len(mconfig.McsmData) {
+			go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, "ID错误！"), order)
+			continue
+		}
+		if mconfig.McsmData[order].Group_id != mconfig.McsmData[od].Group_id {
+			go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, "ID错误！"), order)
+			continue
+		}
+		if !in(strconv.Itoa(mdata.User_id), mconfig.McsmData[od].Adminlist) {
+			go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, "权限不足！"), order)
+			continue
+		}
+		if listenmap[od] != 1 {
+			go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, mconfig.McsmData[od].Name, "未开启监听！"), order)
+			continue
+		}
 		if params2[2] == "" {
 			continue
+		}
+		if statusmap[mconfig.McsmData[od].Name] == 0 && params2[2] != "start" {
+			go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, mconfig.McsmData[od].Name, "未运行！"), order)
+			return
 		}
 		go func(params string, order int) {
 			params = strings.ReplaceAll(params, "\n", "")
