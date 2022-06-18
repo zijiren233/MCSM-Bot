@@ -155,68 +155,27 @@ func ReturnResult(command string, order int, time_now int64) {
 	r3, _ := regexp.Compile(`\\r+|\\u001b\[?=?[a-zA-Z]?\?*[0-9]*[hl]*>? ?[0-9;]*m*`)
 	ret := r3.ReplaceAllString(string(b), "")
 	last := strings.LastIndex(ret, `","time":`)
-	index := strings.Index(ret, time.Unix(time_now/1000, 0).Format("15:04:05"))
-	fmt.Printf("log: %v\n", time.Unix(time_now/1000, 0).Format("15:04:05"))
+	var index int
 	var data Data
-	if index == -1 {
-		index = strings.Index(ret, time.Unix((time_now/1000)+1, 0).Format("15:04:05"))
+	var i int64
+	for i = 0; i <= 2; i++ {
+		index = strings.Index(ret, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 		if index == -1 {
-			index = strings.Index(ret, time.Unix((time_now/1000)+1, 0).Format("15:04:05"))
-			if index == -1 {
-				index = strings.Index(ret, time.Unix((time_now/1000)+2, 0).Format("15:04:05"))
-				if index == -1 {
-					index = strings.Index(ret, time.Unix((time_now/1000)+3, 0).Format("15:04:05"))
-					if index == -1 {
-						index = strings.Index(ret, time.Unix((time_now/1000)-1, 0).Format("15:04:05"))
-						if index == -1 {
-							Send_group_msg("运行命令成功！", order)
-							return
-						}
-						if strings.IndexAny(ret[index:], `]`) == 8 {
-							index -= 1
-						}
-						ret = fmt.Sprint(`{"data":"`, ret[index:last], `"}`)
-						json.Unmarshal([]byte(ret), &data)
-						Send_group_msg(data.Data, order)
-					}
-					if strings.IndexAny(ret[index:], `]`) == 8 {
-						index -= 1
-					}
-					ret = fmt.Sprint(`{"data":"`, ret[index:last], `"}`)
-					json.Unmarshal([]byte(ret), &data)
-					Send_group_msg(data.Data, order)
-				}
-				if strings.IndexAny(ret[index:], `]`) == 8 {
-					index -= 1
-				}
-				ret = fmt.Sprint(`{"data":"`, ret[index:last], `"}`)
-				json.Unmarshal([]byte(ret), &data)
-				Send_group_msg(data.Data, order)
-			}
-			if strings.IndexAny(ret[index:], `]`) == 8 {
-				index -= 1
-			}
-			ret = fmt.Sprint(`{"data":"`, ret[index:last], `"}`)
-			json.Unmarshal([]byte(ret), &data)
-			Send_group_msg(data.Data, order)
-			return
+			continue
 		}
-		if strings.IndexAny(ret[index:], `]`) == 8 {
-			index -= 1
-		}
-		ret = fmt.Sprint(`{"data":"`, ret[index:last], `"}`)
+		ret = fmt.Sprint(`{"data":"`, ret[index-1:last], `"}`)
 		json.Unmarshal([]byte(ret), &data)
 		Send_group_msg(data.Data, order)
 		return
-
 	}
-	if strings.IndexAny(ret[index:], `]`) == 8 {
-		index -= 1
+	index = strings.Index(ret, time.Unix((time_now/1000)-1, 0).Format("15:04:05"))
+	if index == -1 {
+		Send_group_msg("运行命令成功！", order)
+		return
 	}
-	ret = fmt.Sprint(`{"data":"`, ret[index:last], `"}`)
+	ret = fmt.Sprint(`{"data":"`, ret[index-1:last], `"}`)
 	json.Unmarshal([]byte(ret), &data)
 	Send_group_msg(data.Data, order)
-
 }
 
 func RunCmd(commd string, order int) {
@@ -237,7 +196,7 @@ func RunCmd(commd string, order int) {
 	}
 	var time_unix CmdData
 	json.Unmarshal(b, &time_unix)
-	time.Sleep(1 * time.Second)
+	time.Sleep(1500 * time.Millisecond)
 	ReturnResult(commd, order, time_unix.Time_unix)
 }
 
