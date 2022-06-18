@@ -11,21 +11,17 @@
 - 建议把 ``go-cqhttp`` 做为服务启动，或用 screen 运行并不再关闭，不然由于tx风控的原因每次运行都要重新登录扫码！
 
 -----
-
 ### 开始使用
 
 #### 1.启动QQ_API
 
 下载 **[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)** 运行后选择 0.HTTP通信，启动后 `go-cqhttp` 会生成配置文件，只需要修改 `config.yml` 中：
-
 ```
-
 account里面的：
     uin: // 用于机器人的QQ号
     
 default-middlewares里面的：
     access-token: // 设置任意长度字符串
-
 ```
 
 修改完成后再次运行 `go-cqhttp` 扫码登录后即可，此时 **QQ API** 端口为默认的5700。
@@ -40,11 +36,9 @@ default-middlewares里面的：
         - 然后邀请机器人进入群即可(自动通过)
 
         ```
-
         "token": "test",
         "url": "https://q-api.pyhdxy.com:443",
         "qq": "3426898431"
-
         ```
 
 #### 2.启动MCSM-Bot
@@ -57,13 +51,12 @@ default-middlewares里面的：
 - config.sample.json :
 
     ```
-
     { // 真正的配置文件为标准的json格式，里面不要有注释！！！
         "mcsmdata": [
             {
                 "id": 0, // 按顺序填,此项为监听服务器的序号，从0开始依次增加，用于启动监听时填的要监听哪一个服务器
                 "name": "server1", // MCSM里面的实例名，即基本信息里的昵称，实例名不可重复！！！
-                "url": "https://mcsm.domain.com:443", // MCSM面板的地址，包含http(s)//，结尾不要有斜杠/
+                "url": "https://mcsm.domain.com:443", // MCSM面板的地址，包含http(s)://，结尾不要有斜杠/
                 "remote_uuid": "d6a27b0b13ad44ce879b5a56c88b4d34", // 守护进程的GID
                 "uuid": "a8788991a64e4a06b76d539b35db1b16", // 实例的UID
                 "apikey": "vmajkfnvklNSdvkjbnfkdsnv7e0f", // 不可为空，用户中心->右上角个人资料->右方生成API密钥
@@ -89,11 +82,10 @@ default-middlewares里面的：
         ],
         "cqhttp": {
             "token": "test", // 默认中间件锚点中的access-token，不可为空
-            "url": "http://10.10.10.4:5700", // cqhttp 请求地址，末尾不带斜杠！
-            "qq": "3333446431" // 机器人QQ号
+            "url": "https://q-api.pyhdxy.com:443", // cqhttp 请求地址，末尾不带斜杠！
+            "qq": "3426898431" // 机器人QQ号
         }
     }
-
     ```
 
     <img src="docs\sc\Sample_4.png" />
@@ -102,12 +94,17 @@ default-middlewares里面的：
 
 - 如果启动失败则为配置文件配置错误或 MCSM/CQHTTP 服务连接失败。
 
+    ```
+    选填启动参数:
+
+    -a 自动启动所有监听(默认为false)
+    ```
+
 -----
 
 ### 普通命令
 
 ```
-
 括号内的 id 可省略，则优先输出第一个监听此群的服务器
 
 普通命令就是可在MC控制台直接运行的命令，比如 set time day
@@ -121,13 +118,11 @@ run (id) weather clear
 ...
 
 控制台内可运行的命令在群内都可以输入！
-
 ```
 
 ### 特殊命令
 
 ```
-
 括号内的 id 可省略，则优先输出第一个监听此群的服务器
 
 run (id) status 查看服务器运行状态
@@ -139,7 +134,6 @@ run (id) stop 关闭服务器
 run (id) restart 重启服务器
 
 run (id) kill 终止服务器
-
 ```
 
 ### 效果展示

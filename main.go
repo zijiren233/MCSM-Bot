@@ -1,12 +1,13 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"strconv"
 	"time"
 )
 
-var version = "v1.0.1"
+var version = "v1.0.2"
 var mconfig MConfig
 var qconfig QConfig
 var statusmap map[string]int
@@ -96,12 +97,25 @@ func Chose() {
 	}
 }
 
+var all bool
+
+func init() {
+	flag.BoolVar(&all, "a", false, "自动启动所有监听(默认为false)")
+}
+
 func main() {
+	flag.Parse()
 	mconfig = GetMConfig()
 	qconfig = GetQConfig()
 	statusmap = make(map[string]int)
 	listenmap = make(map[int]int)
-	AddListen()
+	if !all {
+		AddListen()
+	} else {
+		for i := 0; i < len(mconfig.McsmData); i++ {
+			StartListen(i)
+		}
+	}
 	for {
 		Chose()
 	}
