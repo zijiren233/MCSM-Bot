@@ -87,9 +87,16 @@ func Get_group_new_msg(order int, chan_message chan Mdata) {
 	var mesdata MesData
 	json.Unmarshal(b, &mesdata)
 	tmp := mesdata.Data.Messages[19].Message_id
+	var err error
 	for {
-		r, _ = client.Do(r2)
-		b, _ = ioutil.ReadAll(r.Body)
+		r, err = client.Do(r2)
+		if err != nil {
+			continue
+		}
+		b, err = ioutil.ReadAll(r.Body)
+		if err != nil {
+			continue
+		}
 		json.Unmarshal(b, &mesdata)
 		if mesdata.Data.Messages[19].Message_id != tmp {
 			tmp = mesdata.Data.Messages[19].Message_id
@@ -137,6 +144,7 @@ func AddQListen(order int) {
 	for j := range i {
 		if mconfig.McsmData[j].Group_id == mconfig.McsmData[order].Group_id && j != order {
 			// fmt.Println("监听相同的群/已监听")
+			go ReportStatus(order)
 			go ReportStatus(order)
 			listenmap[order] = 1
 			return

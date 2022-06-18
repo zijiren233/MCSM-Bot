@@ -52,11 +52,11 @@ func StartListen(order int) {
 		fmt.Print("实例 ", mconfig.McsmData[order].Name, " 未启动，是否启动(y/n):")
 		var chose string
 		fmt.Scan(&chose)
-		if chose == "y" || chose == "yes" {
+		if chose == "y" {
 			Start(order)
 			time.Sleep(3 * time.Second)
 			StartListen(order)
-		} else {
+		} else if chose == "n" {
 			go AddQListen(order)
 			statusmap[mconfig.McsmData[order].Name] = 0
 			time.Sleep(2 * time.Second)
