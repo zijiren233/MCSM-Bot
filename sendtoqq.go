@@ -86,7 +86,8 @@ func Get_group_new_msg(order int, chan_message chan Mdata) {
 	b, _ := ioutil.ReadAll(r.Body)
 	var mesdata MesData
 	json.Unmarshal(b, &mesdata)
-	tmp := mesdata.Data.Messages[19].Message_id
+	lens := len(mesdata.Data.Messages) - 1
+	tmp := mesdata.Data.Messages[lens].Message_id
 	var err error
 	for {
 		r, err = client.Do(r2)
@@ -98,9 +99,10 @@ func Get_group_new_msg(order int, chan_message chan Mdata) {
 			continue
 		}
 		json.Unmarshal(b, &mesdata)
-		if mesdata.Data.Messages[19].Message_id != tmp {
-			tmp = mesdata.Data.Messages[19].Message_id
-			chan_message <- mesdata.Data.Messages[19]
+		lens = len(mesdata.Data.Messages) - 1
+		if mesdata.Data.Messages[lens].Message_id != tmp {
+			tmp = mesdata.Data.Messages[lens].Message_id
+			chan_message <- mesdata.Data.Messages[lens]
 		}
 		time.Sleep(40 * time.Millisecond)
 		/*The detection frequency is 40ms once, and it should not be set too large,
@@ -194,7 +196,7 @@ func AddQListen(order int) {
 		}
 		if statusmap[mconfig.McsmData[od].Name] == 0 && params2[2] != "start" {
 			go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, mconfig.McsmData[od].Name, "未运行！"), order)
-			return
+			continue
 		}
 		go func(params string, order int) {
 			params = strings.ReplaceAll(params, "\n", "")

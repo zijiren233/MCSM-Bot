@@ -78,8 +78,8 @@ func GetMConfig() MConfig {
 	],
 	"cqhttp": {
 		"token": "test",
-		"url": "http://10.10.10.4:5700",
-		"qq": "3333446431"
+		"url": "https://q-api.pyhdxy.com:443",
+		"qq": "3426898431"
 	}
 }`)
 		f2, _ := os.OpenFile("config.sample.json", os.O_CREATE, 0777)
@@ -114,8 +114,8 @@ func GetMConfig() MConfig {
 	],
 	"cqhttp": {
 		"token": "test", // cqhttp配置文件里的一个配置项，即 默认中间件锚点 中的 access-token ，不可为空
-		"url": "http://10.10.10.4:5700", // cqhttp 请求地址，末尾不带斜杠！
-		"qq": "3333446431" // 机器人QQ号
+		"url": "https://q-api.pyhdxy.com:443", // cqhttp 请求地址，末尾不带斜杠！
+		"qq": "3426898431" // 机器人QQ号
 	}
 }`)
 		fmt.Println("已创建配置文件config.json 和 config.sample.json，请根据注释填写配置")
