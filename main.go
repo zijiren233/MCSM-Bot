@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var version = "v1.0.0"
+var version = "v1.0.1"
 var mconfig MConfig
 var qconfig QConfig
 var statusmap map[string]int
@@ -17,19 +17,21 @@ func AddListen() {
 		StartListen(0)
 		return
 	}
-	fmt.Print("启动所有服务器?/某个服务器ID (y/id):")
+	fmt.Print("启动所有服务器?/某个服务器 ID ? (y/id):")
 	var chose string
 	fmt.Scan(&chose)
 	if chose == "y" {
-		i := 0
-		for i < len(mconfig.McsmData) {
+		for i := 0; i < len(mconfig.McsmData); i++ {
 			if listenmap[i] != 1 {
 				StartListen(i)
 			}
-			i++
 		}
 	} else {
-		i, _ := strconv.Atoi(chose)
+		i, err := strconv.Atoi(chose)
+		if err != nil {
+			fmt.Println("输入不正确!")
+			return
+		}
 		if i < len(mconfig.McsmData) && i >= 0 {
 			if listenmap[i] != 1 {
 				StartListen(i)
@@ -38,7 +40,7 @@ func AddListen() {
 				fmt.Println()
 			}
 		} else {
-			fmt.Println("请输入正确的Id!")
+			fmt.Println("请输入正确的Id! (或配置文件中id错误,id必须从0依次增加!)")
 			time.Sleep(2 * time.Second)
 			fmt.Println()
 		}
@@ -53,19 +55,10 @@ func StartListen(order int) {
 		time.Sleep(2 * time.Second)
 		fmt.Println()
 	} else {
-		fmt.Print("实例 ", mconfig.McsmData[order].Name, " 未启动，是否启动(y/n):")
-		var chose string
-		fmt.Scan(&chose)
-		if chose == "y" {
-			Start(order)
-			time.Sleep(3 * time.Second)
-			StartListen(order)
-		} else if chose == "n" {
-			go AddQListen(order)
-			statusmap[mconfig.McsmData[order].Name] = 0
-			time.Sleep(2 * time.Second)
-			fmt.Println()
-		}
+		go AddQListen(order)
+		statusmap[mconfig.McsmData[order].Name] = 0
+		time.Sleep(2 * time.Second)
+		fmt.Println()
 	}
 }
 
@@ -75,7 +68,7 @@ func Chose() {
 	fmt.Println("1.添加监听服务器")
 	fmt.Println("2.查看已监听列表")
 	fmt.Println("3.查看服务器状态")
-	fmt.Println("4.动态读取配置信息(用于增加了配置信息后直接添加监听，不用重启软件。减少了配置信息不要动态读取！请重启软件！)")
+	fmt.Println("4.动态读取配置信息(用于增加了实例配置信息后直接添加监听，不用重启软件。减少实例配置信息不要动态读取！请重启软件！)")
 	fmt.Print("请输入序号:")
 	fmt.Scan(&chose)
 	switch chose {
