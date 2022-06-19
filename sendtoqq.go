@@ -39,7 +39,7 @@ type Mdata struct {
 
 func GetQConfig() QConfig {
 	var config QConfig
-	f, err := os.OpenFile("config.json", os.O_RDWR, 0777)
+	f, err := os.OpenFile("config.json", os.O_RDWR, 0755)
 	if err != nil {
 		fmt.Printf("读取配置文件出错1: %v\n", err)
 		os.Exit(0)

@@ -43,11 +43,11 @@ type CmdData struct {
 
 func GetMConfig() MConfig {
 	var config MConfig
-	f, err := os.OpenFile("config.json", os.O_RDONLY, 0644)
+	f, err := os.OpenFile("config.json", os.O_RDONLY, 0755)
 	if err != nil {
 		fmt.Printf("读取配置文件出错: %v\n", err)
 		go log.Error("读取配置文件出错: %v", err)
-		f, _ := os.OpenFile("config.json", os.O_CREATE|os.O_WRONLY, 0777)
+		f, _ := os.OpenFile("config.json", os.O_CREATE|os.O_WRONLY, 0755)
 		f.WriteString(`{
 	"mcsmdata": [
 		{
@@ -83,7 +83,7 @@ func GetMConfig() MConfig {
 		"qq": "3426898431"
 	}
 }`)
-		f2, _ := os.OpenFile("config.sample.json", os.O_CREATE|os.O_WRONLY, 0777)
+		f2, _ := os.OpenFile("config.sample.json", os.O_CREATE|os.O_WRONLY, 0755)
 		f2.WriteString(`{ // 真正的配置文件为标准的json格式，里面不要有注释！！！
 	"mcsmdata": [
 		{

@@ -63,12 +63,12 @@ func Newlog(levle uint) *Logger {
 }
 
 func (l *Logger) FileInit() {
-	f, err := os.OpenFile("./logs/log.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	f, err := os.OpenFile("./logs/log.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
 	if err != nil {
 		fmt.Println("打开日志错误！")
 		panic(err)
 	}
-	ef, err2 := os.OpenFile("./logs/errlog.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	ef, err2 := os.OpenFile("./logs/errlog.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
 	if err != nil {
 		fmt.Println("打开Err日志错误！")
 		panic(err2)
@@ -79,20 +79,20 @@ func (l *Logger) FileInit() {
 
 func (l *Logger) BackupLog() {
 	file, _ := l.FileOBJ.Stat()
-	if file.Size() >= 10*1024*1024 {
+	if file.Size() >= 1024*1024 {
 		l.FileOBJ.Close()
 		os.Rename(`./logs/log.log`, fmt.Sprint(`./logs/`, time.Now().Format("2006_01_02_15_04_05_bak_log.log")))
-		f, _ := os.OpenFile("./logs/log.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+		f, _ := os.OpenFile("./logs/log.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
 		l.FileOBJ = f
 	}
 }
 
 func (l *Logger) BackupErrLog() {
 	errfile, _ := l.ErrFileOBJ.Stat()
-	if errfile.Size() >= 10*1024*1024 {
+	if errfile.Size() >= 1024*1024 {
 		l.ErrFileOBJ.Close()
 		os.Rename(`./logs/errlog.log`, fmt.Sprint(`./logs/`, time.Now().Format("2006_01_02_15_04_05_bak_errlog.log")))
-		f2, _ := os.OpenFile("./logs/errlog.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+		f2, _ := os.OpenFile("./logs/errlog.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
 		l.ErrFileOBJ = f2
 	}
 }
