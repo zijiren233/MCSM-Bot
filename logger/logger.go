@@ -62,8 +62,19 @@ func Newlog(levle uint) *Logger {
 	return &logger
 }
 
+func Exists(path string) bool {
+	_, err := os.Stat(path) //os.Stat获取文件信息
+	if err != nil {
+		return os.IsExist(err)
+	}
+	return true
+}
+
 func (l *Logger) FileInit() {
-	f, err := os.OpenFile("./logs/log.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
+	if !Exists("./logs") {
+		os.Mkdir("./logs", os.ModePerm)
+	}
+	f, err := os.OpenFile("./logs/log.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
 		fmt.Println("打开日志错误！")
 		panic(err)
@@ -79,7 +90,8 @@ func (l *Logger) FileInit() {
 
 func (l *Logger) BackupLog() {
 	file, _ := l.FileOBJ.Stat()
-	if file.Size() >= 1024*1024 {
+	// 2M
+	if file.Size() >= 2097152 {
 		l.FileOBJ.Close()
 		os.Rename(`./logs/log.log`, fmt.Sprint(`./logs/`, time.Now().Format("2006_01_02_15_04_05_bak_log.log")))
 		f, _ := os.OpenFile("./logs/log.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
@@ -89,7 +101,7 @@ func (l *Logger) BackupLog() {
 
 func (l *Logger) BackupErrLog() {
 	errfile, _ := l.ErrFileOBJ.Stat()
-	if errfile.Size() >= 1024*1024 {
+	if errfile.Size() >= 2097152 {
 		l.ErrFileOBJ.Close()
 		os.Rename(`./logs/errlog.log`, fmt.Sprint(`./logs/`, time.Now().Format("2006_01_02_15_04_05_bak_errlog.log")))
 		f2, _ := os.OpenFile("./logs/errlog.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
