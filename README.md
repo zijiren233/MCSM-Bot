@@ -97,7 +97,8 @@ default-middlewares里面的：
     ```
     选填启动参数:
 
-    -a 自动启动所有监听(默认为false)
+    -a 运行时自动监听所有服务器 (default false) | 格式: -a
+    -log 记录命令日志的级别 0:Debug 1:Info 2:Warring 3:Error 4:None (default 1) | 格式: -log=3
     ```
 
 -----

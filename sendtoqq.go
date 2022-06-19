@@ -103,8 +103,9 @@ func Get_group_new_msg(order int, chan_message chan Mdata) {
 			continue
 		}
 		lens = len(mesdata.Data.Messages) - 1
-		if mesdata.Data.Messages[lens].Message_id != tmp {
+		if mesdata.Data.Messages[lens].Message_id != tmp && strconv.Itoa(mesdata.Data.Messages[lens].User_id) != qconfig.Cqhttp.Qq {
 			tmp = mesdata.Data.Messages[lens].Message_id
+			go log.Debug("群组:%s 获取到最新消息 QQ:%d ,iD:%d", mconfig.McsmData[order].Group_id, mesdata.Data.Messages[lens].User_id, tmp)
 			chan_message <- mesdata.Data.Messages[lens]
 		}
 		time.Sleep(40 * time.Millisecond)
@@ -121,7 +122,11 @@ func Send_group_msg(message string, order int) {
 	data.Set("auto_escape", "false")
 	data.Set("access_token", qconfig.Cqhttp.Token)
 	r2, _ := http.NewRequest("GET", qconfig.Cqhttp.Url+"/send_group_msg"+"?"+data.Encode(), nil)
-	client.Do(r2)
+	_, err := client.Do(r2)
+	if err != nil {
+		go log.Warring("发送消息到群组:%s 失败,可能是cqhttp或网络问题!", mconfig.McsmData[order].Group_id)
+		return
+	}
 }
 
 func in(target string, str_array []string) bool {
@@ -144,16 +149,19 @@ func getKeys(m map[int]int) []int {
 func AddQListen(order int) {
 	TestCqhttpStatus(order)
 	fmt.Println("监听实例 ", mconfig.McsmData[order].Name, " 成功！")
+	go log.Info("监听实例 %s 成功", mconfig.McsmData[order].Name)
 	// 获取已监听的 []ID
 	i := getKeys(listenmap)
 	for j := range i {
 		if mconfig.McsmData[j].Group_id == mconfig.McsmData[order].Group_id && j != order {
-			// fmt.Println("监听相同的群/已监听")
+			// fmt.Println("监听相同的群")
+			go log.Info("服务器:%s 监听相同的群:%s", mconfig.McsmData[order].Name, mconfig.McsmData[order].Group_id)
 			go ReportStatus(order)
 			go ReportStatus(order)
 			listenmap[order] = 1
 			return
 		} else if j == order {
+			go log.Info("服务器:%s 重复监听", mconfig.McsmData[order].Name)
 			return
 		}
 	}
@@ -180,30 +188,38 @@ func AddQListen(order int) {
 		}
 		if od >= len(mconfig.McsmData) {
 			go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, "ID错误！"), order)
+			go log.Info("群组:%s QQ:%d 试图访问服务器ID:%d ,ID超出范围", mconfig.McsmData[od].Group_id, mdata.User_id, od)
 			continue
 		}
 		if mconfig.McsmData[order].Group_id != mconfig.McsmData[od].Group_id {
 			go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, "ID错误！"), order)
+			go log.Info("群组:%s QQ:%d 试图访问服务器:%s ,服务器属于群组:%s", mconfig.McsmData[od].Group_id, mdata.User_id, mconfig.McsmData[od].Name, mconfig.McsmData[od].Group_id)
 			continue
 		}
 		if !in(strconv.Itoa(mdata.User_id), mconfig.McsmData[od].Adminlist) {
 			go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, "权限不足！"), order)
+			go log.Info("群组:%s QQ:%d 试图访问服务器:%s ,权限不足", mconfig.McsmData[od].Group_id, mdata.User_id, mconfig.McsmData[od].Name)
 			continue
 		}
 		if listenmap[od] != 1 {
 			go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, mconfig.McsmData[od].Name, "未开启监听！"), order)
+			go log.Info("群组:%s QQ:%d 试图访问服务器:%s ,服务器未开启监听", mconfig.McsmData[od].Group_id, mdata.User_id, mconfig.McsmData[od].Name)
 			continue
 		}
 		if params2[2] == "" {
+			go log.Info("群组:%s QQ:%d 输入命令: %s", mconfig.McsmData[od].Group_id, mdata.User_id, mdata.Message)
 			continue
 		}
 		if statusmap[mconfig.McsmData[od].Name] == 0 && params2[2] != "start" {
 			go Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mdata.User_id, `]`, mconfig.McsmData[od].Name, "未运行！"), order)
+			go log.Info("群组:%s QQ:%d 试图访问服务器:%s ,服务器未运行", mconfig.McsmData[od].Group_id, mdata.User_id, mconfig.McsmData[od].Name)
 			continue
 		}
+		go log.Info("群组:%s QQ:%d 输入命令: %s", mconfig.McsmData[od].Group_id, mdata.User_id, mdata.Message)
 		go func(params string, order int) {
 			params = strings.ReplaceAll(params, "\n", "")
 			params = strings.ReplaceAll(params, "\r", "")
+			go log.Debug("服务器:%s 运行命令:%s", mconfig.McsmData[order].Name, params)
 			switch params {
 			case "status":
 				SendStatus(order)
@@ -238,9 +254,11 @@ func ReportStatus(order int) {
 	for {
 		if !RunningTest(order) && statusmap[mconfig.McsmData[order].Name] == 1 {
 			statusmap[mconfig.McsmData[order].Name] = 0
+			go log.Info("实例 %s 已停止", mconfig.McsmData[order].Name)
 			Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器 ", mconfig.McsmData[order].Name, " 已停止！"), order)
 		} else if RunningTest(order) && statusmap[mconfig.McsmData[order].Name] == 0 {
 			statusmap[mconfig.McsmData[order].Name] = 1
+			go log.Info("实例 %s 已运行", mconfig.McsmData[order].Name)
 			Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器 ", mconfig.McsmData[order].Name, " 已启动！"), order)
 		}
 		time.Sleep(1500 * time.Millisecond)

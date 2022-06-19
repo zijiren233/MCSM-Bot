@@ -43,10 +43,11 @@ type CmdData struct {
 
 func GetMConfig() MConfig {
 	var config MConfig
-	f, err := os.OpenFile("config.json", os.O_RDWR, 0777)
+	f, err := os.OpenFile("config.json", os.O_RDONLY, 0644)
 	if err != nil {
 		fmt.Printf("读取配置文件出错: %v\n", err)
-		f, _ := os.OpenFile("config.json", os.O_CREATE, 0777)
+		go log.Error("读取配置文件出错: %v", err)
+		f, _ := os.OpenFile("config.json", os.O_CREATE|os.O_WRONLY, 0777)
 		f.WriteString(`{
 	"mcsmdata": [
 		{
@@ -82,7 +83,7 @@ func GetMConfig() MConfig {
 		"qq": "3426898431"
 	}
 }`)
-		f2, _ := os.OpenFile("config.sample.json", os.O_CREATE, 0777)
+		f2, _ := os.OpenFile("config.sample.json", os.O_CREATE|os.O_WRONLY, 0777)
 		f2.WriteString(`{ // 真正的配置文件为标准的json格式，里面不要有注释！！！
 	"mcsmdata": [
 		{
@@ -119,16 +120,19 @@ func GetMConfig() MConfig {
 	}
 }`)
 		fmt.Println("已创建配置文件config.json 和 config.sample.json，请根据注释填写配置")
+		go log.Error("已创建配置文件config.json 和 config.sample.json，请根据注释填写配置")
 		os.Exit(0)
 	}
 	b, err2 := ioutil.ReadAll(f)
 	if err2 != nil {
 		fmt.Printf("读取配置文件出错: %v\n", err2)
+		go log.Error("配置文件内容出错: %v", err2)
 		os.Exit(0)
 	}
 	err3 := json.Unmarshal(b, &config)
 	if err3 != nil {
 		fmt.Printf("配置文件内容出错: %v\n", err3)
+		go log.Error("配置文件内容出错: %v", err3)
 		fmt.Print("可能是配置文件内容格式错误 或 配置文件格式和当前版本不匹配，删除当前配置文件重新启动以获取最新配置文件模板")
 		os.Exit(0)
 	}
@@ -148,6 +152,7 @@ func ReturnResult(command string, order int, time_now int64) {
 	r, err := client.Do(r2)
 	if err != nil {
 		Send_group_msg("获取运行结果失败！", order)
+		go log.Error("获取服务器 %s 命令 %s 运行结果失败！", mconfig.McsmData[order].Name, command)
 		return
 	}
 	defer r.Body.Close()
@@ -158,6 +163,7 @@ func ReturnResult(command string, order int, time_now int64) {
 	var index int
 	var data Data
 	var i int64
+	go log.Debug("服务器 %s 运行命令 %s 返回时间: %s", mconfig.McsmData[order].Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 	for i = 0; i <= 2; i++ {
 		index = strings.Index(ret, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 		if index == -1 {
@@ -171,6 +177,7 @@ func ReturnResult(command string, order int, time_now int64) {
 	index = strings.Index(ret, time.Unix((time_now/1000)-1, 0).Format("15:04:05"))
 	if index == -1 {
 		Send_group_msg("运行命令成功！", order)
+		go log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", mconfig.McsmData[order].Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 		return
 	}
 	ret = fmt.Sprint(`{"data":"`, ret[index-1:last], `"}`)
@@ -188,10 +195,16 @@ func RunCmd(commd string, order int) {
 	q.Add("command", commd)
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	r, _ := client.Do(r2)
-	b, err := ioutil.ReadAll(r.Body)
+	r, err := client.Do(r2)
 	if err != nil {
-		Send_group_msg(fmt.Sprint("网络可能不稳定，", commd, "发送失败！"), order)
+		Send_group_msg(fmt.Sprintf("运行命令 %s 失败！", commd), order)
+		go log.Error("运行命令 %s 失败！%v", commd, err)
+		return
+	}
+	b, err2 := ioutil.ReadAll(r.Body)
+	if err2 != nil {
+		// Send_group_msg(fmt.Sprint("网络可能不稳定，", commd, "发送失败！"), order)
+		go log.Error("接收 %s 命令返回失败！%v", commd, err)
 		return
 	}
 	var time_unix CmdData
@@ -214,20 +227,14 @@ func RunningTest(order int) bool {
 	r, _ := client.Do(r2)
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		if statusmap[mconfig.McsmData[order].Name] == 0 {
-			return false
-		} else {
-			return true
-		}
+		go log.Warring("检测服务器 %s 运行状况失败,可能是网络原因导致!", mconfig.McsmData[order].Name)
+		return statusmap[mconfig.McsmData[order].Name]-1 == 0
 	}
 	var status Status
 	json.Unmarshal(b, &status)
 	if len(status.Data.Data) == 0 {
-		if statusmap[mconfig.McsmData[order].Name] == 0 {
-			return false
-		} else {
-			return true
-		}
+		go log.Warring("检测服务器 %s 运行状况失败,可能是网络原因导致!", mconfig.McsmData[order].Name)
+		return statusmap[mconfig.McsmData[order].Name]-1 == 0
 	}
 	if status.Data.Data[0].Status != 3 && status.Data.Data[0].Status != 2 {
 		return false
@@ -255,7 +262,12 @@ func Start(order int) {
 	q.Add("remote_uuid", mconfig.McsmData[order].Remote_uuid)
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	client.Do(r2)
+	_, err := client.Do(r2)
+	if err != nil {
+		Send_group_msg(fmt.Sprintf("服务器:%s 运行启动命令失败!", mconfig.McsmData[order].Name), order)
+		go log.Warring("服务器:%s 运行启动命令失败,可能是网络问题!", mconfig.McsmData[order].Name)
+		return
+	}
 }
 
 func Stop(order int) {
@@ -267,16 +279,17 @@ func Stop(order int) {
 	q.Add("remote_uuid", mconfig.McsmData[order].Remote_uuid)
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	client.Do(r2)
+	_, err := client.Do(r2)
+	if err != nil {
+		Send_group_msg(fmt.Sprintf("服务器:%s 运行关闭命令失败!", mconfig.McsmData[order].Name), order)
+		go log.Warring("服务器:%s 运行关闭命令失败,可能是网络问题!", mconfig.McsmData[order].Name)
+		return
+	}
 }
 
-func TestMcsmStatus(order int) {
+func TestMcsmStatus(order int) bool {
 	client := &http.Client{}
-	r2, err := http.NewRequest("GET", mconfig.McsmData[order].Domain+"/api/service/remote_service_instances", nil)
-	if err != nil {
-		fmt.Println("检测MCSM后端连接失败，请检查配置文件是否填写正确或MCSM是否启动")
-		os.Exit(1)
-	}
+	r2, _ := http.NewRequest("GET", mconfig.McsmData[order].Domain+"/api/service/remote_service_instances", nil)
 	q := r2.URL.Query()
 	q.Add("apikey", mconfig.McsmData[order].Apikey)
 	q.Add("page", "1")
@@ -285,12 +298,13 @@ func TestMcsmStatus(order int) {
 	q.Add("remote_uuid", mconfig.McsmData[order].Remote_uuid)
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	r, err2 := client.Do(r2)
+	_, err2 := client.Do(r2)
 	if err2 != nil {
-		fmt.Println("检测MCSM后端连接失败，请检查配置文件是否填写正确或MCSM是否启动")
-		os.Exit(1)
+		fmt.Printf("服务器:%s MCSM前端连接失败，请检查配置文件是否填写正确或MCSM是否启动\n", mconfig.McsmData[order].Name)
+		go log.Error("服务器:%s MCSM前端连接失败，请检查配置文件是否填写正确或MCSM是否启动", mconfig.McsmData[order].Name)
+		return false
 	}
-	defer r.Body.Close()
+	return true
 }
 
 func Restart(order int) {
@@ -302,7 +316,12 @@ func Restart(order int) {
 	q.Add("remote_uuid", mconfig.McsmData[order].Remote_uuid)
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	client.Do(r2)
+	_, err := client.Do(r2)
+	if err != nil {
+		Send_group_msg(fmt.Sprintf("服务器:%s 运行重启命令失败!", mconfig.McsmData[order].Name), order)
+		go log.Warring("服务器:%s 运行重启命令失败,可能是网络问题!", mconfig.McsmData[order].Name)
+		return
+	}
 }
 
 func Kill(order int) {
@@ -314,5 +333,10 @@ func Kill(order int) {
 	q.Add("remote_uuid", mconfig.McsmData[order].Remote_uuid)
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	client.Do(r2)
+	_, err := client.Do(r2)
+	if err != nil {
+		Send_group_msg(fmt.Sprintf("服务器:%s 运行终止命令失败!", mconfig.McsmData[order].Name), order)
+		go log.Warring("服务器:%s 运行终止命令失败,可能是网络问题!", mconfig.McsmData[order].Name)
+		return
+	}
 }

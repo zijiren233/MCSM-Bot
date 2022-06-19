@@ -5,13 +5,18 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/zijiren233/MCSM-Bot/logger"
 )
 
-var version = "v1.0.2"
+var version = "v1.1.0"
 var mconfig MConfig
 var qconfig QConfig
 var statusmap map[string]int
 var listenmap map[int]int
+var log *logger.Logger
+
+// var errfile *os.File
 
 func AddListen() {
 	if len(mconfig.McsmData) == 1 {
@@ -38,6 +43,7 @@ func AddListen() {
 				StartListen(i)
 			} else {
 				fmt.Println("监听实例 ", mconfig.McsmData[i].Name, " 成功！")
+				go log.Info("监听实例 ", mconfig.McsmData[i].Name, " 成功！")
 				fmt.Println()
 			}
 		} else {
@@ -49,7 +55,9 @@ func AddListen() {
 }
 
 func StartListen(order int) {
-	TestMcsmStatus(order)
+	if !TestMcsmStatus(order) {
+		return
+	}
 	if RunningTest(order) {
 		go AddQListen(order)
 		statusmap[mconfig.McsmData[order].Name] = 1
@@ -98,13 +106,16 @@ func Chose() {
 }
 
 var all bool
+var loglevle uint
 
 func init() {
-	flag.BoolVar(&all, "a", false, "自动启动所有监听(默认为false)")
+	flag.BoolVar(&all, "a", false, "运行时自动监听所有服务器 (default false)")
+	flag.UintVar(&loglevle, "log", 1, "记录命令日志的级别 0:Debug 1:Info 2:Warring 3:Error 4:None")
 }
 
 func main() {
 	flag.Parse()
+	log = logger.Newlog(loglevle)
 	mconfig = GetMConfig()
 	qconfig = GetQConfig()
 	statusmap = make(map[string]int)
