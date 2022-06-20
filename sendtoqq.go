@@ -41,18 +41,15 @@ func GetQConfig() QConfig {
 	var config QConfig
 	f, err := os.OpenFile("config.json", os.O_RDWR, 0755)
 	if err != nil {
-		fmt.Printf("读取配置文件出错1: %v\n", err)
-		os.Exit(0)
+		fmt.Printf("打开配置文件出错: %v\n", err)
+		panic(err)
 	}
-	b, err2 := ioutil.ReadAll(f)
+	b, _ := ioutil.ReadAll(f)
+	err2 := json.Unmarshal(b, &config)
 	if err2 != nil {
-		fmt.Printf("读取配置文件出错2: %v\n", err2)
-		os.Exit(0)
-	}
-	err3 := json.Unmarshal(b, &config)
-	if err3 != nil {
-		fmt.Printf("读取配置文件出错3: %v\n", err3)
-		os.Exit(0)
+		fmt.Printf("读取配置文件出错: %v\n", err2)
+		go log.Error("读取配置文件出错: %v", err2)
+		panic(err2)
 	}
 	return config
 }
@@ -62,16 +59,13 @@ func TestCqhttpStatus(order int) {
 	data := url.Values{}
 	data.Set("group_id", mconfig.McsmData[order].Group_id)
 	data.Set("access_token", qconfig.Cqhttp.Token)
-	r2, err := http.NewRequest("GET", qconfig.Cqhttp.Url+"/get_group_msg_history"+"?"+data.Encode(), nil)
+	r2, _ := http.NewRequest("GET", qconfig.Cqhttp.Url+"/get_group_msg_history"+"?"+data.Encode(), nil)
+	r2.Close = true
+	_, err := client.Do(r2)
 	if err != nil {
 		fmt.Println("Cqhttp 状态检测错误，请检查配置文件或 Cqhttp 状态")
-		os.Exit(1)
-	}
-	r2.Close = true
-	_, err2 := client.Do(r2)
-	if err2 != nil {
-		fmt.Println("Cqhttp 状态检测错误，请检查配置文件或 Cqhttp 状态")
-		os.Exit(1)
+		go log.Error("Cqhttp 状态检测错误，请检查配置文件或 Cqhttp 状态 err:%v", err)
+		panic(err)
 	}
 }
 
@@ -101,23 +95,33 @@ func Get_group_new_msg(order int, chan_message chan Mdata) {
 			continue
 		}
 		if mesdata.Data.Messages[len(mesdata.Data.Messages)-1].Message_id != tmp {
-			go write_Latest_News(tmp, mesdata, chan_message, order)
+			go write_In_Chan_Latest_News(tmp, mesdata, chan_message, order)
 			tmp = mesdata.Data.Messages[len(mesdata.Data.Messages)-1].Message_id
 		}
-		time.Sleep(300 * time.Millisecond)
+		// 获取消息间隔
+		time.Sleep(400 * time.Millisecond)
 	}
 }
 
-func write_Latest_News(tmp int, mesdata MesData, chan_message chan Mdata, order int) {
-	for i := len(mesdata.Data.Messages) - 1; i >= 0; i-- {
-		if mesdata.Data.Messages[i].Message_id != tmp {
-			if strconv.Itoa(mesdata.Data.Messages[i].User_id) != qconfig.Cqhttp.Qq {
-				chan_message <- mesdata.Data.Messages[i]
-				go log.Debug("群组:%s 获取到最新消息 QQ:%d ,iD:%d", mconfig.McsmData[order].Group_id, mesdata.Data.Messages[i].User_id, mesdata.Data.Messages[i].Message_id)
-			}
-		} else {
+func write_In_Chan_Latest_News(tmp int, mesdata MesData, chan_message chan Mdata, order int) {
+	i := len(mesdata.Data.Messages) - 1
+	for i >= 0 {
+		if mesdata.Data.Messages[i].Message_id == tmp {
+			i++
 			break
 		}
+		i--
+	}
+	if i == -1 {
+		go log.Error("群组:%s 消息刷新过快! 请调低获取消息间隔!", mconfig.McsmData[order].Group_id)
+		return
+	}
+	for i <= len(mesdata.Data.Messages)-1 {
+		if strconv.Itoa(mesdata.Data.Messages[i].User_id) != qconfig.Cqhttp.Qq {
+			chan_message <- mesdata.Data.Messages[i]
+			go log.Debug("群组:%s 获取到最新消息 QQ:%d ,iD:%d", mconfig.McsmData[order].Group_id, mesdata.Data.Messages[i].User_id, mesdata.Data.Messages[i].Message_id)
+		}
+		i++
 	}
 }
 
@@ -173,16 +177,16 @@ func AddQListen(order int) {
 			return
 		}
 	}
-	listenmap[order] = 1
-	// 设置缓存大小为 1000 / 40 = 25 每秒最多处理25条消息
+	// 设置缓存大小为25
 	chan_message := make(chan Mdata, 25)
 	var od int
-	go Get_group_new_msg(order, chan_message)
-	go ReportStatus(order)
-	flysnowRegexp, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
 	var params string
 	var params2 []string
 	var mdata Mdata
+	go Get_group_new_msg(order, chan_message)
+	go ReportStatus(order)
+	listenmap[order] = 1
+	flysnowRegexp, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
 	for mdata = range chan_message {
 		params = flysnowRegexp.FindString(mdata.Message)
 		if len(params) == 0 {
@@ -215,7 +219,7 @@ func AddQListen(order int) {
 			continue
 		}
 		if params2[2] == "" {
-			go log.Info("群组:%s QQ:%d 输入命令: %s", mconfig.McsmData[od].Group_id, mdata.User_id, mdata.Message)
+			go log.Info("群组:%s QQ:%d 输入命令为空！", mconfig.McsmData[od].Group_id, mdata.User_id)
 			continue
 		}
 		if statusmap[mconfig.McsmData[od].Name] == 0 && params2[2] != "start" {

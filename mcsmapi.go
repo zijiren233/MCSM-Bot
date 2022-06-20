@@ -121,20 +121,15 @@ func GetMConfig() MConfig {
 }`)
 		fmt.Println("已创建配置文件config.json 和 config.sample.json，请根据注释填写配置")
 		go log.Error("已创建配置文件config.json 和 config.sample.json，请根据注释填写配置")
-		os.Exit(0)
+		panic(err)
 	}
-	b, err2 := ioutil.ReadAll(f)
+	b, _ := ioutil.ReadAll(f)
+	err2 := json.Unmarshal(b, &config)
 	if err2 != nil {
-		fmt.Printf("读取配置文件出错: %v\n", err2)
+		fmt.Printf("配置文件内容出错: %v\n", err2)
 		go log.Error("配置文件内容出错: %v", err2)
-		os.Exit(0)
-	}
-	err3 := json.Unmarshal(b, &config)
-	if err3 != nil {
-		fmt.Printf("配置文件内容出错: %v\n", err3)
-		go log.Error("配置文件内容出错: %v", err3)
 		fmt.Print("可能是配置文件内容格式错误 或 配置文件格式和当前版本不匹配，删除当前配置文件重新启动以获取最新配置文件模板")
-		os.Exit(0)
+		panic(err2)
 	}
 	return config
 }
