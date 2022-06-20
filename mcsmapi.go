@@ -46,7 +46,7 @@ func GetMConfig() MConfig {
 	f, err := os.OpenFile("config.json", os.O_RDONLY, 0755)
 	if err != nil {
 		fmt.Printf("读取配置文件出错: %v\n", err)
-		go log.Error("读取配置文件出错: %v", err)
+		log.Error("读取配置文件出错: %v", err)
 		f, _ := os.OpenFile("config.json", os.O_CREATE|os.O_WRONLY, 0755)
 		f.WriteString(`{
 	"mcsmdata": [
@@ -120,14 +120,14 @@ func GetMConfig() MConfig {
 	}
 }`)
 		fmt.Println("已创建配置文件config.json 和 config.sample.json，请根据注释填写配置")
-		go log.Error("已创建配置文件config.json 和 config.sample.json，请根据注释填写配置")
+		log.Error("已创建配置文件config.json 和 config.sample.json，请根据注释填写配置")
 		panic(err)
 	}
 	b, _ := ioutil.ReadAll(f)
 	err2 := json.Unmarshal(b, &config)
 	if err2 != nil {
 		fmt.Printf("配置文件内容出错: %v\n", err2)
-		go log.Error("配置文件内容出错: %v", err2)
+		log.Error("配置文件内容出错: %v", err2)
 		fmt.Print("可能是配置文件内容格式错误 或 配置文件格式和当前版本不匹配，删除当前配置文件重新启动以获取最新配置文件模板")
 		panic(err2)
 	}
@@ -147,7 +147,7 @@ func ReturnResult(command string, order int, time_now int64) {
 	r, err := client.Do(r2)
 	if err != nil {
 		Send_group_msg("获取运行结果失败！", order)
-		go log.Error("获取服务器 %s 命令 %s 运行结果失败！", mconfig.McsmData[order].Name, command)
+		log.Error("获取服务器 %s 命令 %s 运行结果失败！", mconfig.McsmData[order].Name, command)
 		return
 	}
 	b, _ := ioutil.ReadAll(r.Body)
@@ -156,7 +156,7 @@ func ReturnResult(command string, order int, time_now int64) {
 	last := strings.LastIndex(ret, `","time":`)
 	var index int
 	var i int64
-	go log.Debug("服务器 %s 运行命令 %s 返回时间: %s", mconfig.McsmData[order].Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
+	log.Debug("服务器 %s 运行命令 %s 返回时间: %s", mconfig.McsmData[order].Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 	for i = 0; i <= 2; i++ {
 		index = strings.Index(ret, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 		if index == -1 {
@@ -168,7 +168,7 @@ func ReturnResult(command string, order int, time_now int64) {
 	index = strings.Index(ret, time.Unix((time_now/1000)-1, 0).Format("15:04:05"))
 	if index == -1 {
 		Send_group_msg("运行命令成功！", order)
-		go log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", mconfig.McsmData[order].Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
+		log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", mconfig.McsmData[order].Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 		return
 	}
 	Send_group_msg(fmt.Sprintf("> [%s] %s\n%s", mconfig.McsmData[order].Name, command, handle_End_Newline(ret[index-1:last])), order)
@@ -199,7 +199,7 @@ func RunCmd(commd string, order int) {
 	r, err := client.Do(r2)
 	if err != nil {
 		Send_group_msg(fmt.Sprintf("运行命令 %s 失败！", commd), order)
-		go log.Error("运行命令 %s 失败！%v", commd, err)
+		log.Error("运行命令 %s 失败！%v", commd, err)
 		return
 	}
 	b, _ := ioutil.ReadAll(r.Body)
@@ -223,19 +223,17 @@ func RunningTest(order int) bool {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	r, err := client.Do(r2)
 	if err != nil {
-		go log.Warring("检测服务器 %s 运行状况失败,可能是网络原因导致!", mconfig.McsmData[order].Name)
-		return statusmap[mconfig.McsmData[order].Name]-1 == 0
+		log.Warring("检测服务器 %s 运行状况失败,可能是网络原因导致!", mconfig.McsmData[order].Name)
+		tmp, _ := statusmap.Load(mconfig.McsmData[order].Name)
+		return tmp.(int)-1 == 0
 	}
-	b, err2 := ioutil.ReadAll(r.Body)
-	if err2 != nil {
-		go log.Warring("检测服务器 %s 状态读取结果错误!", mconfig.McsmData[order].Name)
-		return statusmap[mconfig.McsmData[order].Name]-1 == 0
-	}
+	b, _ := ioutil.ReadAll(r.Body)
 	var status Status
 	json.Unmarshal(b, &status)
 	if len(status.Data.Data) == 0 {
-		go log.Warring("检测服务器 %s 运行状况失败,可能是网络原因导致!", mconfig.McsmData[order].Name)
-		return statusmap[mconfig.McsmData[order].Name]-1 == 0
+		log.Warring("解析服务器 %s 运行状况失败,可能是网络原因导致!", mconfig.McsmData[order].Name)
+		tmp, _ := statusmap.Load(mconfig.McsmData[order].Name)
+		return tmp.(int)-1 == 0
 	}
 	if status.Data.Data[0].Status != 3 && status.Data.Data[0].Status != 2 {
 		return false
@@ -245,9 +243,10 @@ func RunningTest(order int) bool {
 }
 
 func SendStatus(order int) {
-	if statusmap[mconfig.McsmData[order].Name] == 1 {
+	tmp, _ := statusmap.Load(mconfig.McsmData[order].Name)
+	if tmp == 1 {
 		Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器", mconfig.McsmData[order].Name, "正在运行"), order)
-	} else if statusmap[mconfig.McsmData[order].Name] == 0 {
+	} else if tmp == 0 {
 		Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器", mconfig.McsmData[order].Name, "未运行"), order)
 	} else {
 		Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "未监听", mconfig.McsmData[order].Name), order)
@@ -267,7 +266,7 @@ func Start(order int) {
 	_, err := client.Do(r2)
 	if err != nil {
 		Send_group_msg(fmt.Sprintf("服务器:%s 运行启动命令失败!", mconfig.McsmData[order].Name), order)
-		go log.Warring("服务器:%s 运行启动命令失败,可能是网络问题!", mconfig.McsmData[order].Name)
+		log.Warring("服务器:%s 运行启动命令失败,可能是网络问题!", mconfig.McsmData[order].Name)
 		return
 	}
 }
@@ -285,7 +284,7 @@ func Stop(order int) {
 	_, err := client.Do(r2)
 	if err != nil {
 		Send_group_msg(fmt.Sprintf("服务器:%s 运行关闭命令失败!", mconfig.McsmData[order].Name), order)
-		go log.Warring("服务器:%s 运行关闭命令失败,可能是网络问题!", mconfig.McsmData[order].Name)
+		log.Warring("服务器:%s 运行关闭命令失败,可能是网络问题!", mconfig.McsmData[order].Name)
 		return
 	}
 }
@@ -305,7 +304,7 @@ func TestMcsmStatus(order int) bool {
 	_, err2 := client.Do(r2)
 	if err2 != nil {
 		fmt.Printf("服务器:%s MCSM前端连接失败，请检查配置文件是否填写正确或MCSM是否启动\n", mconfig.McsmData[order].Name)
-		go log.Error("服务器:%s MCSM前端连接失败，请检查配置文件是否填写正确或MCSM是否启动", mconfig.McsmData[order].Name)
+		log.Error("服务器:%s MCSM前端连接失败，请检查配置文件是否填写正确或MCSM是否启动", mconfig.McsmData[order].Name)
 		return false
 	}
 	return true
@@ -324,7 +323,7 @@ func Restart(order int) {
 	_, err := client.Do(r2)
 	if err != nil {
 		Send_group_msg(fmt.Sprintf("服务器:%s 运行重启命令失败!", mconfig.McsmData[order].Name), order)
-		go log.Warring("服务器:%s 运行重启命令失败,可能是网络问题!", mconfig.McsmData[order].Name)
+		log.Warring("服务器:%s 运行重启命令失败,可能是网络问题!", mconfig.McsmData[order].Name)
 		return
 	}
 }
@@ -342,7 +341,7 @@ func Kill(order int) {
 	_, err := client.Do(r2)
 	if err != nil {
 		Send_group_msg(fmt.Sprintf("服务器:%s 运行终止命令失败!", mconfig.McsmData[order].Name), order)
-		go log.Warring("服务器:%s 运行终止命令失败,可能是网络问题!", mconfig.McsmData[order].Name)
+		log.Warring("服务器:%s 运行终止命令失败,可能是网络问题!", mconfig.McsmData[order].Name)
 		return
 	}
 }

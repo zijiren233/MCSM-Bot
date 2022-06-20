@@ -19,6 +19,13 @@ type Logger struct {
 	Levle      uint
 	FileOBJ    *os.File
 	ErrFileOBJ *os.File
+	Message    chan *Logmsg
+}
+
+type Logmsg struct {
+	Levle   uint
+	Message string
+	Now     string
 }
 
 func LevleToInt(s string) uint {
@@ -59,6 +66,8 @@ func IntToLevle(i uint) string {
 func Newlog(levle uint) *Logger {
 	logger := Logger{Levle: levle}
 	logger.FileInit()
+	logger.Message = make(chan *Logmsg, 500)
+	go logger.backWriteLog()
 	return &logger
 }
 
@@ -100,23 +109,37 @@ func (l *Logger) BackupLog() {
 }
 
 func (l *Logger) BackupErrLog() {
-	errfile, _ := l.ErrFileOBJ.Stat()
-	if errfile.Size() >= 2097152 {
+	file, _ := l.ErrFileOBJ.Stat()
+	if file.Size() >= 2097152 {
 		l.ErrFileOBJ.Close()
 		os.Rename(`./logs/errlog.log`, fmt.Sprint(`./logs/`, time.Now().Format("2006_01_02_15_04_05_bak_errlog.log")))
-		f2, _ := os.OpenFile("./logs/errlog.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
-		l.ErrFileOBJ = f2
+		f, _ := os.OpenFile("./logs/errlog.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
+		l.ErrFileOBJ = f
 	}
 }
 
 func (l *Logger) log(levle uint, format string, a ...interface{}) {
 	if l.Levle <= levle {
+		select {
+		case l.Message <- &Logmsg{
+			Levle:   levle,
+			Message: fmt.Sprintf(format, a...),
+			Now:     time.Now().Format("[2006-01-02 15:04:05] "),
+		}:
+		default:
+		}
+	}
+}
+
+func (l *Logger) backWriteLog() {
+	var msgtmp *Logmsg
+	for {
+		msgtmp = <-l.Message
 		l.BackupLog()
-		msg := fmt.Sprintf(format, a...)
-		fmt.Fprintln(l.FileOBJ, time.Now().Format("[2006-01-02 15:04:05] "), fmt.Sprint("[", IntToLevle(levle), "] "), msg)
-		if levle >= Error {
+		fmt.Fprintln(l.FileOBJ, msgtmp.Now, fmt.Sprint("[", IntToLevle(msgtmp.Levle), "] "), msgtmp.Message)
+		if msgtmp.Levle >= Error {
 			l.BackupErrLog()
-			fmt.Fprintln(l.ErrFileOBJ, time.Now().Format("[2006-01-02 15:04:05] "), fmt.Sprint("[", IntToLevle(levle), "] "), msg)
+			fmt.Fprintln(l.ErrFileOBJ, msgtmp.Now, fmt.Sprint("[", IntToLevle(msgtmp.Levle), "] "), msgtmp.Message)
 		}
 	}
 }

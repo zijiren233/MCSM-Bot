@@ -4,16 +4,17 @@ import (
 	"flag"
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/zijiren233/MCSM-Bot/logger"
 )
 
-var version = "v1.1.0"
+var version = "v1.2.0"
 var mconfig MConfig
 var qconfig QConfig
-var statusmap map[string]int
-var listenmap map[int]int
+var statusmap = sync.Map{}
+var listenmap = sync.Map{}
 var log *logger.Logger
 
 // var errfile *os.File
@@ -28,7 +29,8 @@ func AddListen() {
 	fmt.Scan(&chose)
 	if chose == "y" {
 		for i := 0; i < len(mconfig.McsmData); i++ {
-			if listenmap[i] != 1 {
+			tmp, _ := listenmap.Load(i)
+			if tmp != 1 {
 				StartListen(i)
 			}
 		}
@@ -39,11 +41,12 @@ func AddListen() {
 			return
 		}
 		if i < len(mconfig.McsmData) && i >= 0 {
-			if listenmap[i] != 1 {
+			tmp, _ := listenmap.Load(i)
+			if tmp != 1 {
 				StartListen(i)
 			} else {
 				fmt.Println("监听实例 ", mconfig.McsmData[i].Name, " 成功！")
-				go log.Info("监听实例 ", mconfig.McsmData[i].Name, " 成功！")
+				log.Info("监听实例 ", mconfig.McsmData[i].Name, " 成功！")
 				fmt.Println()
 			}
 		} else {
@@ -60,13 +63,13 @@ func StartListen(order int) {
 	}
 	if RunningTest(order) {
 		go AddQListen(order)
-		statusmap[mconfig.McsmData[order].Name] = 1
-		time.Sleep(2 * time.Second)
+		statusmap.Store(mconfig.McsmData[order].Name, 1)
+		time.Sleep(1 * time.Second)
 		fmt.Println()
 	} else {
 		go AddQListen(order)
-		statusmap[mconfig.McsmData[order].Name] = 0
-		time.Sleep(2 * time.Second)
+		statusmap.Store(mconfig.McsmData[order].Name, 0)
+		time.Sleep(1 * time.Second)
 		fmt.Println()
 	}
 }
@@ -77,25 +80,26 @@ func Chose() {
 	fmt.Println("1.添加监听服务器")
 	fmt.Println("2.查看已监听列表")
 	fmt.Println("3.查看服务器状态")
-	fmt.Println("4.动态读取配置信息(用于增加了实例配置信息后直接添加监听，不用重启软件。减少实例配置信息不要动态读取！请重启软件！)")
 	fmt.Print("请输入序号:")
 	fmt.Scan(&chose)
 	switch chose {
 	case "1":
 		AddListen()
 	case "2":
-		fmt.Println("[服务器Id: 监听状态(1:监听中)]  没显示的Id均未监听")
-		fmt.Println(listenmap)
+		fmt.Println()
+		fmt.Println("没显示的均未监听")
+		listenmap.Range(func(key, value interface{}) bool {
+			fmt.Println(mconfig.McsmData[key.(int)].Name)
+			return true
+		})
 		time.Sleep(2 * time.Second)
 		fmt.Println()
 	case "3":
-		fmt.Println("[服务器Name: 监听状态(1:运行 2:停止)]")
-		fmt.Println(statusmap)
-		time.Sleep(2 * time.Second)
-		fmt.Println()
-	case "4":
-		mconfig = GetMConfig()
-		fmt.Println("读取配置信息成功！")
+		fmt.Println("[服务器Name: 监听状态(0:停止 1:运行)]")
+		statusmap.Range(func(key, value interface{}) bool {
+			fmt.Printf("%s: %d\n", key, value)
+			return true
+		})
 		time.Sleep(2 * time.Second)
 		fmt.Println()
 	default:
@@ -118,8 +122,6 @@ func main() {
 	log = logger.Newlog(loglevle)
 	mconfig = GetMConfig()
 	qconfig = GetQConfig()
-	statusmap = make(map[string]int)
-	listenmap = make(map[int]int)
 	if !all {
 		AddListen()
 	} else {

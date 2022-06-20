@@ -139,6 +139,8 @@ run (id) kill 终止服务器
 
 ### 效果展示
 
+- 注: 群组回显结果依赖正确的时间戳,建议所有服务器的时区都设置为上海东八区(Docker启动的服务器也需更改时区)!否则运行命令不会有结果回显!
+
 <img src="docs\sc\Sample_1.png" />
 
 <img src="docs\sc\Sample_2.png" />
