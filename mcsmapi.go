@@ -162,7 +162,7 @@ func ReturnResult(command string, order int, time_now int64) {
 		if index == -1 {
 			continue
 		}
-		Send_group_msg(handle_End_Newline(ret[index-1:last]), order)
+		Send_group_msg(fmt.Sprintf("> [%s] %s\n%s", mconfig.McsmData[order].Name, command, handle_End_Newline(ret[index-1:last])), order)
 		return
 	}
 	index = strings.Index(ret, time.Unix((time_now/1000)-1, 0).Format("15:04:05"))
@@ -171,7 +171,7 @@ func ReturnResult(command string, order int, time_now int64) {
 		go log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", mconfig.McsmData[order].Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 		return
 	}
-	Send_group_msg(handle_End_Newline(ret[index-1:last]), order)
+	Send_group_msg(fmt.Sprintf("> [%s] %s\n%s", mconfig.McsmData[order].Name, command, handle_End_Newline(ret[index-1:last])), order)
 }
 
 func handle_End_Newline(msg string) string {
@@ -202,15 +202,10 @@ func RunCmd(commd string, order int) {
 		go log.Error("运行命令 %s 失败！%v", commd, err)
 		return
 	}
-	b, err2 := ioutil.ReadAll(r.Body)
-	if err2 != nil {
-		// Send_group_msg(fmt.Sprint("网络可能不稳定，", commd, "发送失败！"), order)
-		go log.Error("接收 %s 命令返回失败！%v", commd, err)
-		return
-	}
+	b, _ := ioutil.ReadAll(r.Body)
 	var time_unix CmdData
 	json.Unmarshal(b, &time_unix)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(75 * time.Millisecond)
 	ReturnResult(commd, order, time_unix.Time_unix)
 }
 
