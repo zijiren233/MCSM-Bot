@@ -10,7 +10,7 @@ import (
 const (
 	Debug uint = iota
 	Info
-	Warring
+	Warning
 	Error
 	None
 )
@@ -28,8 +28,8 @@ func LevleToInt(s string) uint {
 		return Debug
 	case "info":
 		return Info
-	case "warring":
-		return Warring
+	case "warning":
+		return Warning
 	case "error":
 		return Error
 	case "none":
@@ -45,8 +45,8 @@ func IntToLevle(i uint) string {
 		return "DEBUG"
 	case Info:
 		return "INFO"
-	case Warring:
-		return "WARRING"
+	case Warning:
+		return "WARNING"
 	case Error:
 		return "ERROR"
 	case None:
@@ -130,7 +130,7 @@ func (l *Logger) Info(format string, a ...interface{}) {
 }
 
 func (l *Logger) Warring(format string, a ...interface{}) {
-	l.log(Warring, format, a...)
+	l.log(Warning, format, a...)
 }
 
 func (l *Logger) Error(format string, a ...interface{}) {

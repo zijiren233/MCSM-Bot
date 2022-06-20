@@ -136,13 +136,13 @@ func GetMConfig() MConfig {
 		fmt.Print("可能是配置文件内容格式错误 或 配置文件格式和当前版本不匹配，删除当前配置文件重新启动以获取最新配置文件模板")
 		os.Exit(0)
 	}
-	defer f.Close()
 	return config
 }
 
 func ReturnResult(command string, order int, time_now int64) {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", mconfig.McsmData[order].Domain+"/api/protected_instance/outputlog", nil)
+	r2.Close = true
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	q := r2.URL.Query()
 	q.Add("apikey", mconfig.McsmData[order].Apikey)
@@ -155,13 +155,11 @@ func ReturnResult(command string, order int, time_now int64) {
 		go log.Error("获取服务器 %s 命令 %s 运行结果失败！", mconfig.McsmData[order].Name, command)
 		return
 	}
-	defer r.Body.Close()
 	b, _ := ioutil.ReadAll(r.Body)
 	r3, _ := regexp.Compile(`\\r+|\\u001b\[?=?[a-zA-Z]?\?*[0-9]*[hl]*>? ?[0-9;]*m*`)
 	ret := r3.ReplaceAllString(string(b), "")
 	last := strings.LastIndex(ret, `","time":`)
 	var index int
-	var data Data
 	var i int64
 	go log.Debug("服务器 %s 运行命令 %s 返回时间: %s", mconfig.McsmData[order].Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 	for i = 0; i <= 2; i++ {
@@ -169,9 +167,7 @@ func ReturnResult(command string, order int, time_now int64) {
 		if index == -1 {
 			continue
 		}
-		ret = fmt.Sprint(`{"data":"`, ret[index-1:last], `"}`)
-		json.Unmarshal([]byte(ret), &data)
-		Send_group_msg(data.Data, order)
+		Send_group_msg(handle_End_Newline(ret[index-1:last]), order)
 		return
 	}
 	index = strings.Index(ret, time.Unix((time_now/1000)-1, 0).Format("15:04:05"))
@@ -180,14 +176,24 @@ func ReturnResult(command string, order int, time_now int64) {
 		go log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", mconfig.McsmData[order].Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 		return
 	}
-	ret = fmt.Sprint(`{"data":"`, ret[index-1:last], `"}`)
-	json.Unmarshal([]byte(ret), &data)
-	Send_group_msg(data.Data, order)
+	Send_group_msg(handle_End_Newline(ret[index-1:last]), order)
+}
+
+func handle_End_Newline(msg string) string {
+	var data Data
+	last := strings.LastIndex(msg, `\n`)
+	if last != len(msg)-2 {
+		last = len(msg) - 1
+	}
+	msg = fmt.Sprint(`{"data":"`, msg[:last], `"}`)
+	json.Unmarshal([]byte(msg), &data)
+	return data.Data
 }
 
 func RunCmd(commd string, order int) {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", mconfig.McsmData[order].Domain+"/api/protected_instance/command", nil)
+	r2.Close = true
 	q := r2.URL.Query()
 	q.Add("apikey", mconfig.McsmData[order].Apikey)
 	q.Add("uuid", mconfig.McsmData[order].Uuid)
@@ -209,13 +215,14 @@ func RunCmd(commd string, order int) {
 	}
 	var time_unix CmdData
 	json.Unmarshal(b, &time_unix)
-	time.Sleep(1500 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	ReturnResult(commd, order, time_unix.Time_unix)
 }
 
 func RunningTest(order int) bool {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", mconfig.McsmData[order].Domain+"/api/service/remote_service_instances", nil)
+	r2.Close = true
 	q := r2.URL.Query()
 	q.Add("apikey", mconfig.McsmData[order].Apikey)
 	q.Add("page", "1")
@@ -224,10 +231,14 @@ func RunningTest(order int) bool {
 	q.Add("remote_uuid", mconfig.McsmData[order].Remote_uuid)
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	r, _ := client.Do(r2)
-	b, err := ioutil.ReadAll(r.Body)
+	r, err := client.Do(r2)
 	if err != nil {
 		go log.Warring("检测服务器 %s 运行状况失败,可能是网络原因导致!", mconfig.McsmData[order].Name)
+		return statusmap[mconfig.McsmData[order].Name]-1 == 0
+	}
+	b, err2 := ioutil.ReadAll(r.Body)
+	if err2 != nil {
+		go log.Warring("检测服务器 %s 状态读取结果错误!", mconfig.McsmData[order].Name)
 		return statusmap[mconfig.McsmData[order].Name]-1 == 0
 	}
 	var status Status
@@ -256,6 +267,7 @@ func SendStatus(order int) {
 func Start(order int) {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", mconfig.McsmData[order].Domain+"/api/protected_instance/open", nil)
+	r2.Close = true
 	q := r2.URL.Query()
 	q.Add("apikey", mconfig.McsmData[order].Apikey)
 	q.Add("uuid", mconfig.McsmData[order].Uuid)
@@ -273,6 +285,7 @@ func Start(order int) {
 func Stop(order int) {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", mconfig.McsmData[order].Domain+"/api/protected_instance/stop", nil)
+	r2.Close = true
 	q := r2.URL.Query()
 	q.Add("apikey", mconfig.McsmData[order].Apikey)
 	q.Add("uuid", mconfig.McsmData[order].Uuid)
@@ -290,6 +303,7 @@ func Stop(order int) {
 func TestMcsmStatus(order int) bool {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", mconfig.McsmData[order].Domain+"/api/service/remote_service_instances", nil)
+	r2.Close = true
 	q := r2.URL.Query()
 	q.Add("apikey", mconfig.McsmData[order].Apikey)
 	q.Add("page", "1")
@@ -310,6 +324,7 @@ func TestMcsmStatus(order int) bool {
 func Restart(order int) {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", mconfig.McsmData[order].Domain+"/api/protected_instance/restart", nil)
+	r2.Close = true
 	q := r2.URL.Query()
 	q.Add("apikey", mconfig.McsmData[order].Apikey)
 	q.Add("uuid", mconfig.McsmData[order].Uuid)
@@ -327,6 +342,7 @@ func Restart(order int) {
 func Kill(order int) {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", mconfig.McsmData[order].Domain+"/api/protected_instance/kill", nil)
+	r2.Close = true
 	q := r2.URL.Query()
 	q.Add("apikey", mconfig.McsmData[order].Apikey)
 	q.Add("uuid", mconfig.McsmData[order].Uuid)

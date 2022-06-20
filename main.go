@@ -110,7 +110,7 @@ var loglevle uint
 
 func init() {
 	flag.BoolVar(&all, "a", false, "运行时自动监听所有服务器 (default false)")
-	flag.UintVar(&loglevle, "log", 1, "记录命令日志的级别 0:Debug 1:Info 2:Warring 3:Error 4:None")
+	flag.UintVar(&loglevle, "log", 1, "记录命令日志的级别 0:Debug 1:Info 2:Warning 3:Error 4:None")
 }
 
 func main() {

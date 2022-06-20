@@ -54,7 +54,6 @@ func GetQConfig() QConfig {
 		fmt.Printf("读取配置文件出错3: %v\n", err3)
 		os.Exit(0)
 	}
-	defer f.Close()
 	return config
 }
 
@@ -68,12 +67,12 @@ func TestCqhttpStatus(order int) {
 		fmt.Println("Cqhttp 状态检测错误，请检查配置文件或 Cqhttp 状态")
 		os.Exit(1)
 	}
-	r, err2 := client.Do(r2)
+	r2.Close = true
+	_, err2 := client.Do(r2)
 	if err2 != nil {
 		fmt.Println("Cqhttp 状态检测错误，请检查配置文件或 Cqhttp 状态")
 		os.Exit(1)
 	}
-	defer r.Body.Close()
 }
 
 func Get_group_new_msg(order int, chan_message chan Mdata) {
@@ -82,35 +81,43 @@ func Get_group_new_msg(order int, chan_message chan Mdata) {
 	data.Set("group_id", mconfig.McsmData[order].Group_id)
 	data.Set("access_token", qconfig.Cqhttp.Token)
 	r2, _ := http.NewRequest("GET", qconfig.Cqhttp.Url+"/get_group_msg_history"+"?"+data.Encode(), nil)
+	r2.Close = true
 	r, _ := client.Do(r2)
 	b, _ := ioutil.ReadAll(r.Body)
 	var mesdata MesData
 	json.Unmarshal(b, &mesdata)
-	lens := len(mesdata.Data.Messages) - 1
-	tmp := mesdata.Data.Messages[lens].Message_id
+	tmp := mesdata.Data.Messages[len(mesdata.Data.Messages)-1].Message_id
 	var err error
 	for {
 		r, err = client.Do(r2)
 		if err != nil {
+			go log.Error("获取群组:%s 消息失败 err:%v", mconfig.McsmData[order].Group_id, err)
 			continue
 		}
-		b, err = ioutil.ReadAll(r.Body)
+		b, _ = ioutil.ReadAll(r.Body)
+		err = json.Unmarshal(b, &mesdata)
 		if err != nil {
+			go log.Error("返回群组:%s 消息错误 err:%v", mconfig.McsmData[order].Group_id, err)
 			continue
 		}
-		json.Unmarshal(b, &mesdata)
-		if len(mesdata.Data.Messages) == 0 {
-			continue
+		if mesdata.Data.Messages[len(mesdata.Data.Messages)-1].Message_id != tmp {
+			go write_Latest_News(tmp, mesdata, chan_message, order)
+			tmp = mesdata.Data.Messages[len(mesdata.Data.Messages)-1].Message_id
 		}
-		lens = len(mesdata.Data.Messages) - 1
-		if mesdata.Data.Messages[lens].Message_id != tmp && strconv.Itoa(mesdata.Data.Messages[lens].User_id) != qconfig.Cqhttp.Qq {
-			tmp = mesdata.Data.Messages[lens].Message_id
-			go log.Debug("群组:%s 获取到最新消息 QQ:%d ,iD:%d", mconfig.McsmData[order].Group_id, mesdata.Data.Messages[lens].User_id, tmp)
-			chan_message <- mesdata.Data.Messages[lens]
+		time.Sleep(300 * time.Millisecond)
+	}
+}
+
+func write_Latest_News(tmp int, mesdata MesData, chan_message chan Mdata, order int) {
+	for i := len(mesdata.Data.Messages) - 1; i >= 0; i-- {
+		if mesdata.Data.Messages[i].Message_id != tmp {
+			if strconv.Itoa(mesdata.Data.Messages[i].User_id) != qconfig.Cqhttp.Qq {
+				chan_message <- mesdata.Data.Messages[i]
+				go log.Debug("群组:%s 获取到最新消息 QQ:%d ,iD:%d", mconfig.McsmData[order].Group_id, mesdata.Data.Messages[i].User_id, mesdata.Data.Messages[i].Message_id)
+			}
+		} else {
+			break
 		}
-		time.Sleep(40 * time.Millisecond)
-		/*The detection frequency is 40ms once, and it should not be set too large,
-		otherwise messages will be missed*/
 	}
 }
 
@@ -122,6 +129,7 @@ func Send_group_msg(message string, order int) {
 	data.Set("auto_escape", "false")
 	data.Set("access_token", qconfig.Cqhttp.Token)
 	r2, _ := http.NewRequest("GET", qconfig.Cqhttp.Url+"/send_group_msg"+"?"+data.Encode(), nil)
+	r2.Close = true
 	_, err := client.Do(r2)
 	if err != nil {
 		go log.Warring("发送消息到群组:%s 失败,可能是cqhttp或网络问题!", mconfig.McsmData[order].Group_id)
@@ -216,37 +224,38 @@ func AddQListen(order int) {
 			continue
 		}
 		go log.Info("群组:%s QQ:%d 输入命令: %s", mconfig.McsmData[od].Group_id, mdata.User_id, mdata.Message)
-		go func(params string, order int) {
-			params = strings.ReplaceAll(params, "\n", "")
-			params = strings.ReplaceAll(params, "\r", "")
-			go log.Debug("服务器:%s 运行命令:%s", mconfig.McsmData[order].Name, params)
-			switch params {
-			case "status":
-				SendStatus(order)
-			case "start":
-				if statusmap[mconfig.McsmData[order].Name] == 0 {
-					Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 正在启动"), order)
-					Start(order)
-				} else {
-					Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 已在运行"), order)
-				}
-			case "stop":
-				if statusmap[mconfig.McsmData[order].Name] == 1 {
-					Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 正在关闭"), order)
-					Stop(order)
-				} else {
-					Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 未在运行"), order)
-				}
-			case "restart":
-				Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 正在重启"), order)
-				Restart(order)
-			case "kill":
-				Kill(order)
-			default:
-				RunCmd(params, order)
+		go checkCMD(params2[2], od)
+	}
+}
 
-			}
-		}(params2[2], od)
+func checkCMD(params string, order int) {
+	params = strings.ReplaceAll(params, "\n", "")
+	params = strings.ReplaceAll(params, "\r", "")
+	go log.Debug("服务器:%s 运行命令:%s", mconfig.McsmData[order].Name, params)
+	switch params {
+	case "status":
+		SendStatus(order)
+	case "start":
+		if statusmap[mconfig.McsmData[order].Name] == 0 {
+			Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 正在启动"), order)
+			Start(order)
+		} else {
+			Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 已在运行"), order)
+		}
+	case "stop":
+		if statusmap[mconfig.McsmData[order].Name] == 1 {
+			Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 正在关闭"), order)
+			Stop(order)
+		} else {
+			Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 未在运行"), order)
+		}
+	case "restart":
+		Send_group_msg(fmt.Sprint("服务器 ", mconfig.McsmData[order].Name, " 正在重启"), order)
+		Restart(order)
+	case "kill":
+		Kill(order)
+	default:
+		RunCmd(params, order)
 	}
 }
 
@@ -261,6 +270,6 @@ func ReportStatus(order int) {
 			go log.Info("实例 %s 已运行", mconfig.McsmData[order].Name)
 			Send_group_msg(fmt.Sprint(`[CQ:at,qq=`, mconfig.McsmData[order].Adminlist[0], `]`, "服务器 ", mconfig.McsmData[order].Name, " 已启动！"), order)
 		}
-		time.Sleep(1500 * time.Millisecond)
+		time.Sleep(2 * time.Second)
 	}
 }
