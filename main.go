@@ -87,7 +87,7 @@ func Chose() {
 		AddListen()
 	case "2":
 		fmt.Println()
-		fmt.Println("没显示的均未监听")
+		fmt.Println("[没显示的均未监听]")
 		listenmap.Range(func(key, value interface{}) bool {
 			fmt.Println(mconfig.McsmData[key.(int)].Name)
 			return true
@@ -95,6 +95,7 @@ func Chose() {
 		time.Sleep(2 * time.Second)
 		fmt.Println()
 	case "3":
+		fmt.Println()
 		fmt.Println("[服务器Name: 监听状态(0:停止 1:运行)]")
 		statusmap.Range(func(key, value interface{}) bool {
 			fmt.Printf("%s: %d\n", key, value)

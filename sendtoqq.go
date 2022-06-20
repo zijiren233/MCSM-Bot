@@ -176,7 +176,6 @@ func AddQListen(order int) {
 			// fmt.Println("监听相同的群")
 			log.Info("服务器:%s 监听相同的群:%s", mconfig.McsmData[order].Name, mconfig.McsmData[order].Group_id)
 			go ReportStatus(order)
-			go ReportStatus(order)
 			listenmap.Store(order, 1)
 			return
 		} else if j == order {
