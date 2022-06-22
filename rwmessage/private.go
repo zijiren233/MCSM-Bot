@@ -41,13 +41,13 @@ func (p *HdPrivate) HdOpPrivate() {
 			id, _ := strconv.Atoi(params2[1])
 			if In(id, AllId) {
 				if _, ok := GOnlineMap[id]; !ok {
-					Log.Warring("%s 未开启监听！", Mconfig.McsmData[IdToOd[id]].Name)
+					Log.Warring("OP 试图访问服务器:%s ,%s 未开启监听！", Mconfig.McsmData[IdToOd[id]].Name, Mconfig.McsmData[IdToOd[id]].Name)
 					p.Send_private_msg("%s 未开启监听！", Mconfig.McsmData[IdToOd[id]].Name)
 				}
 				go p.checkCMD(id, params2[2])
 			} else {
 				p.Send_private_msg("请输入正确的ID!")
-				Log.Warring("%d 输入:%d 请输入正确的ID!", p.Op, params)
+				Log.Warring("OP 输入:%d 请输入正确的ID!", p.Op, params)
 			}
 		}
 	}

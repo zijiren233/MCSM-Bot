@@ -36,8 +36,14 @@ type Status struct {
 // var Statusmap = make(map[string]int)
 
 func NewHdGroup(id int, send chan SendData) *HdGroup {
-	if IdToOd[id] == 0 && Mconfig.McsmData[0].Id != id {
-		Log.Error("输入的ID:%d 不存在!", id)
+	if !In(id, AllId) {
+		fmt.Println("Id错误!")
+		Log.Error("监听Id:%d ,Id错误!", id)
+		fmt.Println()
+		return nil
+	} else if _, ok := GOnlineMap[id]; ok {
+		fmt.Printf("重复监听服务器:%s\n", Mconfig.McsmData[IdToOd[id]].Name)
+		Log.Warring("重复监听服务器:%s", Mconfig.McsmData[IdToOd[id]].Name)
 		return nil
 	}
 	u := HdGroup{
@@ -122,7 +128,6 @@ func (u *HdGroup) HdMessage() {
 func (u *HdGroup) HandleMessage(mdata MsgData) {
 	flysnowRegexp, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
 	params := flysnowRegexp.FindString(mdata.Message)
-	// fmt.Printf("params: %v\n", params)
 	if len(params) == 0 {
 		return
 	}
@@ -137,7 +142,7 @@ func (u *HdGroup) HandleMessage(mdata MsgData) {
 	if (params2)[2] == "" {
 		return
 	}
-	go u.checkCMD(params2[2])
+	u.checkCMD(params2[2])
 }
 
 func (u *HdGroup) checkCMD(params string) {
