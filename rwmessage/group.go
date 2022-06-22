@@ -12,30 +12,38 @@ import (
 )
 
 type HdGroup struct {
-	Id          int
-	Name        string
-	Url         string
-	Remote_uuid string
-	Uuid        string
-	Apikey      string
-	Group_id    int
-	Adminlist   []int
-	Status      int
-	ChGroupMsg  chan MsgData
-	SendChan    chan SendData
+	Id             int
+	Name           string
+	Url            string
+	Remote_uuid    string
+	Uuid           string
+	Apikey         string
+	Group_id       int
+	Adminlist      []int
+	Status         int
+	EndTime        string
+	CurrentPlayers int
+	MaxPlayers     string
+	Version        string
+	ChGroupMsg     chan *MsgData
+	SendChan       chan *SendData
 }
 
 type Status struct {
 	Data struct {
-		Data []struct {
-			Status int `json:"status"`
-		} `json:"data"`
+		Status int `json:"status"`
+		Config struct {
+			EndTime string `json:"endTime"`
+		} `json:"config"`
+		Info struct {
+			CurrentPlayers int    `json:"currentPlayers"`
+			MaxPlayers     string `json:"maxPlayers"`
+			Version        string `json:"version"`
+		} `json:"info"`
 	} `json:"data"`
 }
 
-// var Statusmap = make(map[string]int)
-
-func NewHdGroup(id int, send chan SendData) *HdGroup {
+func NewHdGroup(id int, send chan *SendData) *HdGroup {
 	if !In(id, AllId) {
 		fmt.Println("Id错误!")
 		Log.Error("监听Id:%d ,Id错误!", id)
@@ -59,7 +67,7 @@ func NewHdGroup(id int, send chan SendData) *HdGroup {
 	}
 	GroupToId[u.Group_id] = append(GroupToId[u.Group_id], u.Id)
 	Log.Debug("GroupToId: %v", GroupToId)
-	u.ChGroupMsg = make(chan MsgData, 25)
+	u.ChGroupMsg = make(chan *MsgData, 25)
 	go u.ReportStatus()
 	go u.Run()
 	return &u
@@ -71,61 +79,17 @@ func (u *HdGroup) Run() {
 	u.HdMessage()
 }
 
-func (u *HdGroup) ReportStatus() {
-	if u.RunningTest() {
-		u.Status = 1
-	} else {
-		u.Status = 0
-	}
-	for {
-		if !u.RunningTest() && u.Status == 1 {
-			u.Status = 0
-			u.Send_group_msg("服务器:%s 已停止!", u.Name)
-		} else if u.RunningTest() && u.Status == 0 {
-			u.Status = 1
-			u.Send_group_msg("服务器:%s 已运行!", u.Name)
-		}
-		time.Sleep(2 * time.Second)
-	}
-}
-
-func (u *HdGroup) RunningTest() bool {
-	client := &http.Client{}
-	r2, _ := http.NewRequest("GET", u.Url+"/api/service/remote_service_instances", nil)
-	r2.Close = true
-	q := r2.URL.Query()
-	q.Add("apikey", u.Apikey)
-	q.Add("page", "1")
-	q.Add("page_size", "1")
-	q.Add("instance_name", u.Name)
-	q.Add("remote_uuid", u.Remote_uuid)
-	r2.URL.RawQuery = q.Encode()
-	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	r, err := client.Do(r2)
-	if err != nil {
-		return u.Status-1 == 0
-	}
-	b, _ := ioutil.ReadAll(r.Body)
-	var status Status
-	json.Unmarshal(b, &status)
-	if status.Data.Data[0].Status != 3 && status.Data.Data[0].Status != 2 {
-		return false
-	} else {
-		return true
-	}
-}
-
 func (u *HdGroup) HdMessage() {
-	var tmp MsgData
+	var msg *MsgData
 	for {
-		tmp = <-u.ChGroupMsg
-		if In(tmp.User_id, u.Adminlist) && tmp.Group_id == u.Group_id {
-			go u.HandleMessage(tmp)
+		msg = <-u.ChGroupMsg
+		if In(msg.User_id, u.Adminlist) && msg.Group_id == u.Group_id {
+			go u.HandleMessage(msg)
 		}
 	}
 }
 
-func (u *HdGroup) HandleMessage(mdata MsgData) {
+func (u *HdGroup) HandleMessage(mdata *MsgData) {
 	flysnowRegexp, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
 	params := flysnowRegexp.FindString(mdata.Message)
 	if len(params) == 0 {
@@ -174,9 +138,62 @@ func (u *HdGroup) checkCMD(params string) {
 
 func (u *HdGroup) SendStatus() {
 	if u.Status == 1 {
-		u.Send_group_msg("服务器:%s 正在运行!", u.Name)
+		if u.CurrentPlayers == -1 {
+			u.Send_group_msg("服务器:%s 正在运行!", u.Name)
+		} else {
+			u.Send_group_msg("服务器:%s 正在运行!\n服务器人数:%d\n服务器最大人数:%s\n服务器版本:%s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
+		}
 	} else if u.Status == 0 {
-		u.Send_group_msg("服务器:%s 已停止!", u.Name)
+		u.Send_group_msg("服务器:%s 未运行!", u.Name)
+	}
+}
+
+func (u *HdGroup) ReportStatus() {
+	if u.RunningTest() {
+		u.Status = 1
+	} else {
+		u.Status = 0
+	}
+	var status bool
+	for {
+		status = u.RunningTest()
+		if !status && u.Status == 1 {
+			u.Status = 0
+			u.Send_group_msg("服务器:%s 已停止!", u.Name)
+		} else if status && u.Status == 0 {
+			u.Status = 1
+			u.Send_group_msg("服务器:%s 已运行!", u.Name)
+		}
+		time.Sleep(3 * time.Second)
+	}
+}
+
+func (u *HdGroup) RunningTest() bool {
+	client := &http.Client{}
+	r2, _ := http.NewRequest("GET", u.Url+"/api/instance", nil)
+	r2.Close = true
+	q := r2.URL.Query()
+	q.Add("apikey", u.Apikey)
+	q.Add("uuid", u.Uuid)
+	q.Add("remote_uuid", u.Remote_uuid)
+	r2.URL.RawQuery = q.Encode()
+	r2.URL.RawQuery = q.Encode()
+	r2.Header.Set("x-requested-with", "xmlhttprequest")
+	r, err := client.Do(r2)
+	if err != nil {
+		return u.Status-1 == 0
+	}
+	b, _ := ioutil.ReadAll(r.Body)
+	var status Status
+	json.Unmarshal(b, &status)
+	u.EndTime = status.Data.Config.EndTime
+	u.CurrentPlayers = status.Data.Info.CurrentPlayers
+	u.MaxPlayers = status.Data.Info.MaxPlayers
+	u.Version = status.Data.Info.Version
+	if status.Data.Status != 3 && status.Data.Status != 2 {
+		return false
+	} else {
+		return true
 	}
 }
 
@@ -194,5 +211,5 @@ func (u *HdGroup) Send_group_msg(msg string, a ...interface{}) {
 	tmp.Action = "send_group_msg"
 	tmp.Params.Group_id = u.Group_id
 	tmp.Params.Message = fmt.Sprintf(msg, a...)
-	u.SendChan <- tmp
+	u.SendChan <- &tmp
 }

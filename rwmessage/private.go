@@ -13,14 +13,14 @@ import (
 
 type HdPrivate struct {
 	Op           int
-	ChPrivateMsg chan MsgData
-	SendChan     chan SendData
+	ChPrivateMsg chan *MsgData
+	SendChan     chan *SendData
 }
 
-func NewHdPrivate(send chan SendData) *HdPrivate {
+func NewHdPrivate(send chan *SendData) *HdPrivate {
 	p := HdPrivate{
 		Op:           Qconfig.Cqhttp.Op,
-		ChPrivateMsg: make(chan MsgData, 25),
+		ChPrivateMsg: make(chan *MsgData, 25),
 		SendChan:     send,
 	}
 	return &p
@@ -28,17 +28,18 @@ func NewHdPrivate(send chan SendData) *HdPrivate {
 
 func (p *HdPrivate) HdOpPrivate() {
 	POnlineMap[0] = p
-	var tmp MsgData
+	var msg *MsgData
+	var id int
 	for {
-		tmp = <-p.ChPrivateMsg
-		if tmp.User_id == Qconfig.Cqhttp.Op {
+		msg = <-p.ChPrivateMsg
+		if msg.User_id == Qconfig.Cqhttp.Op {
 			flysnowRegexp, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
-			params := flysnowRegexp.FindString(tmp.Message)
+			params := flysnowRegexp.FindString(msg.Message)
 			if len(params) == 0 {
 				return
 			}
 			params2 := flysnowRegexp.FindStringSubmatch(params)
-			id, _ := strconv.Atoi(params2[1])
+			id, _ = strconv.Atoi(params2[1])
 			if In(id, AllId) {
 				if _, ok := GOnlineMap[id]; !ok {
 					Log.Warring("OP 试图访问服务器:%s ,%s 未开启监听！", Mconfig.McsmData[IdToOd[id]].Name, Mconfig.McsmData[IdToOd[id]].Name)
@@ -57,9 +58,15 @@ func (p *HdPrivate) checkCMD(id int, params string) {
 	params = strings.ReplaceAll(params, "\n", "")
 	params = strings.ReplaceAll(params, "\r", "")
 	switch params {
+	case "help":
+		p.Send_private_msg("待添加...")
 	case "status":
 		if GOnlineMap[id].Status == 1 {
-			p.Send_private_msg("服务器:%s 正在运行!", GOnlineMap[id].Name)
+			if GOnlineMap[id].CurrentPlayers == -1 {
+				p.Send_private_msg("服务器:%s 正在运行!", GOnlineMap[id].Name)
+			} else {
+				p.Send_private_msg("服务器:%s 正在运行!\n服务器人数:%d\n服务器最大人数:%s\n服务器版本:%s\n服务器到期日期:%s", GOnlineMap[id].Name, GOnlineMap[id].CurrentPlayers, GOnlineMap[id].MaxPlayers, GOnlineMap[id].Version, GOnlineMap[id].EndTime)
+			}
 		} else if GOnlineMap[id].Status == 0 {
 			p.Send_private_msg("服务器:%s 未运行!", GOnlineMap[id].Name)
 		}
@@ -228,5 +235,5 @@ func (p *HdPrivate) Send_private_msg(msg string, a ...interface{}) {
 	tmp.Action = "send_private_msg"
 	tmp.Params.User_id = p.Op
 	tmp.Params.Message = fmt.Sprintf(msg, a...)
-	p.SendChan <- tmp
+	p.SendChan <- &tmp
 }

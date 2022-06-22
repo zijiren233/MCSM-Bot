@@ -30,7 +30,7 @@ type SendData struct {
 type Server struct {
 	Url         string
 	Ws          *websocket.Conn
-	SendMessage chan SendData
+	SendMessage chan *SendData
 }
 
 type MsgData struct {
@@ -47,7 +47,7 @@ func NewServer(url string) *Server {
 		Url: url,
 	}
 	w.init()
-	w.SendMessage = make(chan SendData, 25)
+	w.SendMessage = make(chan *SendData, 50)
 	w.Ws, _, _ = websocket.DefaultDialer.Dial(w.Url, nil)
 	go w.Run()
 	return &w
@@ -61,26 +61,28 @@ func (s *Server) init() {
 
 func (s *Server) Run() {
 	go s.SendMsg()
+	var data []byte
+	var err error
 	for {
-		_, data, err := s.Ws.ReadMessage()
+		_, data, err = s.Ws.ReadMessage()
 		if err != nil {
 			continue
 		}
 		var msgdata MsgData
 		json.Unmarshal(data, &msgdata)
 		if msgdata.Post_type == "message" {
-			s.BroadCast(msgdata)
+			s.BroadCast(&msgdata)
 		}
 	}
 }
 
-func (s *Server) BroadCast(msg MsgData) {
+func (s *Server) BroadCast(msg *MsgData) {
 	if msg.Message_type == "group" {
 		for _, v := range GOnlineMap {
 			select {
 			case v.ChGroupMsg <- msg:
 			default:
-				Log.Warring("ChGroupMsg 堵塞！")
+				Log.Warring("ChGroupMsg 堵塞!会造成消息丢失!")
 			}
 		}
 	} else if msg.Message_type == "private" {
@@ -88,18 +90,17 @@ func (s *Server) BroadCast(msg MsgData) {
 			select {
 			case v.ChPrivateMsg <- msg:
 			default:
-				Log.Warring("ChPrivatemsg 堵塞！")
+				Log.Warring("ChPrivatemsg 堵塞!会造成消息丢失!")
 			}
 		}
 	}
 }
 
 func (s *Server) SendMsg() {
+	var tmp []byte
 	for {
-		data := <-s.SendMessage
-		b, _ := json.Marshal(data)
-		// fmt.Printf("b: %v\n", string(b))
-		s.Ws.WriteMessage(websocket.TextMessage, b)
+		tmp, _ = json.Marshal(*<-s.SendMessage)
+		s.Ws.WriteMessage(websocket.TextMessage, tmp)
 	}
 }
 
@@ -122,21 +123,4 @@ func IsListDuplicated(list []int) bool {
 		}
 	}
 	return false
-}
-
-func RemoveRepByLoop(slc []int) []int {
-	result := []int{} // 存放结果
-	for i := range slc {
-		flag := true
-		for j := range result {
-			if slc[i] == result[j] {
-				flag = false // 存在重复元素，标识为false
-				break
-			}
-		}
-		if flag { // 标识为false，不添加进结果
-			result = append(result, slc[i])
-		}
-	}
-	return result
 }

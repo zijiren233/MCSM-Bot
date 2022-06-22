@@ -72,7 +72,6 @@ func addListen() {
 func main() {
 	flag.Parse()
 	rwmessage.LogLevle = loglevle
-	fmt.Println("MCSM-BOT", version)
 	if rwmessage.IsListDuplicated(rwmessage.GetAllId()) {
 		panic("有重复ID!")
 	}

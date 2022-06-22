@@ -131,13 +131,11 @@ func (u *HdGroup) handle_End_Newline(msg *string) *string {
 
 func (u *HdGroup) TestMcsmStatus() bool {
 	client := &http.Client{}
-	r2, _ := http.NewRequest("GET", u.Url+"/api/service/remote_service_instances", nil)
+	r2, _ := http.NewRequest("GET", u.Url+"/api/instance", nil)
 	r2.Close = true
 	q := r2.URL.Query()
 	q.Add("apikey", u.Apikey)
-	q.Add("page", "1")
-	q.Add("page_size", "1")
-	q.Add("instance_name", u.Name)
+	q.Add("uuid", u.Uuid)
 	q.Add("remote_uuid", u.Remote_uuid)
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
