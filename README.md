@@ -83,7 +83,8 @@ default-middlewares里面的：
         "cqhttp": {
             "token": "test", // 默认中间件锚点中的access-token，不可为空
             "url": "https://q-api.pyhdxy.com:443", // cqhttp 请求地址，末尾不带斜杠！
-            "qq": "3426898431" // 机器人QQ号
+            "qq": "3426898431", // 机器人QQ号
+            "op": "1670605849" // op里的qq可以在私聊机器人以访问所有实例
         }
     }
     ```
