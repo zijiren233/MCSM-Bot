@@ -15,16 +15,14 @@
 
 #### 1.启动QQ_API
 
-下载 **[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)** 运行后选择 0.HTTP通信，启动后 `go-cqhttp` 会生成配置文件，只需要修改 `config.yml` 中：
+下载 **[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)** 运行后选择 2.正向WS通信，启动后 `go-cqhttp` 会生成配置文件，只需要修改 `config.yml` 中：
 ```
 account里面的：
     uin: // 用于机器人的QQ号
-    
-default-middlewares里面的：
-    access-token: // 设置任意长度字符串
+    password: // QQ密码
 ```
 
-修改完成后再次运行 `go-cqhttp` 扫码登录后即可，此时 **QQ API** 端口为默认的5700。
+修改完成后再次运行 `go-cqhttp` 扫码登录后即可，此时 **QQ API** WS 端口为默认的 8080。
 
 - 登录出错
 
@@ -36,8 +34,7 @@ default-middlewares里面的：
         - 然后邀请机器人进入群即可(自动通过)
 
         ```
-        "token": "test",
-        "url": "https://q-api.pyhdxy.com:443",
+        "url": "ws://q-api.pyhdxy.com:8080",
         "qq": "3426898431"
         ```
 
@@ -54,37 +51,36 @@ default-middlewares里面的：
     { // 真正的配置文件为标准的json格式，里面不要有注释！！！
         "mcsmdata": [
             {
-                "id": 0, // 按顺序填,此项为监听服务器的序号，从0开始依次增加，用于启动监听时填的要监听哪一个服务器
+                "id": 2, // Id 为任意小于256的数，但不可重复！
                 "name": "server1", // MCSM里面的实例名，即基本信息里的昵称，实例名不可重复！！！
                 "url": "https://mcsm.domain.com:443", // MCSM面板的地址，包含http(s)://，结尾不要有斜杠/
                 "remote_uuid": "d6a27b0b13ad44ce879b5a56c88b4d34", // 守护进程的GID
                 "uuid": "a8788991a64e4a06b76d539b35db1b16", // 实例的UID
                 "apikey": "vmajkfnvklNSdvkjbnfkdsnv7e0f", // 不可为空，用户中心->右上角个人资料->右方生成API密钥
-                "group_id": "234532", // 要管理的QQ群号
+                "group_id": 234532, // 要管理的QQ群号
                 "adminlist": [
-                    "1145141919", // 群管理员，第一个为主管理员，只有管理员才可以发送命令
-                    "1433223" // 管理员列表可以为空，则所有用户都可以发送命令
+                    1145141919, // 群管理员，第一个为主管理员，只有管理员才可以发送命令
+                    1433223 // 管理员列表可以为空，则所有用户都可以发送命令
                 ]
             }, // 只有一个实例可以删掉后面的服务器，有多个则自行添加
             {
-                "id": 1, // 按顺序填，0，1，2，3 ......
+                "id": 5, // Id 不可重复！
                 "name": "server2",
                 "url": "http://mcsm.domain.com:24444",
                 "remote_uuid": "d6a27b0b13ad44ce879b5ascwfscr323",
                 "uuid": "a8788991a6acasfaca76d539b35db1b16",
                 "apikey": "6ewc6292daefvlksmdvjadnvjbf",
-                "group_id": "234532",
+                "group_id": 234532,
                 "adminlist": [
-                    "114514", // 不同实例在同一个群也可以有不同的管理员
-                    "1919"
+                    114514, // 不同实例在同一个群也可以有不同的管理员
+                    1919
                 ]
             } // <--最后一个实例配置这里没有逗号！！！
         ],
         "cqhttp": {
-            "token": "test", // 默认中间件锚点中的access-token，不可为空
-            "url": "https://q-api.pyhdxy.com:443", // cqhttp 请求地址，末尾不带斜杠！
-            "qq": "3426898431", // 机器人QQ号
-            "op": "1670605849" // op里的qq可以在私聊机器人以访问所有实例
+            "url": "ws://127.0.0.1:8080", // cqhttp 请求地址，末尾不带斜杠！只能使用Ws(s)协议
+            "qq": 3426898431, // 机器人QQ号
+            "op": 1670605849 // op里的qq可以在私聊机器人以访问所有实例
         }
     }
     ```
@@ -98,7 +94,7 @@ default-middlewares里面的：
     ```
     选填启动参数:
 
-    -a 运行时自动监听所有服务器 (default false) | 格式: -a
+    -a 运行时只监听某一个服务器 而 不是所有 (default false) | 格式: -a
     -log 记录命令日志的级别 0:Debug 1:Info 2:Warning 3:Error 4:None (default 1) | 格式: -log=3
     ```
 
