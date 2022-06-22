@@ -8,7 +8,7 @@ import (
 	"github.com/zijiren233/MCSM-Bot/rwmessage"
 )
 
-var version = "v1.3.0"
+var version = "v1.4.0"
 var alone bool
 var loglevle uint
 var s = rwmessage.NewServer(rwmessage.Qconfig.Cqhttp.Url)
@@ -83,6 +83,7 @@ func main() {
 			go rwmessage.NewHdGroup(rwmessage.Mconfig.McsmData[i].Id, s.SendMessage)
 			time.Sleep(1 * time.Second)
 		}
+		fmt.Println()
 	}
 	p := rwmessage.NewHdPrivate(s.SendMessage)
 	go p.HdOpPrivate()
