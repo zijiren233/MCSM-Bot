@@ -104,7 +104,7 @@ func (p *HdPrivate) RunCmd(commd string, id int) {
 	b, _ := ioutil.ReadAll(r.Body)
 	var time_unix CmdData
 	json.Unmarshal(b, &time_unix)
-	time.Sleep(40 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	p.ReturnResult(commd, time_unix.Time_unix, id)
 }
 

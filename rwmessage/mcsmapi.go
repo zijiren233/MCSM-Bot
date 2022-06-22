@@ -72,7 +72,7 @@ func (u *HdGroup) RunCmd(commd string) {
 	b, _ := ioutil.ReadAll(r.Body)
 	var time_unix CmdData
 	json.Unmarshal(b, &time_unix)
-	time.Sleep(40 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	u.ReturnResult(commd, time_unix.Time_unix)
 }
 
