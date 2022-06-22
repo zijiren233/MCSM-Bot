@@ -20,7 +20,7 @@ type HdPrivate struct {
 func NewHdPrivate(send chan SendData) *HdPrivate {
 	p := HdPrivate{
 		Op:           Qconfig.Cqhttp.Op,
-		ChPrivateMsg: make(chan MsgData, 20),
+		ChPrivateMsg: make(chan MsgData, 25),
 		SendChan:     send,
 	}
 	return &p
@@ -104,7 +104,7 @@ func (p *HdPrivate) RunCmd(commd string, id int) {
 	b, _ := ioutil.ReadAll(r.Body)
 	var time_unix CmdData
 	json.Unmarshal(b, &time_unix)
-	time.Sleep(75 * time.Millisecond)
+	time.Sleep(40 * time.Millisecond)
 	p.ReturnResult(commd, time_unix.Time_unix, id)
 }
 

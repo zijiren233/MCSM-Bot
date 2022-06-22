@@ -72,7 +72,7 @@ func (u *HdGroup) RunCmd(commd string) {
 	b, _ := ioutil.ReadAll(r.Body)
 	var time_unix CmdData
 	json.Unmarshal(b, &time_unix)
-	time.Sleep(75 * time.Millisecond)
+	time.Sleep(40 * time.Millisecond)
 	u.ReturnResult(commd, time_unix.Time_unix)
 }
 
@@ -118,14 +118,14 @@ func (u *HdGroup) ReturnResult(command string, time_now int64) {
 }
 
 func (u *HdGroup) handle_End_Newline(msg *string) *string {
-	// var data Data
+	var data Data
 	last := strings.LastIndex(*msg, `\n`)
 	if last != len(*msg)-2 {
 		last = len(*msg) - 1
 	}
 	*msg = (*msg)[:last]
-	// *msg = fmt.Sprint(`{"data":"`, (*msg)[:last], `"}`)
-	// json.Unmarshal([]byte(*msg), &data)
+	*msg = fmt.Sprint(`{"data":"`, *msg, `"}`)
+	json.Unmarshal([]byte(*msg), &data)
 	return msg
 }
 

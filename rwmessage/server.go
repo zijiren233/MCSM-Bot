@@ -47,7 +47,7 @@ func NewServer(url string) *Server {
 		Url: url,
 	}
 	w.init()
-	w.SendMessage = make(chan SendData, 20)
+	w.SendMessage = make(chan SendData, 25)
 	w.Ws, _, _ = websocket.DefaultDialer.Dial(w.Url, nil)
 	go w.Run()
 	return &w
@@ -77,11 +77,19 @@ func (s *Server) Run() {
 func (s *Server) BroadCast(msg MsgData) {
 	if msg.Message_type == "group" {
 		for _, v := range GOnlineMap {
-			v.ChGroupMsg <- msg
+			select {
+			case v.ChGroupMsg <- msg:
+			default:
+				Log.Warring("ChGroupMsg 堵塞！")
+			}
 		}
 	} else if msg.Message_type == "private" {
 		for _, v := range POnlineMap {
-			v.ChPrivateMsg <- msg
+			select {
+			case v.ChPrivateMsg <- msg:
+			default:
+				Log.Warring("ChPrivatemsg 堵塞！")
+			}
 		}
 	}
 }

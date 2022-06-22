@@ -53,7 +53,7 @@ func NewHdGroup(id int, send chan SendData) *HdGroup {
 	}
 	GroupToId[u.Group_id] = append(GroupToId[u.Group_id], u.Id)
 	Log.Debug("GroupToId: %v", GroupToId)
-	u.ChGroupMsg = make(chan MsgData, 20)
+	u.ChGroupMsg = make(chan MsgData, 25)
 	go u.ReportStatus()
 	go u.Run()
 	return &u
