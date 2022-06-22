@@ -126,7 +126,7 @@ func (u *HdGroup) handle_End_Newline(msg *string) *string {
 	*msg = (*msg)[:last]
 	*msg = fmt.Sprint(`{"data":"`, *msg, `"}`)
 	json.Unmarshal([]byte(*msg), &data)
-	return msg
+	return &data.Data
 }
 
 func (u *HdGroup) TestMcsmStatus() bool {
