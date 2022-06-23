@@ -80,10 +80,10 @@ func (p *HdCqOp) checkCMD(id int, params string) {
 	switch params {
 	case "status":
 		if GOnlineMap[id].Status == 1 {
-			if GOnlineMap[id].CurrentPlayers == -1 {
+			if GOnlineMap[id].CurrentPlayers == "-1" {
 				p.Send_private_msg("服务器:%s 正在运行!", GOnlineMap[id].Name)
 			} else {
-				p.Send_private_msg("服务器:%s 正在运行!\n服务器人数:%d\n服务器最大人数:%s\n服务器版本:%s\n服务器到期日期:%s", GOnlineMap[id].Name, GOnlineMap[id].CurrentPlayers, GOnlineMap[id].MaxPlayers, GOnlineMap[id].Version, GOnlineMap[id].EndTime)
+				p.Send_private_msg("服务器:%s 正在运行!\n服务器人数:%s\n服务器最大人数:%s\n服务器版本:%s\n服务器到期日期:%s", GOnlineMap[id].Name, GOnlineMap[id].CurrentPlayers, GOnlineMap[id].MaxPlayers, GOnlineMap[id].Version, GOnlineMap[id].EndTime)
 			}
 		} else if GOnlineMap[id].Status == 0 {
 			p.Send_private_msg("服务器:%s 未运行!", GOnlineMap[id].Name)

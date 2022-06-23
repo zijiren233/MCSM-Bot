@@ -22,7 +22,7 @@ type HdGroup struct {
 	Adminlist      []int
 	Status         int
 	EndTime        string
-	CurrentPlayers int
+	CurrentPlayers string
 	MaxPlayers     string
 	Version        string
 	ChGroupMsg     chan *MsgData
@@ -36,7 +36,7 @@ type Status struct {
 			EndTime string `json:"endTime"`
 		} `json:"config"`
 		Info struct {
-			CurrentPlayers int    `json:"currentPlayers"`
+			CurrentPlayers string `json:"currentPlayers"`
 			MaxPlayers     string `json:"maxPlayers"`
 			Version        string `json:"version"`
 		} `json:"info"`
@@ -138,10 +138,10 @@ func (u *HdGroup) checkCMD(params string) {
 
 func (u *HdGroup) SendStatus() {
 	if u.Status == 1 {
-		if u.CurrentPlayers == -1 {
+		if u.CurrentPlayers == "-1" {
 			u.Send_group_msg("服务器:%s 正在运行!", u.Name)
 		} else {
-			u.Send_group_msg("服务器:%s 正在运行!\n服务器人数:%d\n服务器最大人数:%s\n服务器版本:%s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
+			u.Send_group_msg("服务器:%s 正在运行!\n服务器人数:%s\n服务器最大人数:%s\n服务器版本:%s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
 		}
 	} else if u.Status == 0 {
 		u.Send_group_msg("服务器:%s 未运行!", u.Name)
