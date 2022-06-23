@@ -28,7 +28,7 @@ func NewHdCqOp(send chan *SendData) *HdCqOp {
 	return &p
 }
 
-func (p *HdCqOp) HdOpPrivate() {
+func (p *HdCqOp) HdCqOp() {
 	POnlineMap[0] = p
 	var msg *MsgData
 	var id int

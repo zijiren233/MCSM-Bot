@@ -52,8 +52,7 @@ func addListen() {
 	_, err := fmt.Scan(&id)
 	if err != nil {
 		for i := 0; i < len(rwmessage.Mconfig.McsmData); i++ {
-			go rwmessage.NewHdGroup(rwmessage.Mconfig.McsmData[i].Id, s.SendMessage)
-			time.Sleep(1 * time.Second)
+			rwmessage.NewHdGroup(rwmessage.Mconfig.McsmData[i].Id, s.SendMessage)
 			fmt.Println()
 		}
 		return
@@ -64,7 +63,7 @@ func addListen() {
 		fmt.Println()
 		return
 	}
-	go rwmessage.NewHdGroup(id, s.SendMessage)
+	rwmessage.NewHdGroup(id, s.SendMessage)
 	time.Sleep(1 * time.Second)
 	fmt.Println()
 }
@@ -79,13 +78,12 @@ func main() {
 		addListen()
 	} else {
 		for i := 0; i < len(rwmessage.Mconfig.McsmData); i++ {
-			go rwmessage.NewHdGroup(rwmessage.Mconfig.McsmData[i].Id, s.SendMessage)
-			time.Sleep(1 * time.Second)
+			rwmessage.NewHdGroup(rwmessage.Mconfig.McsmData[i].Id, s.SendMessage)
 		}
 		fmt.Println()
 	}
 	p := rwmessage.NewHdCqOp(s.SendMessage)
-	go p.HdOpPrivate()
+	go p.HdCqOp()
 	for {
 		Chose()
 	}

@@ -33,7 +33,8 @@ type Status struct {
 	Data struct {
 		Status int `json:"status"`
 		Config struct {
-			EndTime string `json:"endTime"`
+			Nickname string `json:"nickname"`
+			EndTime  string `json:"endTime"`
 		} `json:"config"`
 		Info struct {
 			CurrentPlayers string `json:"currentPlayers"`
@@ -56,7 +57,6 @@ func NewHdGroup(id int, send chan *SendData) *HdGroup {
 	}
 	u := HdGroup{
 		Id:          id,
-		Name:        Mconfig.McsmData[IdToOd[id]].Name,
 		Url:         Mconfig.McsmData[IdToOd[id]].Url,
 		Remote_uuid: Mconfig.McsmData[IdToOd[id]].Remote_uuid,
 		Uuid:        Mconfig.McsmData[IdToOd[id]].Uuid,
@@ -65,18 +65,22 @@ func NewHdGroup(id int, send chan *SendData) *HdGroup {
 		Adminlist:   Mconfig.McsmData[IdToOd[id]].Adminlist,
 		SendChan:    send,
 	}
+	err := u.StatusTest()
+	if err != nil {
+		return nil
+	}
 	GroupToId[u.Group_id] = append(GroupToId[u.Group_id], u.Id)
 	Log.Debug("GroupToId: %v", GroupToId)
 	u.ChGroupMsg = make(chan *MsgData, 25)
 	go u.ReportStatus()
-	go u.Run()
+	u.Run()
 	return &u
 }
 
 func (u *HdGroup) Run() {
 	GOnlineMap[u.Id] = u
 	fmt.Println("监听实例 ", u.Name, " 成功！")
-	u.HdMessage()
+	go u.HdMessage()
 }
 
 func (u *HdGroup) HdMessage() {
@@ -152,26 +156,31 @@ func (u *HdGroup) SendStatus() {
 }
 
 func (u *HdGroup) ReportStatus() {
-	if u.RunningTest() {
-		u.Status = 1
-	} else {
-		u.Status = 0
-	}
-	var status bool
-	for {
-		status = u.RunningTest()
-		if !status && u.Status == 1 {
-			u.Status = 0
-			u.Send_group_msg("服务器:%s 已停止!", u.Name)
-		} else if status && u.Status == 0 {
-			u.Status = 1
-			u.Send_group_msg("服务器:%s 已运行!", u.Name)
+	go func() {
+		for {
+			err := u.StatusTest()
+			if err != nil {
+				continue
+			}
+			time.Sleep(1500 * time.Millisecond)
 		}
-		time.Sleep(3 * time.Second)
+	}()
+	var status = u.Status
+	for {
+		if status != u.Status {
+			if u.Status == 0 {
+				status = 0
+				u.Send_group_msg("服务器:%s 已停止!", u.Name)
+			} else if u.Status == 1 {
+				status = 1
+				u.Send_group_msg("服务器:%s 已运行!", u.Name)
+			}
+		}
+		time.Sleep(1500 * time.Millisecond)
 	}
 }
 
-func (u *HdGroup) RunningTest() bool {
+func (u *HdGroup) StatusTest() error {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", u.Url+"/api/instance", nil)
 	r2.Close = true
@@ -184,20 +193,18 @@ func (u *HdGroup) RunningTest() bool {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	r, err := client.Do(r2)
 	if err != nil {
-		return u.Status-1 == 0
+		Log.Error("获取服务器Id:%d 信息失败! err:%v", u.Id, err)
+		return err
 	}
 	b, _ := ioutil.ReadAll(r.Body)
 	var status Status
 	json.Unmarshal(b, &status)
+	u.Name = status.Data.Config.Nickname
 	u.EndTime = status.Data.Config.EndTime
 	u.CurrentPlayers = status.Data.Info.CurrentPlayers
 	u.MaxPlayers = status.Data.Info.MaxPlayers
 	u.Version = status.Data.Info.Version
-	if status.Data.Status != 3 && status.Data.Status != 2 {
-		return false
-	} else {
-		return true
-	}
+	return nil
 }
 
 func InInt(target int, str_array []int) bool {
