@@ -144,4 +144,4 @@ run (id) kill 终止服务器
 
 <img src="docs\sc\Sample_3.png" />
 
-<img src="docs\sc\Sample_5.png" />
+<img src="docs\sc\Sample_status.png" />
