@@ -17,7 +17,7 @@ type HdCqOp struct {
 	SendChan  chan *SendData
 }
 
-var mcmd = []string{"help", "list", "status", "add listen"}
+// var mcmd = []string{"help", "list", "status", "add listen"}
 
 func NewHdCqOp(send chan *SendData) *HdCqOp {
 	p := HdCqOp{
@@ -41,7 +41,7 @@ func (p *HdCqOp) HdOpPrivate() {
 				return
 			}
 			params2 := flysnowRegexp.FindStringSubmatch(params)
-			if params2[1] == "" && InString(params2[2], mcmd) {
+			if params2[1] == "" {
 				go p.help(params2[2])
 				continue
 			}
@@ -69,12 +69,12 @@ func (p *HdCqOp) help(params string) {
 		serverlist += "服务器列表:\n"
 		for _, v := range AllId {
 			if i, ok := GOnlineMap[v]; ok {
-				serverlist += fmt.Sprintf("Name: %s    Id: %d    监听状态: 是\n", i.Name, i.Id)
+				serverlist += fmt.Sprintf("Name: %s    Id: %d    Group:%d    监听状态: 是\n", i.Name, i.Id, i.Group_id)
 			} else {
-				serverlist += fmt.Sprintf("Name: %s    Id: %d    监听状态: 否\n", i.Name, i.Id)
+				serverlist += fmt.Sprintf("Name: %s    Id: %d    Group:%d    监听状态: 否\n", i.Name, i.Id, i.Group_id)
 			}
 		}
-		serverlist += "查询具体服务器请加上 Id 参数"
+		serverlist += "查询具体服务器请输入 run id list"
 		p.Send_private_msg(serverlist)
 	case "status":
 		var serverstatus string
@@ -82,10 +82,22 @@ func (p *HdCqOp) help(params string) {
 		for k, v := range GOnlineMap {
 			serverstatus += fmt.Sprintf("Name: %s    Id: %d    Status: %d\n", v.Name, k, v.Status)
 		}
-		serverstatus += "查询具体服务器请加上 Id 参数"
+		serverstatus += "查询具体服务器请输入 run id status"
 		p.Send_private_msg(serverstatus)
 	case "add listen":
 		p.Send_private_msg("待完善...")
+	default:
+		var serverlist string
+		serverlist += "服务器列表:\n"
+		for _, v := range AllId {
+			if i, ok := GOnlineMap[v]; ok {
+				serverlist += fmt.Sprintf("Name: %s    Id: %d    监听状态: 是\n", i.Name, i.Id)
+			} else {
+				serverlist += fmt.Sprintf("Name: %s    Id: %d    监听状态: 否\n", i.Name, i.Id)
+			}
+		}
+		serverlist += "请添加 Id 参数"
+		p.Send_private_msg(serverlist)
 	}
 }
 
@@ -106,19 +118,23 @@ func (p *HdCqOp) checkCMD(id int, params string) {
 	case "start":
 		if GOnlineMap[id].Status == 0 {
 			p.Start(id)
+			p.Send_private_msg("服务器:%s 启动中!", GOnlineMap[id].Name)
 		} else {
 			p.Send_private_msg("服务器:%s 已在运行!", GOnlineMap[id].Name)
 		}
 	case "stop":
 		if GOnlineMap[id].Status == 1 {
 			p.Stop(id)
+			p.Send_private_msg("服务器:%s 正在停止!", GOnlineMap[id].Name)
 		} else {
 			p.Send_private_msg("服务器:%s 未运行!", GOnlineMap[id].Name)
 		}
 	case "restart":
 		p.Restart(id)
+		p.Send_private_msg("服务器:%s 重启中!", GOnlineMap[id].Name)
 	case "kill":
 		p.Kill(id)
+		p.Send_private_msg("服务器:%s 已终止!", GOnlineMap[id].Name)
 	default:
 		p.RunCmd(params, id)
 	}

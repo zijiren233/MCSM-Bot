@@ -113,13 +113,15 @@ func (u *HdGroup) checkCMD(params string) {
 	params = strings.ReplaceAll(params, "\n", "")
 	params = strings.ReplaceAll(params, "\r", "")
 	switch params {
+	case "help":
+		u.Send_group_msg("待添加...")
 	case "status":
 		u.SendStatus()
 	case "start":
 		if u.Status == 0 {
 			u.Start()
 		} else {
-			u.Send_group_msg("服务器:%s 正在运行!", u.Name)
+			u.Send_group_msg("服务器:%s 已在运行!", u.Name)
 		}
 	case "stop":
 		if u.Status == 1 {
@@ -129,6 +131,7 @@ func (u *HdGroup) checkCMD(params string) {
 		}
 	case "restart":
 		u.Restart()
+		u.Send_group_msg("服务器:%s 正在重启!", u.Name)
 	case "kill":
 		u.Kill()
 	default:
