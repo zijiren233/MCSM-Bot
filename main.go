@@ -58,7 +58,7 @@ func addListen() {
 		}
 		return
 	}
-	if !rwmessage.In(id, rwmessage.AllId) {
+	if !rwmessage.InInt(id, rwmessage.AllId) {
 		fmt.Println("Id错误!")
 		rwmessage.Log.Error("监听Id:%d ,Id错误!", id)
 		fmt.Println()
@@ -84,7 +84,7 @@ func main() {
 		}
 		fmt.Println()
 	}
-	p := rwmessage.NewHdPrivate(s.SendMessage)
+	p := rwmessage.NewHdCqOp(s.SendMessage)
 	go p.HdOpPrivate()
 	for {
 		Chose()

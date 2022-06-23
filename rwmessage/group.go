@@ -44,7 +44,7 @@ type Status struct {
 }
 
 func NewHdGroup(id int, send chan *SendData) *HdGroup {
-	if !In(id, AllId) {
+	if !InInt(id, AllId) {
 		fmt.Println("Id错误!")
 		Log.Error("监听Id:%d ,Id错误!", id)
 		fmt.Println()
@@ -83,7 +83,7 @@ func (u *HdGroup) HdMessage() {
 	var msg *MsgData
 	for {
 		msg = <-u.ChGroupMsg
-		if In(msg.User_id, u.Adminlist) && msg.Group_id == u.Group_id {
+		if InInt(msg.User_id, u.Adminlist) && msg.Group_id == u.Group_id {
 			go u.HandleMessage(msg)
 		}
 	}
@@ -197,7 +197,16 @@ func (u *HdGroup) RunningTest() bool {
 	}
 }
 
-func In(target int, str_array []int) bool {
+func InInt(target int, str_array []int) bool {
+	for _, element := range str_array {
+		if target == element {
+			return true
+		}
+	}
+	return false
+}
+
+func InString(target string, str_array []string) bool {
 	for _, element := range str_array {
 		if target == element {
 			return true

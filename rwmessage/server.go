@@ -9,7 +9,7 @@ import (
 )
 
 var GOnlineMap = make(map[int]*HdGroup)
-var POnlineMap = make(map[int]*HdPrivate)
+var POnlineMap = make(map[int]*HdCqOp)
 var LogLevle uint
 var Log = logger.Newlog(LogLevle)
 var GroupToId = make(map[int]([]int))
@@ -88,7 +88,7 @@ func (s *Server) BroadCast(msg *MsgData) {
 	} else if msg.Message_type == "private" {
 		for _, v := range POnlineMap {
 			select {
-			case v.ChPrivateMsg <- msg:
+			case v.ChCqOpMsg <- msg:
 			default:
 				Log.Warring("ChPrivatemsg 堵塞!会造成消息丢失!")
 			}
