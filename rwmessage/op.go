@@ -17,7 +17,7 @@ type HdCqOp struct {
 	SendChan  chan *SendData
 }
 
-var mcmd = []string{"help", "list"}
+var mcmd = []string{"help", "list", "status", "add listen"}
 
 func NewHdCqOp(send chan *SendData) *HdCqOp {
 	p := HdCqOp{
@@ -66,11 +66,26 @@ func (p *HdCqOp) help(params string) {
 		p.Send_private_msg("待完善...")
 	case "list":
 		var serverlist string
-		for k, v := range GOnlineMap {
-			serverlist += fmt.Sprintf("Name: %s    Id: %d\n", v.Name, k)
+		serverlist += "服务器列表:\n"
+		for _, v := range AllId {
+			if i, ok := GOnlineMap[v]; ok {
+				serverlist += fmt.Sprintf("Name: %s    Id: %d    监听状态: 是\n", i.Name, i.Id)
+			} else {
+				serverlist += fmt.Sprintf("Name: %s    Id: %d    监听状态: 否\n", i.Name, i.Id)
+			}
 		}
 		serverlist += "查询具体服务器请加上 Id 参数"
 		p.Send_private_msg(serverlist)
+	case "status":
+		var serverstatus string
+		serverstatus += "已监听服务器状态:\n"
+		for k, v := range GOnlineMap {
+			serverstatus += fmt.Sprintf("Name: %s    Id: %d    Status: %d\n", v.Name, k, v.Status)
+		}
+		serverstatus += "查询具体服务器请加上 Id 参数"
+		p.Send_private_msg(serverstatus)
+	case "add listen":
+		p.Send_private_msg("待完善...")
 	}
 }
 
