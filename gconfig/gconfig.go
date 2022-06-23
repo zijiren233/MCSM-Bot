@@ -39,7 +39,6 @@ func GetMConfig() MConfig {
 	"mcsmdata": [
 		{
 			"id": 1,
-			"name": "LYC_01",
 			"url": "https://mc.pyhdxy.com",
 			"remote_uuid": "d6a27b0b13ad44ce879b5a56c88b4d34",
 			"uuid": "a8788991a64e4a06b76d539b35db1b16",
@@ -52,7 +51,6 @@ func GetMConfig() MConfig {
 		},
 		{
 			"id": 2,
-			"name": "java",
 			"url": "http://154.209.91.180:23333",
 			"remote_uuid": "3ec8d0ff584c43bd95598b18949a8bac",
 			"uuid": "76a49c5ef46a41f29b374109d58f994a",
@@ -75,7 +73,6 @@ func GetMConfig() MConfig {
 	"mcsmdata": [
 		{
 			"id": 2, // Id 为任意小于256的数，但不可重复！
-			"name": "server1", // MCSM里面的实例名，即基本信息里的昵称，实例名不可重复！！！
 			"url": "https://mcsm.domain.com:443", // MCSM面板的地址，包含http(s)://，结尾不要有斜杠/
 			"remote_uuid": "d6a27b0b13ad44ce879b5a56c88b4d34", // 守护进程的GID
 			"uuid": "a8788991a64e4a06b76d539b35db1b16", // 实例的UID
@@ -88,7 +85,6 @@ func GetMConfig() MConfig {
 		}, // 只有一个实例可以删掉后面的服务器，有多个则自行添加
 		{
 			"id": 5, // Id 不可重复！
-			"name": "server2",
 			"url": "http://mcsm.domain.com:24444",
 			"remote_uuid": "d6a27b0b13ad44ce879b5ascwfscr323",
 			"uuid": "a8788991a6acasfaca76d539b35db1b16",
