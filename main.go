@@ -9,7 +9,7 @@ import (
 	"github.com/zijiren233/MCSM-Bot/rwmessage"
 )
 
-var version = "v1.4.0"
+var version = "v1.5.0"
 var alone bool
 var s = rwmessage.NewServer(rwmessage.Qconfig.Cqhttp.Url)
 
