@@ -17,7 +17,29 @@ type HdCqOp struct {
 	SendChan  chan *SendData
 }
 
-// var mcmd = []string{"help", "list", "status", "add listen"}
+type RemoteStatus struct {
+	Data struct {
+		RemoteCount struct {
+			Total     int `json:"total"`
+			Available int `json:"available"`
+		} `json:"remoteCount"`
+		Remote []struct {
+			Instance struct {
+				Total   int `json:"total"`
+				Running int `json:"running"`
+			} `json:"instance"`
+			System struct {
+				Platform string  `json:"platform"`
+				CpuUsage float64 `json:"cpuUsage"`
+				MemUsage float64 `json:"memUsage"`
+			} `json:"system"`
+			Ip        string `json:"ip"`
+			Port      string `json:"port"`
+			Available bool   `json:"available"`
+			Remarks   string `json:"remarks"`
+		} `json:"remote"`
+	} `json:"data"`
+}
 
 func NewHdCqOp(send chan *SendData) *HdCqOp {
 	p := HdCqOp{
@@ -63,7 +85,7 @@ func (p *HdCqOp) HdCqOp() {
 func (p *HdCqOp) help(params string) {
 	switch params {
 	case "help":
-		p.Send_private_msg("待完善...")
+		p.Send_private_msg("run list : 查看服务器列表\nrun status : 查看已监听服务器状态\nrun server : 查看MCSM后端状态\nrun add listen : 添加监听服务器\nrun id 控制台命令 : 运行服务器命令")
 	case "list":
 		var serverlist string
 		serverlist += "服务器列表:\n"
@@ -80,10 +102,12 @@ func (p *HdCqOp) help(params string) {
 		var serverstatus string
 		serverstatus += "已监听服务器状态:\n"
 		for k, v := range GOnlineMap {
-			serverstatus += fmt.Sprintf("Name: %s    Id: %d    Status: %d\n", v.Name, k, v.Status)
+			serverstatus += fmt.Sprintf("Id: %-5dStatus: %-5dName: %s\n", k, v.Status, v.Name)
 		}
 		serverstatus += "查询具体服务器请输入 run id status"
 		p.Send_private_msg(serverstatus)
+	case "server":
+		p.GetDaemonStatus()
 	case "add listen":
 		p.Send_private_msg("待完善...")
 	default:
@@ -91,9 +115,9 @@ func (p *HdCqOp) help(params string) {
 		serverlist += "服务器列表:\n"
 		for _, v := range AllId {
 			if i, ok := GOnlineMap[v]; ok {
-				serverlist += fmt.Sprintf("Name: %s    Id: %d    监听状态: 是\n", i.Name, i.Id)
+				serverlist += fmt.Sprintf("Id: %-5d监听状态: 是    Name: %s\n", i.Id, i.Name)
 			} else {
-				serverlist += fmt.Sprintf("Name: %s    Id: %d    监听状态: 否\n", i.Name, i.Id)
+				serverlist += fmt.Sprintf("Id: %-5d监听状态: 否    Name: %s\n", i.Id, i.Name)
 			}
 		}
 		serverlist += "请添加 Id 参数"
@@ -106,35 +130,31 @@ func (p *HdCqOp) checkCMD(id int, params string) {
 	params = strings.ReplaceAll(params, "\r", "")
 	switch params {
 	case "status":
-		if GOnlineMap[id].Status == 1 {
+		if GOnlineMap[id].Status == 2 || GOnlineMap[id].Status == 3 {
 			if GOnlineMap[id].CurrentPlayers == "-1" {
 				p.Send_private_msg("服务器:%s 正在运行!", GOnlineMap[id].Name)
 			} else {
 				p.Send_private_msg("服务器:%s 正在运行!\n服务器人数:%s\n服务器最大人数:%s\n服务器版本:%s\n服务器到期日期:%s", GOnlineMap[id].Name, GOnlineMap[id].CurrentPlayers, GOnlineMap[id].MaxPlayers, GOnlineMap[id].Version, GOnlineMap[id].EndTime)
 			}
-		} else if GOnlineMap[id].Status == 0 {
+		} else {
 			p.Send_private_msg("服务器:%s 未运行!", GOnlineMap[id].Name)
 		}
 	case "start":
-		if GOnlineMap[id].Status == 0 {
+		if GOnlineMap[id].Status != 2 && GOnlineMap[id].Status != 3 {
 			p.Start(id)
-			p.Send_private_msg("服务器:%s 启动中!", GOnlineMap[id].Name)
 		} else {
 			p.Send_private_msg("服务器:%s 已在运行!", GOnlineMap[id].Name)
 		}
 	case "stop":
-		if GOnlineMap[id].Status == 1 {
+		if GOnlineMap[id].Status == 2 || GOnlineMap[id].Status == 3 {
 			p.Stop(id)
-			p.Send_private_msg("服务器:%s 正在停止!", GOnlineMap[id].Name)
 		} else {
 			p.Send_private_msg("服务器:%s 未运行!", GOnlineMap[id].Name)
 		}
 	case "restart":
 		p.Restart(id)
-		p.Send_private_msg("服务器:%s 重启中!", GOnlineMap[id].Name)
 	case "kill":
 		p.Kill(id)
-		p.Send_private_msg("服务器:%s 已终止!", GOnlineMap[id].Name)
 	default:
 		p.RunCmd(params, id)
 	}
@@ -277,6 +297,45 @@ func (p *HdCqOp) Kill(id int) {
 		return
 	}
 	p.Send_private_msg("服务器:%s 已终止!", GOnlineMap[id].Name)
+}
+
+func (p *HdCqOp) GetDaemonStatus() {
+	UrlAndKey := GetAllDaemon()
+	client := &http.Client{}
+	var data RemoteStatus
+	for url, key := range *UrlAndKey {
+		r2, _ := http.NewRequest("GET", url+"/api/overview", nil)
+		r2.Close = true
+		q := r2.URL.Query()
+		q.Add("apikey", key)
+		r2.URL.RawQuery = q.Encode()
+		r2.Header.Set("x-requested-with", "xmlhttprequest")
+		r, err := client.Do(r2)
+		if err != nil {
+			return
+		}
+		b, _ := ioutil.ReadAll(r.Body)
+		json.Unmarshal(b, &data)
+		var sendmsg string
+		sendmsg += fmt.Sprintf("前端面板地址:%s\n", url)
+		sendmsg += fmt.Sprintf("后端总数量:%d\n", data.Data.RemoteCount.Total)
+		sendmsg += fmt.Sprintf("后端在线数量:%d", data.Data.RemoteCount.Available)
+		p.Send_private_msg(sendmsg)
+		time.Sleep(time.Second)
+		for _, tmpdata := range data.Data.Remote {
+			sendmsg = ""
+			sendmsg += fmt.Sprintf("后端地址:%s:%s\n", tmpdata.Ip, tmpdata.Port)
+			sendmsg += fmt.Sprintf("连接状态:%v\n", tmpdata.Available)
+			sendmsg += fmt.Sprintf("备注:%s\n", tmpdata.Remarks)
+			sendmsg += fmt.Sprintf("平台:%s\n", tmpdata.System.Platform)
+			sendmsg += fmt.Sprintf("Cpu:%f\n", tmpdata.System.CpuUsage)
+			sendmsg += fmt.Sprintf("Mem:%f\n", tmpdata.System.MemUsage)
+			sendmsg += fmt.Sprintf("实例个数:%d\n", tmpdata.Instance.Total)
+			sendmsg += fmt.Sprintf("实例在线个数:%d\n", tmpdata.Instance.Running)
+			p.Send_private_msg(sendmsg)
+			time.Sleep(time.Second)
+		}
+	}
 }
 
 func (p *HdCqOp) Send_private_msg(msg string, a ...interface{}) {

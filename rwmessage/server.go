@@ -18,6 +18,8 @@ var Mconfig = gconfig.GetMConfig()
 var Qconfig = gconfig.GetQConfig()
 var AllId = GetAllId()
 
+// var AllDaemon = make(map[string]([]string))
+
 type SendData struct {
 	Action string `json:"action"`
 	Params struct {
@@ -124,3 +126,15 @@ func IsListDuplicated(list []int) bool {
 	}
 	return false
 }
+
+func GetAllDaemon() *map[string]string {
+	var tmplist = make(map[string]string)
+	for i := 0; i < len(Mconfig.McsmData); i++ {
+		tmplist[Mconfig.McsmData[i].Url] = Mconfig.McsmData[i].Apikey
+	}
+	return &tmplist
+}
+
+// func RemoveRep(list []string) []string {
+
+// }

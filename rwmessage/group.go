@@ -67,6 +67,7 @@ func NewHdGroup(id int, send chan *SendData) *HdGroup {
 	}
 	err := u.StatusTest()
 	if err != nil {
+		fmt.Printf("服务器Id:%d 监听失败!\n", u.Id)
 		return nil
 	}
 	GroupToId[u.Group_id] = append(GroupToId[u.Group_id], u.Id)
@@ -122,13 +123,13 @@ func (u *HdGroup) checkCMD(params string) {
 	case "status":
 		u.SendStatus()
 	case "start":
-		if u.Status == 0 {
+		if u.Status != 2 && u.Status != 3 {
 			u.Start()
 		} else {
 			u.Send_group_msg("服务器:%s 已在运行!", u.Name)
 		}
 	case "stop":
-		if u.Status == 1 {
+		if u.Status == 2 || u.Status == 3 {
 			u.Stop()
 		} else {
 			u.Send_group_msg("服务器:%s 未运行!", u.Name)
@@ -144,13 +145,13 @@ func (u *HdGroup) checkCMD(params string) {
 }
 
 func (u *HdGroup) SendStatus() {
-	if u.Status == 1 {
+	if u.Status == 2 || u.Status == 3 {
 		if u.CurrentPlayers == "-1" {
 			u.Send_group_msg("服务器:%s 正在运行!", u.Name)
 		} else {
 			u.Send_group_msg("服务器:%s 正在运行!\n服务器人数:%s\n服务器最大人数:%s\n服务器版本:%s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
 		}
-	} else if u.Status == 0 {
+	} else {
 		u.Send_group_msg("服务器:%s 未运行!", u.Name)
 	}
 }
@@ -162,19 +163,18 @@ func (u *HdGroup) ReportStatus() {
 			if err != nil {
 				continue
 			}
-			time.Sleep(1500 * time.Millisecond)
+			time.Sleep(3000 * time.Millisecond)
 		}
 	}()
 	var status = u.Status
 	for {
 		if status != u.Status {
-			if u.Status == 0 {
-				status = 0
+			if u.Status != 2 && u.Status != 3 {
 				u.Send_group_msg("服务器:%s 已停止!", u.Name)
-			} else if u.Status == 1 {
-				status = 1
+			} else {
 				u.Send_group_msg("服务器:%s 已运行!", u.Name)
 			}
+			status = u.Status
 		}
 		time.Sleep(1500 * time.Millisecond)
 	}
@@ -199,6 +199,7 @@ func (u *HdGroup) StatusTest() error {
 	b, _ := ioutil.ReadAll(r.Body)
 	var status Status
 	json.Unmarshal(b, &status)
+	u.Status = status.Data.Status
 	u.Name = status.Data.Config.Nickname
 	u.EndTime = status.Data.Config.EndTime
 	u.CurrentPlayers = status.Data.Info.CurrentPlayers
