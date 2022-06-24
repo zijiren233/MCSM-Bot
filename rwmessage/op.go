@@ -72,8 +72,8 @@ func (p *HdCqOp) HdCqOp() {
 			id, _ = strconv.Atoi(params2[1])
 			if InInt(id, AllId) {
 				if _, ok := GOnlineMap[id]; !ok {
-					logger.Log.Warring("OP 试图访问服务器:%s ,%s 未开启监听！", Mconfig.McsmData[IdToOd[id]].Name, Mconfig.McsmData[IdToOd[id]].Name)
-					p.Send_private_msg("%s 未开启监听！", Mconfig.McsmData[IdToOd[id]].Name)
+					logger.Log.Warring("OP 试图访问服务器:%s ,%s 未开启监听！", GOnlineMap[id].Name, GOnlineMap[id].Name)
+					p.Send_private_msg("%s 未开启监听！", GOnlineMap[id].Name)
 				}
 				go p.checkCMD(id, params2[2])
 			} else {

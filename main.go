@@ -26,8 +26,8 @@ func Chose() {
 	case "1":
 		addListen()
 	case "2":
-		for k := range rwmessage.GOnlineMap {
-			fmt.Printf("%s 监听中\n", rwmessage.Mconfig.McsmData[rwmessage.IdToOd[k]].Name)
+		for _, v := range rwmessage.GOnlineMap {
+			fmt.Printf("%s 监听中\n", v.Name)
 		}
 		fmt.Println()
 	case "3":

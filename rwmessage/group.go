@@ -53,8 +53,8 @@ func NewHdGroup(id int, send chan *SendData) *HdGroup {
 		fmt.Println()
 		return nil
 	} else if _, ok := GOnlineMap[id]; ok {
-		fmt.Printf("重复监听服务器:%s\n", Mconfig.McsmData[IdToOd[id]].Name)
-		logger.Log.Warring("重复监听服务器:%s", Mconfig.McsmData[IdToOd[id]].Name)
+		fmt.Printf("重复监听服务器:%s\n", GOnlineMap[id].Name)
+		logger.Log.Warring("重复监听服务器:%s", GOnlineMap[id].Name)
 		return nil
 	}
 	u := HdGroup{

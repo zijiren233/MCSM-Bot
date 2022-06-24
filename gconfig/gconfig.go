@@ -10,8 +10,6 @@ import (
 type MConfig struct {
 	McsmData []struct {
 		Id          int    `json:"id"`
-		Sendtype    string `json:"sendtype"`
-		Name        string `json:"name"`
 		Url         string `json:"url"`
 		Remote_uuid string `json:"remote_uuid"`
 		Uuid        string `json:"uuid"`
