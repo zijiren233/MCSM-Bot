@@ -2,6 +2,8 @@ package rwmessage
 
 import (
 	"encoding/json"
+	"fmt"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/zijiren233/MCSM-Bot/gconfig"
@@ -50,7 +52,11 @@ func NewServer(url string) *Server {
 	}
 	w.init()
 	w.SendMessage = make(chan *SendData, 50)
-	w.Ws, _, _ = websocket.DefaultDialer.Dial(w.Url, nil)
+	var err error
+	w.Ws, _, err = websocket.DefaultDialer.Dial(w.Url, nil)
+	if err != nil {
+		fmt.Println("cqhttp 连接失败，等待重连...")
+	}
 	go w.Run()
 	return &w
 }
@@ -68,7 +74,17 @@ func (s *Server) Run() {
 	for {
 		_, data, err = s.Ws.ReadMessage()
 		if err != nil {
-			continue
+			logger.Log.Error("cqhttp 连接失败!")
+			for i := 0; ; i++ {
+				logger.Log.Error("cqhttp 第 %d 次重连", i)
+				s.Ws, _, err = websocket.DefaultDialer.Dial(s.Url, nil)
+				if err != nil {
+					time.Sleep(5 * time.Second)
+					continue
+				}
+				logger.Log.Info("cqhttp 重连成功!")
+				break
+			}
 		}
 		var msgdata MsgData
 		json.Unmarshal(data, &msgdata)

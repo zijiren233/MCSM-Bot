@@ -19,6 +19,7 @@ func Chose() {
 	fmt.Println("1.添加监听服务器")
 	fmt.Println("2.查看已监听列表")
 	fmt.Println("3.查看服务器状态")
+	// fmt.Println("4.重连cqhttp服务")
 	fmt.Print("请输入序号:")
 	fmt.Scan(&chose)
 	switch chose {
@@ -34,6 +35,15 @@ func Chose() {
 			fmt.Printf("%s : %d\n", v.Name, v.Status)
 		}
 		fmt.Println()
+	// case "4":
+	// 	var err error
+	// 	s.Ws, _, err = websocket.DefaultDialer.Dial(s.Url, nil)
+	// 	if err != nil {
+	// 		fmt.Println("cqhttp重连失败!")
+	// 	} else {
+	// 		fmt.Println("cqhttp重连成功!")
+	// 		fmt.Println()
+	// 	}
 	default:
 		fmt.Println("输入错误,请重新输入...")
 		time.Sleep(2 * time.Second)
