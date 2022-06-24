@@ -72,7 +72,7 @@ func (u *HdGroup) RunCmd(commd string) {
 	b, _ := ioutil.ReadAll(r.Body)
 	var time_unix CmdData
 	json.Unmarshal(b, &time_unix)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(75 * time.Millisecond)
 	u.ReturnResult(commd, time_unix.Time_unix)
 }
 
@@ -98,33 +98,27 @@ func (u *HdGroup) ReturnResult(command string, time_now int64) {
 	var index int
 	var i int64
 	Log.Debug("服务器 %s 运行命令 %s 返回时间: %s", u.Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
-	for i = 0; i <= 2; i++ {
+	for i = 0; i < 2; i++ {
 		index = strings.Index(ret, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 		if index == -1 {
 			continue
 		}
-		tmp := ret[index-1 : last]
-		u.Send_group_msg("> [%s] %s\n%s", u.Name, command, *(u.handle_End_Newline(&tmp)))
+		u.Send_group_msg("> [%s] %s\n%s", u.Name, command, *(u.handle_End_Newline(ret[index-1 : last])))
 		return
 	}
-	index = strings.Index(ret, time.Unix((time_now/1000)-1, 0).Format("15:04:05"))
-	if index == -1 {
-		u.Send_group_msg("运行命令成功！")
-		Log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", u.Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
-		return
-	}
-	tmp := ret[index-1 : last]
-	u.Send_group_msg("> [%s] %s\n%s", u.Name, command, *(u.handle_End_Newline(&tmp)))
+	u.Send_group_msg("运行命令成功！")
+	Log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", u.Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
+
 }
 
-func (u *HdGroup) handle_End_Newline(msg *string) *string {
+func (u *HdGroup) handle_End_Newline(msg string) *string {
 	var data Data
-	last := strings.LastIndex(*msg, `\n`)
-	if last == len(*msg)-2 {
-		*msg = (*msg)[:last]
+	last := strings.LastIndex(msg, `\n`)
+	if last == len(msg)-2 {
+		msg = (msg)[:last]
 	}
-	*msg = fmt.Sprint(`{"data":"`, *msg, `"}`)
-	json.Unmarshal([]byte(*msg), &data)
+	msg = fmt.Sprint(`{"data":"`, msg, `"}`)
+	json.Unmarshal([]byte(msg), &data)
 	return &data.Data
 }
 

@@ -213,8 +213,7 @@ func (p *HdCqOp) ReturnResult(command string, time_now int64, id int) {
 		if index == -1 {
 			continue
 		}
-		tmp := ret[index-1 : last]
-		p.Send_private_msg("> [%s] %s\n%s", GOnlineMap[id].Name, command, *(GOnlineMap[id].handle_End_Newline(&tmp)))
+		p.Send_private_msg("> [%s] %s\n%s", GOnlineMap[id].Name, command, *(p.handle_End_Newline(ret[index-1 : last])))
 		return
 	}
 	index = strings.Index(ret, time.Unix((time_now/1000)-1, 0).Format("15:04:05"))
@@ -223,8 +222,18 @@ func (p *HdCqOp) ReturnResult(command string, time_now int64, id int) {
 		logger.Log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", GOnlineMap[id].Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 		return
 	}
-	tmp := ret[index-1 : last]
-	p.Send_private_msg("> [%s] %s\n%s", GOnlineMap[id].Name, command, *(GOnlineMap[id].handle_End_Newline(&tmp)))
+	p.Send_private_msg("> [%s] %s\n%s", GOnlineMap[id].Name, command, *(p.handle_End_Newline(ret[index-1 : last])))
+}
+
+func (p *HdCqOp) handle_End_Newline(msg string) *string {
+	var data Data
+	last := strings.LastIndex(msg, `\n`)
+	if last == len(msg)-2 {
+		msg = (msg)[:last]
+	}
+	msg = fmt.Sprint(`{"data":"`, msg, `"}`)
+	json.Unmarshal([]byte(msg), &data)
+	return &data.Data
 }
 
 func (p *HdCqOp) Start(id int) {
