@@ -120,10 +120,9 @@ func (u *HdGroup) ReturnResult(command string, time_now int64) {
 func (u *HdGroup) handle_End_Newline(msg *string) *string {
 	var data Data
 	last := strings.LastIndex(*msg, `\n`)
-	if last != len(*msg)-2 {
-		last = len(*msg) - 1
+	if last == len(*msg)-2 {
+		*msg = (*msg)[:last]
 	}
-	*msg = (*msg)[:last]
 	*msg = fmt.Sprint(`{"data":"`, *msg, `"}`)
 	json.Unmarshal([]byte(*msg), &data)
 	return &data.Data
