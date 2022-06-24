@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/zijiren233/MCSM-Bot/logger"
 )
 
 type HdCqOp struct {
@@ -70,13 +72,13 @@ func (p *HdCqOp) HdCqOp() {
 			id, _ = strconv.Atoi(params2[1])
 			if InInt(id, AllId) {
 				if _, ok := GOnlineMap[id]; !ok {
-					Log.Warring("OP 试图访问服务器:%s ,%s 未开启监听！", Mconfig.McsmData[IdToOd[id]].Name, Mconfig.McsmData[IdToOd[id]].Name)
+					logger.Log.Warring("OP 试图访问服务器:%s ,%s 未开启监听！", Mconfig.McsmData[IdToOd[id]].Name, Mconfig.McsmData[IdToOd[id]].Name)
 					p.Send_private_msg("%s 未开启监听！", Mconfig.McsmData[IdToOd[id]].Name)
 				}
 				go p.checkCMD(id, params2[2])
 			} else {
 				p.Send_private_msg("请输入正确的ID!")
-				Log.Warring("OP 输入:%d 请输入正确的ID!", p.Op, params)
+				logger.Log.Warring("OP 输入:%d 请输入正确的ID!", p.Op, params)
 			}
 		}
 	}
@@ -174,7 +176,7 @@ func (p *HdCqOp) RunCmd(commd string, id int) {
 	r, err := client.Do(r2)
 	if err != nil {
 		p.Send_private_msg("运行命令 %s 失败！", commd)
-		Log.Error("运行命令 %s 失败！%v", commd, err)
+		logger.Log.Error("运行命令 %s 失败！%v", commd, err)
 		return
 	}
 	b, _ := ioutil.ReadAll(r.Body)
@@ -196,7 +198,7 @@ func (p *HdCqOp) ReturnResult(command string, time_now int64, id int) {
 	r2.URL.RawQuery = q.Encode()
 	r, err := client.Do(r2)
 	if err != nil {
-		Log.Error("获取服务器 %s 命令 %s 运行结果失败！", GOnlineMap[id].Name, command)
+		logger.Log.Error("获取服务器 %s 命令 %s 运行结果失败！", GOnlineMap[id].Name, command)
 		return
 	}
 	b, _ := ioutil.ReadAll(r.Body)
@@ -205,7 +207,7 @@ func (p *HdCqOp) ReturnResult(command string, time_now int64, id int) {
 	last := strings.LastIndex(ret, `","time":`)
 	var index int
 	var i int64
-	Log.Debug("服务器 %s 运行命令 %s 返回时间: %s", GOnlineMap[id].Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
+	logger.Log.Debug("服务器 %s 运行命令 %s 返回时间: %s", GOnlineMap[id].Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 	for i = 0; i <= 2; i++ {
 		index = strings.Index(ret, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 		if index == -1 {
@@ -218,7 +220,7 @@ func (p *HdCqOp) ReturnResult(command string, time_now int64, id int) {
 	index = strings.Index(ret, time.Unix((time_now/1000)-1, 0).Format("15:04:05"))
 	if index == -1 {
 		p.Send_private_msg("运行命令成功！")
-		Log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", GOnlineMap[id].Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
+		logger.Log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", GOnlineMap[id].Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 		return
 	}
 	tmp := ret[index-1 : last]
@@ -237,7 +239,7 @@ func (p *HdCqOp) Start(id int) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		Log.Warring("服务器:%s 运行启动命令失败,可能是网络问题!", GOnlineMap[id].Name)
+		logger.Log.Warring("服务器:%s 运行启动命令失败,可能是网络问题!", GOnlineMap[id].Name)
 		return
 	}
 	p.Send_private_msg("服务器:%s 正在启动!", GOnlineMap[id].Name)
@@ -255,7 +257,7 @@ func (p *HdCqOp) Stop(id int) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		Log.Warring("服务器:%s 运行关闭命令失败,可能是网络问题!", GOnlineMap[id].Name)
+		logger.Log.Warring("服务器:%s 运行关闭命令失败,可能是网络问题!", GOnlineMap[id].Name)
 		return
 	}
 	p.Send_private_msg("服务器:%s 正在停止!", GOnlineMap[id].Name)
@@ -274,7 +276,7 @@ func (p *HdCqOp) Restart(id int) {
 	_, err := client.Do(r2)
 	if err != nil {
 		p.Send_private_msg("服务器:%s 运行重启命令失败!", GOnlineMap[id].Name)
-		Log.Warring("服务器:%s 运行重启命令失败,可能是网络问题!", GOnlineMap[id].Name)
+		logger.Log.Warring("服务器:%s 运行重启命令失败,可能是网络问题!", GOnlineMap[id].Name)
 		return
 	}
 	p.Send_private_msg("服务器:%s 重启中!", GOnlineMap[id].Name)
@@ -293,7 +295,7 @@ func (p *HdCqOp) Kill(id int) {
 	_, err := client.Do(r2)
 	if err != nil {
 		p.Send_private_msg("服务器:%s 运行终止命令失败!", GOnlineMap[id].Name)
-		Log.Warring("服务器:%s 运行终止命令失败,可能是网络问题!", GOnlineMap[id].Name)
+		logger.Log.Warring("服务器:%s 运行终止命令失败,可能是网络问题!", GOnlineMap[id].Name)
 		return
 	}
 	p.Send_private_msg("服务器:%s 已终止!", GOnlineMap[id].Name)
@@ -328,8 +330,8 @@ func (p *HdCqOp) GetDaemonStatus() {
 			sendmsg += fmt.Sprintf("连接状态:%v\n", tmpdata.Available)
 			sendmsg += fmt.Sprintf("备注:%s\n", tmpdata.Remarks)
 			sendmsg += fmt.Sprintf("平台:%s\n", tmpdata.System.Platform)
-			sendmsg += fmt.Sprintf("Cpu:%f\n", tmpdata.System.CpuUsage)
-			sendmsg += fmt.Sprintf("Mem:%f\n", tmpdata.System.MemUsage)
+			sendmsg += fmt.Sprintf("Cpu:%.2f%%\n", tmpdata.System.CpuUsage)
+			sendmsg += fmt.Sprintf("Mem:%.2f%%\n", tmpdata.System.MemUsage)
 			sendmsg += fmt.Sprintf("实例个数:%d\n", tmpdata.Instance.Total)
 			sendmsg += fmt.Sprintf("实例在线个数:%d\n", tmpdata.Instance.Running)
 			p.Send_private_msg(sendmsg)

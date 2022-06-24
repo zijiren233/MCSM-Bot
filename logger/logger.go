@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+var Log *Logger
+
 const (
 	Debug uint = iota
 	Info

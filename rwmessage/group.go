@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/zijiren233/MCSM-Bot/logger"
 )
 
 type HdGroup struct {
@@ -47,12 +49,12 @@ type Status struct {
 func NewHdGroup(id int, send chan *SendData) *HdGroup {
 	if !InInt(id, AllId) {
 		fmt.Println("Id错误!")
-		Log.Error("监听Id:%d ,Id错误!", id)
+		logger.Log.Error("监听Id:%d ,Id错误!", id)
 		fmt.Println()
 		return nil
 	} else if _, ok := GOnlineMap[id]; ok {
 		fmt.Printf("重复监听服务器:%s\n", Mconfig.McsmData[IdToOd[id]].Name)
-		Log.Warring("重复监听服务器:%s", Mconfig.McsmData[IdToOd[id]].Name)
+		logger.Log.Warring("重复监听服务器:%s", Mconfig.McsmData[IdToOd[id]].Name)
 		return nil
 	}
 	u := HdGroup{
@@ -71,7 +73,7 @@ func NewHdGroup(id int, send chan *SendData) *HdGroup {
 		return nil
 	}
 	GroupToId[u.Group_id] = append(GroupToId[u.Group_id], u.Id)
-	Log.Debug("GroupToId: %v", GroupToId)
+	logger.Log.Debug("GroupToId: %v", GroupToId)
 	u.ChGroupMsg = make(chan *MsgData, 25)
 	go u.ReportStatus()
 	u.Run()
@@ -80,7 +82,8 @@ func NewHdGroup(id int, send chan *SendData) *HdGroup {
 
 func (u *HdGroup) Run() {
 	GOnlineMap[u.Id] = u
-	fmt.Println("监听实例 ", u.Name, " 成功！")
+	fmt.Println("监听实例 ", u.Name, " 成功")
+	logger.Log.Info("监听实例 %s 成功", u.Name)
 	go u.HdMessage()
 }
 
@@ -193,7 +196,7 @@ func (u *HdGroup) StatusTest() error {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	r, err := client.Do(r2)
 	if err != nil {
-		Log.Error("获取服务器Id:%d 信息失败! err:%v", u.Id, err)
+		logger.Log.Error("获取服务器Id:%d 信息失败! err:%v", u.Id, err)
 		return err
 	}
 	b, _ := ioutil.ReadAll(r.Body)

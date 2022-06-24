@@ -84,7 +84,7 @@ func (s *Server) BroadCast(msg *MsgData) {
 			select {
 			case v.ChGroupMsg <- msg:
 			default:
-				Log.Warring("ChGroupMsg 堵塞!会造成消息丢失!")
+				logger.Log.Warring("ChGroupMsg 堵塞!会造成消息丢失!")
 			}
 		}
 	} else if msg.Message_type == "private" {
@@ -92,7 +92,7 @@ func (s *Server) BroadCast(msg *MsgData) {
 			select {
 			case v.ChCqOpMsg <- msg:
 			default:
-				Log.Warring("ChPrivatemsg 堵塞!会造成消息丢失!")
+				logger.Log.Warring("ChPrivatemsg 堵塞!会造成消息丢失!")
 			}
 		}
 	}

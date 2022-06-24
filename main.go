@@ -5,18 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/zijiren233/MCSM-Bot/logger"
 	"github.com/zijiren233/MCSM-Bot/rwmessage"
 )
 
 var version = "v1.4.0"
 var alone bool
-var loglevle uint
 var s = rwmessage.NewServer(rwmessage.Qconfig.Cqhttp.Url)
-
-func init() {
-	flag.BoolVar(&alone, "a", false, "运行时自动监听所有服务器 (default false)")
-	flag.UintVar(&loglevle, "log", 1, "记录命令日志的级别 0:Debug 1:Info 2:Warning 3:Error 4:None")
-}
 
 func Chose() {
 	var chose string
@@ -59,7 +54,7 @@ func addListen() {
 	}
 	if !rwmessage.InInt(id, rwmessage.AllId) {
 		fmt.Println("Id错误!")
-		rwmessage.Log.Error("监听Id:%d ,Id错误!", id)
+		logger.Log.Error("监听Id:%d ,Id错误!", id)
 		fmt.Println()
 		return
 	}
@@ -68,9 +63,16 @@ func addListen() {
 	fmt.Println()
 }
 
+var LogLevle uint
+
+func init() {
+	flag.BoolVar(&alone, "a", false, "运行时自动监听所有服务器 (default false)")
+	flag.UintVar(&LogLevle, "log", 1, "记录命令日志的级别 0:Debug 1:Info 2:Warning 3:Error 4:None")
+}
+
 func main() {
 	flag.Parse()
-	rwmessage.LogLevle = loglevle
+	logger.Log = logger.Newlog(LogLevle)
 	if rwmessage.IsListDuplicated(rwmessage.GetAllId()) {
 		panic("有重复ID!")
 	}
