@@ -330,12 +330,12 @@ func (p *HdCqOp) GetDaemonStatus() {
 			sendmsg += fmt.Sprintf("连接状态:%v\n", tmpdata.Available)
 			sendmsg += fmt.Sprintf("备注:%s\n", tmpdata.Remarks)
 			sendmsg += fmt.Sprintf("平台:%s\n", tmpdata.System.Platform)
-			sendmsg += fmt.Sprintf("Cpu:%.2f", tmpdata.System.CpuUsage)
+			sendmsg += fmt.Sprintf("Cpu:%.2f", tmpdata.System.CpuUsage*100)
 			sendmsg += "%%\n"
-			sendmsg += fmt.Sprintf("Mem:%.2f", tmpdata.System.MemUsage)
+			sendmsg += fmt.Sprintf("Mem:%.2f", tmpdata.System.MemUsage*100)
 			sendmsg += "%%\n"
-			sendmsg += fmt.Sprintf("实例个数:%d\n", tmpdata.Instance.Total)
-			sendmsg += fmt.Sprintf("实例在线个数:%d\n", tmpdata.Instance.Running)
+			sendmsg += fmt.Sprintf("实例总个数:%d\n", tmpdata.Instance.Total)
+			sendmsg += fmt.Sprintf("运行中实例个数:%d\n", tmpdata.Instance.Running)
 			p.Send_private_msg(sendmsg)
 			time.Sleep(time.Second)
 		}
