@@ -97,7 +97,7 @@ func GetMConfig() MConfig {
 	"cqhttp": {
 		"url": "ws://127.0.0.1:8080", // cqhttp 请求地址，末尾不带斜杠！只能使用Ws(s)协议
 		"qq": 3426898431, // 机器人QQ号
-		"op": 1670605849 // op里的qq可以在私聊机器人以访问所有实例
+		"op": 1670605849 // op里的qq可以在私聊机器人以访问所有实例，填服务器所有者的QQ号，用于管理所有实例
 	}
 }`)
 		fmt.Println("已创建配置文件config.json 和 config.sample.json，请根据注释填写配置")

@@ -162,20 +162,17 @@ func (u *HdGroup) SendStatus() {
 func (u *HdGroup) ReportStatus() {
 	go func() {
 		for {
-			err := u.StatusTest()
-			if err != nil {
-				continue
-			}
+			u.StatusTest()
 			time.Sleep(3000 * time.Millisecond)
 		}
 	}()
 	var status = u.Status
 	for {
 		if status != u.Status {
-			if u.Status != 2 && u.Status != 3 {
-				u.Send_group_msg("服务器:%s 已停止!", u.Name)
-			} else {
+			if u.Status == 2 || u.Status == 3 {
 				u.Send_group_msg("服务器:%s 已运行!", u.Name)
+			} else if u.Status == 0 {
+				u.Send_group_msg("服务器:%s 已停止!", u.Name)
 			}
 			status = u.Status
 		}

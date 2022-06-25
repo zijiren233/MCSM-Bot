@@ -62,12 +62,6 @@ func addListen() {
 		}
 		return
 	}
-	if !rwmessage.InInt(id, rwmessage.AllId) {
-		fmt.Println("Id错误!")
-		logger.Log.Error("监听Id:%d ,Id错误!", id)
-		fmt.Println()
-		return
-	}
 	rwmessage.NewHdGroup(id, s.SendMessage)
 	time.Sleep(1 * time.Second)
 	fmt.Println()
