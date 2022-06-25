@@ -104,25 +104,39 @@ func (u *HdGroup) HandleMessage(mdata *MsgData) {
 		return
 	}
 	params2 := flysnowRegexp.FindStringSubmatch(params)
+	// 当一个群有两个实例监听时，如果不指定Id则由第一个监听的实例执行
 	if len(GroupToId[u.Group_id]) >= 2 && params2[1] == "" {
 		if GroupToId[u.Group_id][0] != u.Id {
 			return
 		}
+		if (params2)[2] == "" {
+			u.Send_group_msg("请输入run help查看帮助!")
+			return
+		}
+		u.checkCMD2(params2[2])
+		return
+		// 如果指定了Id则只由指定Id的goroutine执行
 	} else if len(GroupToId[u.Group_id]) >= 2 && params2[1] != strconv.Itoa(u.Id) {
 		return
 	}
 	if (params2)[2] == "" {
+		u.Send_group_msg("请输入run help查看帮助!")
 		return
 	}
-	u.checkCMD(params2[2])
+	u.checkCMD1(params2[2])
 }
 
-func (u *HdGroup) checkCMD(params string) {
+func (u *HdGroup) checkCMD1(params string) {
 	params = strings.ReplaceAll(params, "\n", "")
 	params = strings.ReplaceAll(params, "\r", "")
+	var msg string
 	switch params {
 	case "help":
-		u.Send_group_msg("待添加...")
+		u.Send_group_msg("run status : 查看服务器状态\nrun start : 启动服务器\nrun stop : 关闭服务器\nrun restart : 重启服务器\nrun kill : 终止服务器\nrun 控制台命令 : 运行服务器命令")
+	case "server":
+		msg += "服务器列表:\n"
+		msg = fmt.Sprintf("Name: %s    Id: %d", u.Name, u.Id)
+		u.Send_group_msg(msg)
 	case "status":
 		u.SendStatus()
 	case "start":
@@ -147,7 +161,39 @@ func (u *HdGroup) checkCMD(params string) {
 	}
 }
 
+func (u *HdGroup) checkCMD2(params string) {
+	params = strings.ReplaceAll(params, "\n", "")
+	params = strings.ReplaceAll(params, "\r", "")
+	var msg string
+	switch params {
+	case "help":
+		u.Send_group_msg("run server : 查看服务器列表\nrun status : 查看服务器状态\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 控制台命令 : 运行服务器命令")
+	case "server":
+		msg += "服务器列表:\n"
+		for _, v := range GroupToId[u.Group_id] {
+			if GOnlineMap[v].Status == 2 || GOnlineMap[v].Status == 3 {
+				msg += fmt.Sprintf("Id: %-5dName: %s    Status: RUN\n", GOnlineMap[v].Id, GOnlineMap[v].Name)
+			} else {
+				msg += fmt.Sprintf("Id: %-5dName: %s    Status: STOP\n", GOnlineMap[v].Id, GOnlineMap[v].Name)
+			}
+		}
+		u.Send_group_msg(msg[:len(msg)-1])
+	default:
+		msg += "服务器列表:\n"
+		for _, v := range GroupToId[u.Group_id] {
+			if GOnlineMap[v].Status == 2 || GOnlineMap[v].Status == 3 {
+				msg += fmt.Sprintf("Id: %-5dName: %s    Status: RUN\n", GOnlineMap[v].Id, GOnlineMap[v].Name)
+			} else {
+				msg += fmt.Sprintf("Id: %-5dName: %s    Status: STOP\n", GOnlineMap[v].Id, GOnlineMap[v].Name)
+			}
+		}
+		msg += fmt.Sprintf("查询具体服务器请输入 run id %s", params)
+		u.Send_group_msg(msg)
+	}
+}
+
 func (u *HdGroup) SendStatus() {
+
 	if u.Status == 2 || u.Status == 3 {
 		if u.CurrentPlayers == "-1" {
 			u.Send_group_msg("服务器:%s 正在运行!", u.Name)

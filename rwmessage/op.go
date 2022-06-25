@@ -87,7 +87,7 @@ func (p *HdCqOp) HdCqOp() {
 func (p *HdCqOp) help(params string) {
 	switch params {
 	case "help":
-		p.Send_private_msg("run list : 查看服务器列表\nrun status : 查看已监听服务器状态\nrun server : 查看MCSM后端状态\nrun add listen : 添加监听服务器\nrun id 控制台命令 : 运行服务器命令")
+		p.Send_private_msg("run list : 查看服务器列表\nrun status : 查看已监听服务器状态\nrun server : 查看MCSM后端状态\nrun add listen : 添加监听服务器\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 控制台命令 : 运行服务器命令")
 	case "list":
 		var serverlist string
 		serverlist += "服务器列表:\n"
@@ -328,23 +328,16 @@ func (p *HdCqOp) GetDaemonStatus() {
 		b, _ := ioutil.ReadAll(r.Body)
 		json.Unmarshal(b, &data)
 		var sendmsg string
-		sendmsg += fmt.Sprintf("前端面板地址:%s\n", url)
-		sendmsg += fmt.Sprintf("后端总数量:%d\n", data.Data.RemoteCount.Total)
-		sendmsg += fmt.Sprintf("后端在线数量:%d", data.Data.RemoteCount.Available)
+		sendmsg += fmt.Sprintf("前端面板地址:%s\n后端总数量:%d\n后端在线数量:%d", url, data.Data.RemoteCount.Total, data.Data.RemoteCount.Available)
 		p.Send_private_msg(sendmsg)
 		time.Sleep(time.Second)
 		for _, tmpdata := range data.Data.Remote {
 			sendmsg = ""
-			sendmsg += fmt.Sprintf("后端地址:%s:%s\n", tmpdata.Ip, tmpdata.Port)
-			sendmsg += fmt.Sprintf("连接状态:%v\n", tmpdata.Available)
-			sendmsg += fmt.Sprintf("备注:%s\n", tmpdata.Remarks)
-			sendmsg += fmt.Sprintf("平台:%s\n", tmpdata.System.Platform)
-			sendmsg += fmt.Sprintf("Cpu:%.2f", tmpdata.System.CpuUsage*100)
+			sendmsg += fmt.Sprintf("后端地址:%s:%s\n连接状态:%v\n备注:%s\n平台:%s\nCpu:%.2f", tmpdata.Ip, tmpdata.Port, tmpdata.Available, tmpdata.Remarks, tmpdata.System.Platform, tmpdata.System.CpuUsage*100)
 			sendmsg += "%%\n"
 			sendmsg += fmt.Sprintf("Mem:%.2f", tmpdata.System.MemUsage*100)
 			sendmsg += "%%\n"
-			sendmsg += fmt.Sprintf("实例总个数:%d\n", tmpdata.Instance.Total)
-			sendmsg += fmt.Sprintf("运行中实例个数:%d\n", tmpdata.Instance.Running)
+			sendmsg += fmt.Sprintf("实例总个数:%d\n运行中实例个数:%d", tmpdata.Instance.Total, tmpdata.Instance.Running)
 			p.Send_private_msg(sendmsg)
 			time.Sleep(time.Second)
 		}
