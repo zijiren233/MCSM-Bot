@@ -221,7 +221,7 @@ func (p *HdCqOp) ReturnResult(command string, time_now int64, id int) {
 		return
 	}
 	b, _ := ioutil.ReadAll(r.Body)
-	r3, _ := regexp.Compile(`\\r+|\\u001b\[?=?[a-zA-Z]?\?*[0-9]*[hl]*>? ?[0-9;]*m*`)
+	r3, _ := regexp.Compile(`\\r+|\\u001b\[?=?[a-zA-Z]?\?*[0-9]*[hlK]*>? ?[0-9;]*m?`)
 	ret := r3.ReplaceAllString(string(b), "")
 	last := strings.LastIndex(ret, `","time":`)
 	var index int
