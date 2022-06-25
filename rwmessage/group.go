@@ -49,12 +49,12 @@ type Status struct {
 func NewHdGroup(id int, send chan *SendData) *HdGroup {
 	if !InInt(id, AllId) {
 		fmt.Println("Id错误!")
-		logger.Log.Error("监听Id:%d ,Id错误!", id)
+		logger.Log.Error("监听Id: %d ,Id错误!", id)
 		fmt.Println()
 		return nil
 	} else if _, ok := GOnlineMap[id]; ok {
-		fmt.Printf("重复监听服务器:%s\n", GOnlineMap[id].Name)
-		logger.Log.Warring("重复监听服务器:%s", GOnlineMap[id].Name)
+		fmt.Printf("重复监听服务器: %s\n", GOnlineMap[id].Name)
+		logger.Log.Warring("重复监听服务器: %s", GOnlineMap[id].Name)
 		return nil
 	}
 	u := HdGroup{
@@ -69,7 +69,7 @@ func NewHdGroup(id int, send chan *SendData) *HdGroup {
 	}
 	err := u.StatusTest()
 	if err != nil {
-		fmt.Printf("服务器Id:%d 监听失败!\n", u.Id)
+		fmt.Printf("服务器Id: %d 监听失败!\n", u.Id)
 		return nil
 	}
 	GroupToId[u.Group_id] = append(GroupToId[u.Group_id], u.Id)
@@ -104,8 +104,9 @@ func (u *HdGroup) HandleMessage(mdata *MsgData) {
 		return
 	}
 	params2 := flysnowRegexp.FindStringSubmatch(params)
-	// 当一个群有两个实例监听时，如果不指定Id则由第一个监听的实例执行
-	if len(GroupToId[u.Group_id]) >= 2 && params2[1] == "" {
+	// 当一个群有两个实例监听时
+	if len(GroupToId[u.Group_id]) >= 2 {
+		// 则由第一个监听的实例执行
 		if GroupToId[u.Group_id][0] != u.Id {
 			return
 		}
@@ -113,10 +114,15 @@ func (u *HdGroup) HandleMessage(mdata *MsgData) {
 			u.Send_group_msg("请输入run help查看帮助!")
 			return
 		}
-		u.checkCMD2(params2[2])
+		if params2[1] == "" {
+			u.checkCMD2(params2[2])
+		} else {
+			u.checkCMD1(params2[2])
+		}
 		return
-		// 如果指定了Id则只由指定Id的goroutine执行
-	} else if len(GroupToId[u.Group_id]) >= 2 && params2[1] != strconv.Itoa(u.Id) {
+	}
+	// 如果指定了Id则只由指定Id的goroutine执行
+	if len(GroupToId[u.Group_id]) >= 2 && params2[1] != strconv.Itoa(u.Id) {
 		return
 	}
 	if (params2)[2] == "" {
@@ -126,9 +132,14 @@ func (u *HdGroup) HandleMessage(mdata *MsgData) {
 	u.checkCMD1(params2[2])
 }
 
+// 一群一个实例
 func (u *HdGroup) checkCMD1(params string) {
 	params = strings.ReplaceAll(params, "\n", "")
 	params = strings.ReplaceAll(params, "\r", "")
+	if u.Status != 3 && u.Status != 2 && (params != "help" && params != "server" && params != "start") {
+		u.Send_group_msg("服务器: %s 未启动!\n请先启动服务器:\nrun %d start", u.Name, u.Id)
+		return
+	}
 	var msg string
 	switch params {
 	case "help":
@@ -143,17 +154,17 @@ func (u *HdGroup) checkCMD1(params string) {
 		if u.Status != 2 && u.Status != 3 {
 			u.Start()
 		} else {
-			u.Send_group_msg("服务器:%s 已在运行!", u.Name)
+			u.Send_group_msg("服务器: %s 已在运行!", u.Name)
 		}
 	case "stop":
 		if u.Status == 2 || u.Status == 3 {
 			u.Stop()
 		} else {
-			u.Send_group_msg("服务器:%s 未运行!", u.Name)
+			u.Send_group_msg("服务器: %s 未运行!", u.Name)
 		}
 	case "restart":
 		u.Restart()
-		u.Send_group_msg("服务器:%s 正在重启!", u.Name)
+		u.Send_group_msg("服务器: %s 正在重启!", u.Name)
 	case "kill":
 		u.Kill()
 	default:
@@ -161,9 +172,14 @@ func (u *HdGroup) checkCMD1(params string) {
 	}
 }
 
+// 一群多个实例不指定ID
 func (u *HdGroup) checkCMD2(params string) {
 	params = strings.ReplaceAll(params, "\n", "")
 	params = strings.ReplaceAll(params, "\r", "")
+	if u.Status != 3 && u.Status != 2 && (params != "help" && params != "server" && params != "start") {
+		u.Send_group_msg("服务器: %s 未启动!\n请先启动服务器:\nrun %d start", u.Name, u.Id)
+		return
+	}
 	var msg string
 	switch params {
 	case "help":
@@ -196,12 +212,12 @@ func (u *HdGroup) SendStatus() {
 
 	if u.Status == 2 || u.Status == 3 {
 		if u.CurrentPlayers == "-1" {
-			u.Send_group_msg("服务器:%s 正在运行!", u.Name)
+			u.Send_group_msg("服务器: %s 正在运行!", u.Name)
 		} else {
-			u.Send_group_msg("服务器:%s 正在运行!\n服务器人数:%s\n服务器最大人数:%s\n服务器版本:%s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
+			u.Send_group_msg("服务器: %s 正在运行!\n服务器人数: %s\n服务器最大人数: %s\n服务器版本: %s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
 		}
 	} else {
-		u.Send_group_msg("服务器:%s 未运行!", u.Name)
+		u.Send_group_msg("服务器: %s 未运行!", u.Name)
 	}
 }
 
@@ -216,9 +232,9 @@ func (u *HdGroup) ReportStatus() {
 	for {
 		if status != u.Status {
 			if u.Status == 2 || u.Status == 3 {
-				u.Send_group_msg("服务器:%s 已运行!", u.Name)
+				u.Send_group_msg("服务器: %s 已运行!", u.Name)
 			} else if u.Status == 0 {
-				u.Send_group_msg("服务器:%s 已停止!", u.Name)
+				u.Send_group_msg("服务器: %s 已停止!", u.Name)
 			}
 			status = u.Status
 		}
@@ -239,7 +255,7 @@ func (u *HdGroup) StatusTest() error {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	r, err := client.Do(r2)
 	if err != nil {
-		logger.Log.Error("获取服务器Id:%d 信息失败! err:%v", u.Id, err)
+		logger.Log.Error("获取服务器Id: %d 信息失败! err: %v", u.Id, err)
 		return err
 	}
 	b, _ := ioutil.ReadAll(r.Body)

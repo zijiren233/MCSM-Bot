@@ -30,7 +30,7 @@ func (u *HdGroup) Start() {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		Log.Warring("服务器:%s 运行启动命令失败,可能是网络问题!", u.Name)
+		Log.Warring("服务器: %s 运行启动命令失败,可能是网络问题!", u.Name)
 		return
 	}
 }
@@ -47,7 +47,7 @@ func (u *HdGroup) Stop() {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		Log.Warring("服务器:%s 运行关闭命令失败,可能是网络问题!", u.Name)
+		Log.Warring("服务器: %s 运行关闭命令失败,可能是网络问题!", u.Name)
 		return
 	}
 }
@@ -72,7 +72,7 @@ func (u *HdGroup) RunCmd(commd string) {
 	b, _ := ioutil.ReadAll(r.Body)
 	var time_unix CmdData
 	json.Unmarshal(b, &time_unix)
-	time.Sleep(75 * time.Millisecond)
+	time.Sleep(70 * time.Millisecond)
 	u.ReturnResult(commd, time_unix.Time_unix)
 }
 
@@ -153,8 +153,8 @@ func (u *HdGroup) Restart() {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		u.Send_group_msg("服务器:%s 运行重启命令失败!", u.Name)
-		Log.Warring("服务器:%s 运行重启命令失败,可能是网络问题!", u.Name)
+		u.Send_group_msg("服务器: %s 运行重启命令失败!", u.Name)
+		Log.Warring("服务器: %s 运行重启命令失败,可能是网络问题!", u.Name)
 		return
 	}
 }
@@ -171,8 +171,8 @@ func (u *HdGroup) Kill() {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		u.Send_group_msg("服务器:%s 运行终止命令失败!", u.Name)
-		Log.Warring("服务器:%s 运行终止命令失败,可能是网络问题!", u.Name)
+		u.Send_group_msg("服务器: %s 运行终止命令失败!", u.Name)
+		Log.Warring("服务器: %s 运行终止命令失败,可能是网络问题!", u.Name)
 		return
 	}
 }

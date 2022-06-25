@@ -19,6 +19,7 @@ var IdToOd = make(map[int]int)
 var Mconfig = gconfig.GetMConfig()
 var Qconfig = gconfig.GetQConfig()
 var AllId = GetAllId()
+var S = NewServer(Qconfig.Cqhttp.Url)
 
 // var AllDaemon = make(map[string]([]string))
 

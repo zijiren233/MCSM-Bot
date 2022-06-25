@@ -11,7 +11,6 @@ import (
 
 var version = "v1.5.0"
 var alone bool
-var s = rwmessage.NewServer(rwmessage.Qconfig.Cqhttp.Url)
 
 func Chose() {
 	var chose string
@@ -57,12 +56,12 @@ func addListen() {
 	_, err := fmt.Scan(&id)
 	if err != nil {
 		for i := 0; i < len(rwmessage.Mconfig.McsmData); i++ {
-			rwmessage.NewHdGroup(rwmessage.Mconfig.McsmData[i].Id, s.SendMessage)
+			rwmessage.NewHdGroup(rwmessage.Mconfig.McsmData[i].Id, rwmessage.S.SendMessage)
 			fmt.Println()
 		}
 		return
 	}
-	rwmessage.NewHdGroup(id, s.SendMessage)
+	rwmessage.NewHdGroup(id, rwmessage.S.SendMessage)
 	time.Sleep(1 * time.Second)
 	fmt.Println()
 }
@@ -84,11 +83,11 @@ func main() {
 		addListen()
 	} else {
 		for i := 0; i < len(rwmessage.Mconfig.McsmData); i++ {
-			rwmessage.NewHdGroup(rwmessage.Mconfig.McsmData[i].Id, s.SendMessage)
+			rwmessage.NewHdGroup(rwmessage.Mconfig.McsmData[i].Id, rwmessage.S.SendMessage)
 		}
 		fmt.Println()
 	}
-	p := rwmessage.NewHdCqOp(s.SendMessage)
+	p := rwmessage.NewHdCqOp(rwmessage.S.SendMessage)
 	go p.HdCqOp()
 	for {
 		Chose()

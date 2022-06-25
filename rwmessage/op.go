@@ -62,23 +62,43 @@ func (p *HdCqOp) HdCqOp() {
 			flysnowRegexp, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
 			params := flysnowRegexp.FindString(msg.Message)
 			if len(params) == 0 {
-				return
+				continue
 			}
 			params2 := flysnowRegexp.FindStringSubmatch(params)
 			if params2[1] == "" {
+				if params2[2] == "addlisten" {
+					var serverlist string
+					serverlist += "未监听服务器列表:\n"
+					for _, v := range AllId {
+						if _, ok := GOnlineMap[v]; !ok {
+							serverlist += fmt.Sprintf("Id: %-5dGroup: %d\n", id, Mconfig.McsmData[IdToOd[id]].Group_id)
+						}
+					}
+					serverlist += "添加具体服务器请输入 run id addlisten"
+					p.Send_private_msg(serverlist)
+					continue
+				}
 				go p.help(params2[2])
 				continue
 			}
 			id, _ = strconv.Atoi(params2[1])
 			if InInt(id, AllId) {
+				if params2[2] == "addlisten" {
+					NewHdGroup(id, S.SendMessage)
+					if v, ok := GOnlineMap[id]; ok {
+						p.Send_private_msg("添加服务器: %s 监听成功!", v.Name)
+					}
+					continue
+				}
 				if _, ok := GOnlineMap[id]; !ok {
-					logger.Log.Warring("OP 试图访问服务器:%s ,%s 未开启监听！", GOnlineMap[id].Name, GOnlineMap[id].Name)
-					p.Send_private_msg("%s 未开启监听！", GOnlineMap[id].Name)
+					logger.Log.Warring("OP 试图访问服务器Id: %d ,但未开启监听！", id)
+					p.Send_private_msg("服务器Id: %d 未开启监听！", id)
+					continue
 				}
 				go p.checkCMD(id, params2[2])
 			} else {
 				p.Send_private_msg("请输入正确的ID!")
-				logger.Log.Warring("OP 输入:%d 请输入正确的ID!", p.Op, params)
+				logger.Log.Warring("OP 输入: %d 请输入正确的ID!", p.Op, params)
 			}
 		}
 	}
@@ -87,18 +107,18 @@ func (p *HdCqOp) HdCqOp() {
 func (p *HdCqOp) help(params string) {
 	switch params {
 	case "help":
-		p.Send_private_msg("run list : 查看服务器列表\nrun status : 查看已监听服务器状态\nrun server : 查看MCSM后端状态\nrun add listen : 添加监听服务器\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 控制台命令 : 运行服务器命令")
+		p.Send_private_msg("run list : 查看服务器列表\nrun status : 查看已监听服务器状态\nrun id addlisten : 添加监听服务器\nrun server : 查看MCSM后端状态\nrun add listen : 添加监听服务器\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 控制台命令 : 运行服务器命令")
 	case "list":
 		var serverlist string
 		serverlist += "服务器列表:\n"
 		for _, v := range AllId {
 			if i, ok := GOnlineMap[v]; ok {
-				serverlist += fmt.Sprintf("Name: %s    Id: %d    Group:%d    监听状态: 是\n", i.Name, i.Id, i.Group_id)
+				serverlist += fmt.Sprintf("Id: %-5dGroup: %-13dName: %s    监听状态: 是\n", i.Id, i.Group_id, i.Name)
 			} else {
-				serverlist += fmt.Sprintf("Name: %s    Id: %d    Group:%d    监听状态: 否\n", i.Name, i.Id, i.Group_id)
+				serverlist += fmt.Sprintf("Id: %-5dGroup: %-13d    监听状态: 否\n", v, Mconfig.McsmData[IdToOd[v]].Group_id)
 			}
 		}
-		serverlist += "查询具体服务器请输入 run id list"
+		serverlist += "运行具体服务器命令请输入 run id list"
 		p.Send_private_msg(serverlist)
 	case "status":
 		var serverstatus string
@@ -110,8 +130,6 @@ func (p *HdCqOp) help(params string) {
 		p.Send_private_msg(serverstatus)
 	case "server":
 		p.GetDaemonStatus()
-	case "add listen":
-		p.Send_private_msg("待完善...")
 	default:
 		var serverlist string
 		serverlist += "服务器列表:\n"
@@ -119,7 +137,7 @@ func (p *HdCqOp) help(params string) {
 			if i, ok := GOnlineMap[v]; ok {
 				serverlist += fmt.Sprintf("Id: %-5d监听状态: 是    Name: %s\n", i.Id, i.Name)
 			} else {
-				serverlist += fmt.Sprintf("Id: %-5d监听状态: 否    Name: %s\n", i.Id, i.Name)
+				serverlist += fmt.Sprintf("Id: %-5d监听状态: 否\n", v)
 			}
 		}
 		serverlist += "请添加 Id 参数"
@@ -130,29 +148,25 @@ func (p *HdCqOp) help(params string) {
 func (p *HdCqOp) checkCMD(id int, params string) {
 	params = strings.ReplaceAll(params, "\n", "")
 	params = strings.ReplaceAll(params, "\r", "")
+	// if GOnlineMap[id].Status != 3 && GOnlineMap[id].Status != 2 && (params != "help" && params != "server" && params != "start") {
+	// 	p.Send_private_msg("服务器: %s 未启动!\n请先启动服务器:\nrun %d start", GOnlineMap[id].Name, id)
+	// 	return
+	// }
 	switch params {
 	case "status":
 		if GOnlineMap[id].Status == 2 || GOnlineMap[id].Status == 3 {
 			if GOnlineMap[id].CurrentPlayers == "-1" {
-				p.Send_private_msg("服务器:%s 正在运行!", GOnlineMap[id].Name)
+				p.Send_private_msg("服务器: %s 正在运行!", GOnlineMap[id].Name)
 			} else {
-				p.Send_private_msg("服务器:%s 正在运行!\n服务器人数:%s\n服务器最大人数:%s\n服务器版本:%s\n服务器到期日期:%s", GOnlineMap[id].Name, GOnlineMap[id].CurrentPlayers, GOnlineMap[id].MaxPlayers, GOnlineMap[id].Version, GOnlineMap[id].EndTime)
+				p.Send_private_msg("服务器: %s 正在运行!\n服务器人数: %s\n服务器最大人数: %s\n服务器版本: %s\n服务器到期日期: %s", GOnlineMap[id].Name, GOnlineMap[id].CurrentPlayers, GOnlineMap[id].MaxPlayers, GOnlineMap[id].Version, GOnlineMap[id].EndTime)
 			}
 		} else {
-			p.Send_private_msg("服务器:%s 未运行!", GOnlineMap[id].Name)
+			p.Send_private_msg("服务器: %s 未运行!", GOnlineMap[id].Name)
 		}
 	case "start":
-		if GOnlineMap[id].Status != 2 && GOnlineMap[id].Status != 3 {
-			p.Start(id)
-		} else {
-			p.Send_private_msg("服务器:%s 已在运行!", GOnlineMap[id].Name)
-		}
+		p.Start(id)
 	case "stop":
-		if GOnlineMap[id].Status == 2 || GOnlineMap[id].Status == 3 {
-			p.Stop(id)
-		} else {
-			p.Send_private_msg("服务器:%s 未运行!", GOnlineMap[id].Name)
-		}
+		p.Stop(id)
 	case "restart":
 		p.Restart(id)
 	case "kill":
@@ -163,27 +177,32 @@ func (p *HdCqOp) checkCMD(id int, params string) {
 }
 
 func (p *HdCqOp) RunCmd(commd string, id int) {
-	client := &http.Client{}
-	r2, _ := http.NewRequest("GET", GOnlineMap[id].Url+"/api/protected_instance/command", nil)
-	r2.Close = true
-	q := r2.URL.Query()
-	q.Add("apikey", GOnlineMap[id].Apikey)
-	q.Add("uuid", GOnlineMap[id].Uuid)
-	q.Add("remote_uuid", GOnlineMap[id].Remote_uuid)
-	q.Add("command", commd)
-	r2.URL.RawQuery = q.Encode()
-	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	r, err := client.Do(r2)
-	if err != nil {
-		p.Send_private_msg("运行命令 %s 失败！", commd)
-		logger.Log.Error("运行命令 %s 失败！%v", commd, err)
-		return
+	if GOnlineMap[id].Status == 2 || GOnlineMap[id].Status == 3 {
+		client := &http.Client{}
+		r2, _ := http.NewRequest("GET", GOnlineMap[id].Url+"/api/protected_instance/command", nil)
+		r2.Close = true
+		q := r2.URL.Query()
+		q.Add("apikey", GOnlineMap[id].Apikey)
+		q.Add("uuid", GOnlineMap[id].Uuid)
+		q.Add("remote_uuid", GOnlineMap[id].Remote_uuid)
+		q.Add("command", commd)
+		r2.URL.RawQuery = q.Encode()
+		r2.Header.Set("x-requested-with", "xmlhttprequest")
+		r, err := client.Do(r2)
+		if err != nil {
+			p.Send_private_msg("运行命令 %s 失败！", commd)
+			logger.Log.Error("运行命令 %s 失败！%v", commd, err)
+			return
+		}
+		b, _ := ioutil.ReadAll(r.Body)
+		var time_unix CmdData
+		json.Unmarshal(b, &time_unix)
+		time.Sleep(70 * time.Millisecond)
+		p.ReturnResult(commd, time_unix.Time_unix, id)
+	} else {
+		p.Send_private_msg("服务器: %s 未运行!", GOnlineMap[id].Name)
 	}
-	b, _ := ioutil.ReadAll(r.Body)
-	var time_unix CmdData
-	json.Unmarshal(b, &time_unix)
-	time.Sleep(100 * time.Millisecond)
-	p.ReturnResult(commd, time_unix.Time_unix, id)
+
 }
 
 func (p *HdCqOp) ReturnResult(command string, time_now int64, id int) {
@@ -237,39 +256,47 @@ func (p *HdCqOp) handle_End_Newline(msg string) *string {
 }
 
 func (p *HdCqOp) Start(id int) {
-	client := &http.Client{}
-	r2, _ := http.NewRequest("GET", GOnlineMap[id].Url+"/api/protected_instance/open", nil)
-	r2.Close = true
-	q := r2.URL.Query()
-	q.Add("apikey", GOnlineMap[id].Apikey)
-	q.Add("uuid", GOnlineMap[id].Uuid)
-	q.Add("remote_uuid", GOnlineMap[id].Remote_uuid)
-	r2.URL.RawQuery = q.Encode()
-	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	_, err := client.Do(r2)
-	if err != nil {
-		logger.Log.Warring("服务器:%s 运行启动命令失败,可能是网络问题!", GOnlineMap[id].Name)
-		return
+	if GOnlineMap[id].Status != 2 && GOnlineMap[id].Status != 3 {
+		client := &http.Client{}
+		r2, _ := http.NewRequest("GET", GOnlineMap[id].Url+"/api/protected_instance/open", nil)
+		r2.Close = true
+		q := r2.URL.Query()
+		q.Add("apikey", GOnlineMap[id].Apikey)
+		q.Add("uuid", GOnlineMap[id].Uuid)
+		q.Add("remote_uuid", GOnlineMap[id].Remote_uuid)
+		r2.URL.RawQuery = q.Encode()
+		r2.Header.Set("x-requested-with", "xmlhttprequest")
+		_, err := client.Do(r2)
+		if err != nil {
+			logger.Log.Warring("服务器: %s 运行启动命令失败,可能是网络问题!", GOnlineMap[id].Name)
+			return
+		}
+		p.Send_private_msg("服务器: %s 正在启动!", GOnlineMap[id].Name)
+	} else {
+		p.Send_private_msg("服务器: %s 已运行!", GOnlineMap[id].Name)
 	}
-	p.Send_private_msg("服务器:%s 正在启动!", GOnlineMap[id].Name)
 }
 
 func (p *HdCqOp) Stop(id int) {
-	client := &http.Client{}
-	r2, _ := http.NewRequest("GET", GOnlineMap[id].Url+"/api/protected_instance/stop", nil)
-	r2.Close = true
-	q := r2.URL.Query()
-	q.Add("apikey", GOnlineMap[id].Apikey)
-	q.Add("uuid", GOnlineMap[id].Uuid)
-	q.Add("remote_uuid", GOnlineMap[id].Remote_uuid)
-	r2.URL.RawQuery = q.Encode()
-	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	_, err := client.Do(r2)
-	if err != nil {
-		logger.Log.Warring("服务器:%s 运行关闭命令失败,可能是网络问题!", GOnlineMap[id].Name)
-		return
+	if GOnlineMap[id].Status == 2 || GOnlineMap[id].Status == 3 {
+		client := &http.Client{}
+		r2, _ := http.NewRequest("GET", GOnlineMap[id].Url+"/api/protected_instance/stop", nil)
+		r2.Close = true
+		q := r2.URL.Query()
+		q.Add("apikey", GOnlineMap[id].Apikey)
+		q.Add("uuid", GOnlineMap[id].Uuid)
+		q.Add("remote_uuid", GOnlineMap[id].Remote_uuid)
+		r2.URL.RawQuery = q.Encode()
+		r2.Header.Set("x-requested-with", "xmlhttprequest")
+		_, err := client.Do(r2)
+		if err != nil {
+			logger.Log.Warring("服务器: %s 运行关闭命令失败,可能是网络问题!", GOnlineMap[id].Name)
+			return
+		}
+		p.Send_private_msg("服务器: %s 正在停止!", GOnlineMap[id].Name)
+	} else {
+		p.Send_private_msg("服务器: %s 已停止!", GOnlineMap[id].Name)
 	}
-	p.Send_private_msg("服务器:%s 正在停止!", GOnlineMap[id].Name)
 }
 
 func (p *HdCqOp) Restart(id int) {
@@ -284,30 +311,34 @@ func (p *HdCqOp) Restart(id int) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		p.Send_private_msg("服务器:%s 运行重启命令失败!", GOnlineMap[id].Name)
-		logger.Log.Warring("服务器:%s 运行重启命令失败,可能是网络问题!", GOnlineMap[id].Name)
+		p.Send_private_msg("服务器: %s 运行重启命令失败!", GOnlineMap[id].Name)
+		logger.Log.Warring("服务器: %s 运行重启命令失败,可能是网络问题!", GOnlineMap[id].Name)
 		return
 	}
-	p.Send_private_msg("服务器:%s 重启中!", GOnlineMap[id].Name)
+	p.Send_private_msg("服务器: %s 重启中!", GOnlineMap[id].Name)
 }
 
 func (p *HdCqOp) Kill(id int) {
-	client := &http.Client{}
-	r2, _ := http.NewRequest("GET", GOnlineMap[id].Url+"/api/protected_instance/kill", nil)
-	r2.Close = true
-	q := r2.URL.Query()
-	q.Add("apikey", GOnlineMap[id].Apikey)
-	q.Add("uuid", GOnlineMap[id].Uuid)
-	q.Add("remote_uuid", GOnlineMap[id].Remote_uuid)
-	r2.URL.RawQuery = q.Encode()
-	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	_, err := client.Do(r2)
-	if err != nil {
-		p.Send_private_msg("服务器:%s 运行终止命令失败!", GOnlineMap[id].Name)
-		logger.Log.Warring("服务器:%s 运行终止命令失败,可能是网络问题!", GOnlineMap[id].Name)
-		return
+	if GOnlineMap[id].Status == 2 || GOnlineMap[id].Status == 3 {
+		client := &http.Client{}
+		r2, _ := http.NewRequest("GET", GOnlineMap[id].Url+"/api/protected_instance/kill", nil)
+		r2.Close = true
+		q := r2.URL.Query()
+		q.Add("apikey", GOnlineMap[id].Apikey)
+		q.Add("uuid", GOnlineMap[id].Uuid)
+		q.Add("remote_uuid", GOnlineMap[id].Remote_uuid)
+		r2.URL.RawQuery = q.Encode()
+		r2.Header.Set("x-requested-with", "xmlhttprequest")
+		_, err := client.Do(r2)
+		if err != nil {
+			p.Send_private_msg("服务器: %s 运行终止命令失败!", GOnlineMap[id].Name)
+			logger.Log.Warring("服务器: %s 运行终止命令失败,可能是网络问题!", GOnlineMap[id].Name)
+			return
+		}
+		p.Send_private_msg("服务器: %s 已终止!", GOnlineMap[id].Name)
+	} else {
+		p.Send_private_msg("服务器: %s 已停止!", GOnlineMap[id].Name)
 	}
-	p.Send_private_msg("服务器:%s 已终止!", GOnlineMap[id].Name)
 }
 
 func (p *HdCqOp) GetDaemonStatus() {
@@ -328,16 +359,16 @@ func (p *HdCqOp) GetDaemonStatus() {
 		b, _ := ioutil.ReadAll(r.Body)
 		json.Unmarshal(b, &data)
 		var sendmsg string
-		sendmsg += fmt.Sprintf("前端面板地址:%s\n后端总数量:%d\n后端在线数量:%d", url, data.Data.RemoteCount.Total, data.Data.RemoteCount.Available)
+		sendmsg += fmt.Sprintf("前端面板地址: %s\n后端总数量: %d\n后端在线数量: %d", url, data.Data.RemoteCount.Total, data.Data.RemoteCount.Available)
 		p.Send_private_msg(sendmsg)
 		time.Sleep(time.Second)
 		for _, tmpdata := range data.Data.Remote {
 			sendmsg = ""
-			sendmsg += fmt.Sprintf("后端地址:%s:%s\n连接状态:%v\n备注:%s\n平台:%s\nCpu:%.2f", tmpdata.Ip, tmpdata.Port, tmpdata.Available, tmpdata.Remarks, tmpdata.System.Platform, tmpdata.System.CpuUsage*100)
+			sendmsg += fmt.Sprintf("后端地址: %s:%s\n连接状态: %v\n备注: %s\n平台: %s\nCpu: %.2f", tmpdata.Ip, tmpdata.Port, tmpdata.Available, tmpdata.Remarks, tmpdata.System.Platform, tmpdata.System.CpuUsage*100)
 			sendmsg += "%%\n"
-			sendmsg += fmt.Sprintf("Mem:%.2f", tmpdata.System.MemUsage*100)
+			sendmsg += fmt.Sprintf("Mem: %.2f", tmpdata.System.MemUsage*100)
 			sendmsg += "%%\n"
-			sendmsg += fmt.Sprintf("实例总个数:%d\n运行中实例个数:%d", tmpdata.Instance.Total, tmpdata.Instance.Running)
+			sendmsg += fmt.Sprintf("实例总个数: %d\n运行中实例个数: %d", tmpdata.Instance.Total, tmpdata.Instance.Running)
 			p.Send_private_msg(sendmsg)
 			time.Sleep(time.Second)
 		}
