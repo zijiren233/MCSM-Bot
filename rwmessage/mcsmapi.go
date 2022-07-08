@@ -1,11 +1,11 @@
 package rwmessage
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -92,23 +92,23 @@ func (u *HdGroup) ReturnResult(command string, time_now int64) {
 		return
 	}
 	b, _ := ioutil.ReadAll(r.Body)
-	r3, _ := regexp.Compile(`\\r+|\\u001b\[?=?[a-zA-Z]?\?*[0-9]*[hlK]*>? ?[0-9;]*m?`)
-	ret := r3.ReplaceAllString(string(b), "")
-	last := strings.LastIndex(ret, `","time":`)
+	b2, _ := nocolorable(&b)
+	// r3, _ := regexp.Compile(`\\r+|\\u001b\[?=?[a-zA-Z]?\?*[0-9]*[hlK]*>? ?[0-9;]*m?`)
+	// ret := r3.ReplaceAllString(string(b), "")
+	last := strings.LastIndex(b2.String(), `","time":`)
 	var index int
 	var i int64
 	Log.Debug("服务器 %s 运行命令 %s 返回时间: %s", u.Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 	for i = 0; i < 2; i++ {
-		index = strings.Index(ret, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
+		index = strings.Index(b2.String(), time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
 		if index == -1 {
 			continue
 		}
-		u.Send_group_msg("> [%s] %s\n%s", u.Name, command, *(u.handle_End_Newline(ret[index-1 : last])))
+		u.Send_group_msg("> [%s] %s\n%s", u.Name, command, *(u.handle_End_Newline(b2.String()[index-1 : last])))
 		return
 	}
 	u.Send_group_msg("运行命令成功！")
 	Log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", u.Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
-
 }
 
 func (u *HdGroup) handle_End_Newline(msg string) *string {
@@ -175,4 +175,43 @@ func (u *HdGroup) Kill() {
 		Log.Warring("服务器: %s 运行终止命令失败,可能是网络问题!", u.Name)
 		return
 	}
+}
+
+func nocolorable(data *[]byte) (*bytes.Buffer, error) {
+	er := bytes.NewReader(*data)
+	var plaintext bytes.Buffer
+loop:
+	for {
+		c1, err := er.ReadByte()
+		if err != nil {
+			// plaintext.WriteTo(w.out)
+			break loop
+		}
+		if c1 != 0x1b {
+			plaintext.WriteByte(c1)
+			continue
+		}
+		// _, err = plaintext.WriteTo(w.out)
+		// if err != nil {
+		// 	break loop
+		// }
+		c2, err := er.ReadByte()
+		if err != nil {
+			break loop
+		}
+		if c2 != 0x5b {
+			continue
+		}
+
+		for {
+			c, err := er.ReadByte()
+			if err != nil {
+				break loop
+			}
+			if ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '@' {
+				break
+			}
+		}
+	}
+	return &plaintext, nil
 }

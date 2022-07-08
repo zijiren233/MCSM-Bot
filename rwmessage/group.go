@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/zijiren233/MCSM-Bot/logger"
@@ -29,6 +30,8 @@ type HdGroup struct {
 	Version        string
 	ChGroupMsg     chan *MsgData
 	SendChan       chan *SendData
+
+	lock sync.RWMutex
 }
 
 type Status struct {
@@ -230,14 +233,16 @@ func (u *HdGroup) ReportStatus() {
 	}()
 	var status = u.Status
 	for {
+		u.lock.RLock()
 		if status != u.Status {
-			if u.Status == 2 || u.Status == 3 {
+			if (u.Status == 2 && status != 3) || (u.Status == 3 && status != 2) {
 				u.Send_group_msg("服务器: %s 已运行!", u.Name)
 			} else if u.Status == 0 {
 				u.Send_group_msg("服务器: %s 已停止!", u.Name)
 			}
 			status = u.Status
 		}
+		u.lock.RUnlock()
 		time.Sleep(1500 * time.Millisecond)
 	}
 }
@@ -261,12 +266,37 @@ func (u *HdGroup) StatusTest() error {
 	b, _ := ioutil.ReadAll(r.Body)
 	var status Status
 	json.Unmarshal(b, &status)
-	u.Status = status.Data.Status
-	u.Name = status.Data.Config.Nickname
-	u.EndTime = status.Data.Config.EndTime
-	u.CurrentPlayers = status.Data.Info.CurrentPlayers
-	u.MaxPlayers = status.Data.Info.MaxPlayers
-	u.Version = status.Data.Info.Version
+	// logger.Log.Debug("status: %v", status)
+	if u.Status != status.Data.Status {
+		u.lock.Lock()
+		u.Status = status.Data.Status
+		u.lock.Unlock()
+	}
+	if u.Name != status.Data.Config.Nickname {
+		u.lock.Lock()
+		u.Name = status.Data.Config.Nickname
+		u.lock.Unlock()
+	}
+	if u.EndTime != status.Data.Config.EndTime {
+		u.lock.Lock()
+		u.EndTime = status.Data.Config.EndTime
+		u.lock.Unlock()
+	}
+	if u.CurrentPlayers != status.Data.Info.CurrentPlayers {
+		u.lock.Lock()
+		u.CurrentPlayers = status.Data.Info.CurrentPlayers
+		u.lock.Unlock()
+	}
+	if u.MaxPlayers != status.Data.Info.MaxPlayers {
+		u.lock.Lock()
+		u.MaxPlayers = status.Data.Info.MaxPlayers
+		u.lock.Unlock()
+	}
+	if u.Version != status.Data.Info.Version {
+		u.lock.Lock()
+		u.Version = status.Data.Info.Version
+		u.lock.Unlock()
+	}
 	return nil
 }
 
