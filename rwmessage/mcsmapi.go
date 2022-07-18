@@ -18,7 +18,10 @@ type CmdData struct {
 	Time_unix int64 `json:"time"`
 }
 
-func (u *HdGroup) Start() {
+func (u *HdGroup) Start() (string, error) {
+	if u.Status == 2 || u.Status == 3 {
+		return fmt.Sprintf("服务器: %s 已经运行!", u.Name), nil
+	}
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", u.Url+"/api/protected_instance/open", nil)
 	r2.Close = true
@@ -31,11 +34,15 @@ func (u *HdGroup) Start() {
 	_, err := client.Do(r2)
 	if err != nil {
 		Log.Warring("服务器: %s 运行启动命令失败,可能是网络问题!", u.Name)
-		return
+		return "", err
 	}
+	return fmt.Sprintf("服务器: %s 正在启动!", u.Name), nil
 }
 
-func (u *HdGroup) Stop() {
+func (u *HdGroup) Stop() (string, error) {
+	if u.Status != 2 && u.Status != 3 {
+		return fmt.Sprintf("服务器: %s 未运行!", u.Name), nil
+	}
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", u.Url+"/api/protected_instance/stop", nil)
 	r2.Close = true
@@ -48,11 +55,12 @@ func (u *HdGroup) Stop() {
 	_, err := client.Do(r2)
 	if err != nil {
 		Log.Warring("服务器: %s 运行关闭命令失败,可能是网络问题!", u.Name)
-		return
+		return "", err
 	}
+	return fmt.Sprintf("服务器: %s 正在关闭!", u.Name), nil
 }
 
-func (u *HdGroup) RunCmd(commd string) {
+func (u *HdGroup) RunCmd(commd string) (string, error) {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", u.Url+"/api/protected_instance/command", nil)
 	r2.Close = true
@@ -65,18 +73,18 @@ func (u *HdGroup) RunCmd(commd string) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	r, err := client.Do(r2)
 	if err != nil {
-		u.Send_group_msg("运行命令 %s 失败！", commd)
+		// u.Send_group_msg("运行命令 %s 失败！", commd)
 		Log.Error("运行命令 %s 失败！%v", commd, err)
-		return
+		return fmt.Sprintf("运行命令 %s 失败！", commd), err
 	}
 	b, _ := ioutil.ReadAll(r.Body)
 	var time_unix CmdData
 	json.Unmarshal(b, &time_unix)
 	time.Sleep(70 * time.Millisecond)
-	u.ReturnResult(commd, time_unix.Time_unix)
+	return u.ReturnResult(commd, time_unix.Time_unix)
 }
 
-func (u *HdGroup) ReturnResult(command string, time_now int64) {
+func (u *HdGroup) ReturnResult(command string, time_now int64) (string, error) {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", u.Url+"/api/protected_instance/outputlog", nil)
 	r2.Close = true
@@ -89,13 +97,12 @@ func (u *HdGroup) ReturnResult(command string, time_now int64) {
 	r, err := client.Do(r2)
 	if err != nil {
 		Log.Error("获取服务器 %s 命令 %s 运行结果失败！", u.Name, command)
-		return
+		return "", err
 	}
 	b, _ := ioutil.ReadAll(r.Body)
-	b2, _ := nocolorable(&b)
-	// r3, _ := regexp.Compile(`\\r+|\\u001b\[?=?[a-zA-Z]?\?*[0-9]*[hlK]*>? ?[0-9;]*m?`)
-	// ret := r3.ReplaceAllString(string(b), "")
-	last := strings.LastIndex(b2.String(), `","time":`)
+	var data Data
+	json.Unmarshal(b, &data)
+	b2, _ := nocolorable(&data.Data)
 	var index int
 	var i int64
 	Log.Debug("服务器 %s 运行命令 %s 返回时间: %s", u.Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
@@ -104,22 +111,18 @@ func (u *HdGroup) ReturnResult(command string, time_now int64) {
 		if index == -1 {
 			continue
 		}
-		u.Send_group_msg("> [%s] %s\n%s", u.Name, command, *(u.handle_End_Newline(b2.String()[index-1 : last])))
-		return
+		return fmt.Sprintf("> [%s] %s\n%s", u.Name, command, *(handle_End_Newline(b2.String()[index-1:]))), nil
 	}
-	u.Send_group_msg("运行命令成功！")
 	Log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", u.Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
+	return "运行命令成功！", nil
 }
 
-func (u *HdGroup) handle_End_Newline(msg string) *string {
-	var data Data
-	last := strings.LastIndex(msg, `\n`)
+func handle_End_Newline(msg string) *string {
+	last := strings.LastIndex(msg, "\n")
 	if last == len(msg)-2 {
 		msg = (msg)[:last]
 	}
-	msg = fmt.Sprint(`{"data":"`, msg, `"}`)
-	json.Unmarshal([]byte(msg), &data)
-	return &data.Data
+	return &msg
 }
 
 func (u *HdGroup) TestMcsmStatus() bool {
@@ -141,7 +144,7 @@ func (u *HdGroup) TestMcsmStatus() bool {
 	return true
 }
 
-func (u *HdGroup) Restart() {
+func (u *HdGroup) Restart() (string, error) {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", u.Url+"/api/protected_instance/restart", nil)
 	r2.Close = true
@@ -153,13 +156,14 @@ func (u *HdGroup) Restart() {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		u.Send_group_msg("服务器: %s 运行重启命令失败!", u.Name)
+		// u.Send_group_msg("服务器: %s 运行重启命令失败!", u.Name)
 		Log.Warring("服务器: %s 运行重启命令失败,可能是网络问题!", u.Name)
-		return
+		return "", err
 	}
+	return fmt.Sprintf("服务器: %s 重启中!", u.Name), nil
 }
 
-func (u *HdGroup) Kill() {
+func (u *HdGroup) Kill() (string, error) {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", u.Url+"/api/protected_instance/kill", nil)
 	r2.Close = true
@@ -171,14 +175,15 @@ func (u *HdGroup) Kill() {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		u.Send_group_msg("服务器: %s 运行终止命令失败!", u.Name)
+		// u.Send_group_msg("服务器: %s 运行终止命令失败!", u.Name)
 		Log.Warring("服务器: %s 运行终止命令失败,可能是网络问题!", u.Name)
-		return
+		return "", err
 	}
+	return fmt.Sprintf("服务器: %s 已经终止!", u.Name), nil
 }
 
-func nocolorable(data *[]byte) (*bytes.Buffer, error) {
-	er := bytes.NewReader(*data)
+func nocolorable(data *string) (*bytes.Buffer, error) {
+	er := bytes.NewReader([]byte(*data))
 	var plaintext bytes.Buffer
 loop:
 	for {

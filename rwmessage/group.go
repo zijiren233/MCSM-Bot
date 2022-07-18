@@ -137,42 +137,37 @@ func (u *HdGroup) HandleMessage(mdata *MsgData) {
 
 // 一群一个实例
 func (u *HdGroup) checkCMD1(params string) {
+	var msg string
+	var err error
 	params = strings.ReplaceAll(params, "\n", "")
 	params = strings.ReplaceAll(params, "\r", "")
 	if u.Status != 3 && u.Status != 2 && (params != "help" && params != "server" && params != "start") {
 		u.Send_group_msg("服务器: %s 未启动!\n请先启动服务器:\nrun %d start", u.Name, u.Id)
 		return
 	}
-	var msg string
 	switch params {
 	case "help":
-		u.Send_group_msg("run status : 查看服务器状态\nrun start : 启动服务器\nrun stop : 关闭服务器\nrun restart : 重启服务器\nrun kill : 终止服务器\nrun 控制台命令 : 运行服务器命令")
+		msg = "run status : 查看服务器状态\nrun start : 启动服务器\nrun stop : 关闭服务器\nrun restart : 重启服务器\nrun kill : 终止服务器\nrun 控制台命令 : 运行服务器命令"
 	case "server":
 		msg += "服务器列表:\n"
 		msg = fmt.Sprintf("Name: %s    Id: %d", u.Name, u.Id)
-		u.Send_group_msg(msg)
 	case "status":
-		u.SendStatus()
+		msg = u.SendStatus()
 	case "start":
-		if u.Status != 2 && u.Status != 3 {
-			u.Start()
-		} else {
-			u.Send_group_msg("服务器: %s 已在运行!", u.Name)
-		}
+		msg, err = u.Start()
 	case "stop":
-		if u.Status == 2 || u.Status == 3 {
-			u.Stop()
-		} else {
-			u.Send_group_msg("服务器: %s 未运行!", u.Name)
-		}
+		msg, err = u.Stop()
 	case "restart":
-		u.Restart()
-		u.Send_group_msg("服务器: %s 正在重启!", u.Name)
+		msg, err = u.Restart()
 	case "kill":
-		u.Kill()
+		msg, err = u.Kill()
 	default:
-		u.RunCmd(params)
+		msg, err = u.RunCmd(params)
 	}
+	if err != nil {
+		return
+	}
+	u.Send_group_msg(msg)
 }
 
 // 一群多个实例不指定ID
@@ -211,16 +206,18 @@ func (u *HdGroup) checkCMD2(params string) {
 	}
 }
 
-func (u *HdGroup) SendStatus() {
-
+func (u *HdGroup) SendStatus() string {
 	if u.Status == 2 || u.Status == 3 {
 		if u.CurrentPlayers == "-1" {
-			u.Send_group_msg("服务器: %s 正在运行!", u.Name)
+			// u.Send_group_msg("服务器: %s 正在运行!", u.Name)
+			return fmt.Sprintf("服务器: %s 正在运行!", u.Name)
 		} else {
-			u.Send_group_msg("服务器: %s 正在运行!\n服务器人数: %s\n服务器最大人数: %s\n服务器版本: %s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
+			// u.Send_group_msg("服务器: %s 正在运行!\n服务器人数: %s\n服务器最大人数: %s\n服务器版本: %s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
+			return fmt.Sprintf("服务器: %s 正在运行!\n服务器人数: %s\n服务器最大人数: %s\n服务器版本: %s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
 		}
 	} else {
-		u.Send_group_msg("服务器: %s 未运行!", u.Name)
+		// u.Send_group_msg("服务器: %s 未运行!", u.Name)
+		return fmt.Sprintf("服务器: %s 未运行!", u.Name)
 	}
 }
 
