@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -95,18 +96,19 @@ func (u *HdGroup) ReturnResult(command string) (string, error) {
 	var data Data
 	json.Unmarshal(b, &data)
 	b2, _ := nocolorable(&data.Data)
-	index := strings.LastIndex(b2.String(), command+"\r\n")
-	if index == -1 {
-		Log.Debug("查找命令失败:%s", b2.String())
-		return "运行命令成功!", nil
+	r3, _ := regexp.Compile(fmt.Sprintf("%s%s%s", `(?m)`, command, `(\r)*?(\n)`))
+	i := r3.FindAllStringIndex(b2.String(), -1)
+	if len(i) != 0 {
+		return fmt.Sprintf("[%s] %s", u.Name, *(handle_End_Newline(b2.String()[i[len(i)-1][0]:]))), nil
 	}
-	return fmt.Sprintf("[%s] %s", u.Name, *(handle_End_Newline(b2.String()[index:]))), nil
+	Log.Error("查找命令失败:%#v", b2.String())
+	return "运行命令成功!", nil
 }
 
 func handle_End_Newline(msg string) *string {
-	last := strings.LastIndex(msg, "\r\n")
-	if last == len(msg)-3 {
-		msg = (msg)[:last]
+	last := strings.LastIndex(msg, "\n")
+	if last == len(msg)-2 {
+		msg = msg[:last]
 	}
 	return &msg
 }
