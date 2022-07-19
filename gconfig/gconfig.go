@@ -9,13 +9,14 @@ import (
 
 type MConfig struct {
 	McsmData []struct {
-		Id          int    `json:"id"`
-		Url         string `json:"url"`
-		Remote_uuid string `json:"remote_uuid"`
-		Uuid        string `json:"uuid"`
-		Apikey      string `json:"apikey"`
-		Group_id    int    `json:"group_id"`
-		Adminlist   []int  `json:"adminlist"`
+		Id                   int      `json:"id"`
+		Url                  string   `json:"url"`
+		Remote_uuid          string   `json:"remote_uuid"`
+		Uuid                 string   `json:"uuid"`
+		Apikey               string   `json:"apikey"`
+		Group_id             int      `json:"group_id"`
+		User_allows_commands []string `json:"user_allows_commands"`
+		Adminlist            []int    `json:"adminlist"`
 	} `json:"mcsmdata"`
 }
 
@@ -28,7 +29,6 @@ type QConfig struct {
 }
 
 func GetMConfig() MConfig {
-	var config MConfig
 	f, err := os.OpenFile("config.json", os.O_RDONLY, 0755)
 	if err != nil {
 		fmt.Printf("读取配置文件出错: %v\n", err)
@@ -42,6 +42,7 @@ func GetMConfig() MConfig {
 			"uuid": "a8788991a64e4a06b76d539b35db1b16",
 			"apikey": "vmajkfnvklNSdvkjbnfkdsnv7e0f",
 			"group_id": 383033610,
+			"user_allows_commands": [],
 			"adminlist": [
 				1670605849,
 				1145141919
@@ -54,6 +55,7 @@ func GetMConfig() MConfig {
 			"uuid": "76a49c5ef46a41f29b374109d58f994a",
 			"apikey": "vmajkfnvklNSdvkjbnfkdsnv7e0f",
 			"group_id": 383033610,
+			"user_allows_commands": [],
 			"adminlist": [
 				1670605849,
 				1145141919
@@ -76,6 +78,7 @@ func GetMConfig() MConfig {
 			"uuid": "a8788991a64e4a06b76d539b35db1b16", // 实例的UID
 			"apikey": "vmajkfnvklNSdvkjbnfkdsnv7e0f", // 不可为空，用户中心->右上角点蓝色用户名->个人资料->右方生成API密钥
 			"group_id": 234532, // 要管理的QQ群号
+			"user_allows_commands": ["help", "list", "status"], // 所有群成员均可运行的命令
 			"adminlist": [
 				1145141919, // 群管理员，第一个为主管理员，只有管理员才可以发送命令
 				1433223 // 管理员列表可以为空，则所有用户都可以发送命令
@@ -88,6 +91,7 @@ func GetMConfig() MConfig {
 			"uuid": "a8788991a6acasfaca76d539b35db1b16",
 			"apikey": "6ewc6292daefvlksmdvjadnvjbf",
 			"group_id": 234532,
+			"user_allows_commands": [],
 			"adminlist": [
 				114514, // 不同实例在同一个群也可以有不同的管理员
 				1919
@@ -104,6 +108,7 @@ func GetMConfig() MConfig {
 		panic(err)
 	}
 	b, _ := ioutil.ReadAll(f)
+	var config MConfig
 	err2 := json.Unmarshal(b, &config)
 	if err2 != nil {
 		fmt.Printf("配置文件内容出错: %v\n", err2)

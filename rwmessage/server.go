@@ -3,6 +3,7 @@ package rwmessage
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -10,12 +11,19 @@ import (
 	"github.com/zijiren233/MCSM-Bot/logger"
 )
 
+// 已监听群组 map[id](*HdGroup)
 var GOnlineMap = make(map[int]*HdGroup)
+
+// 已监听OP qq map[0](*HdGroup)
 var POnlineMap = make(map[int]*HdCqOp)
+
+// map[群号](id)
+var GroupToId = make(map[int]([]int))
+
+// map[id](config index)
+var IdToOd = make(map[int]int)
 var LogLevle uint
 var Log = logger.Newlog(LogLevle)
-var GroupToId = make(map[int]([]int))
-var IdToOd = make(map[int]int)
 var Mconfig = gconfig.GetMConfig()
 var Qconfig = gconfig.GetQConfig()
 var AllId = GetAllId()
@@ -45,6 +53,8 @@ type MsgData struct {
 	User_id      int    `json:"user_id"`
 	Group_id     int    `json:"group_id"`
 	Message      string `json:"message"`
+
+	Params []string
 }
 
 func NewServer(url string) *Server {
@@ -97,11 +107,17 @@ func (s *Server) Run() {
 
 func (s *Server) BroadCast(msg *MsgData) {
 	if msg.Message_type == "group" {
+		re, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
+		params := re.FindStringSubmatch(msg.Message)
+		if len(params) == 0 {
+			return
+		}
+		msg.Params = params
 		for _, v := range GOnlineMap {
 			select {
 			case v.ChGroupMsg <- msg:
 			default:
-				logger.Log.Warring("ChGroupMsg 堵塞!会造成消息丢失!")
+				Log.Warring("ChGroupMsg 堵塞!会造成消息丢失!")
 			}
 		}
 	} else if msg.Message_type == "private" {

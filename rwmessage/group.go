@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -22,6 +21,7 @@ type HdGroup struct {
 	Uuid           string
 	Apikey         string
 	Group_id       int
+	UserCmd        []string
 	Adminlist      []int
 	Status         int
 	EndTime        string
@@ -67,6 +67,7 @@ func NewHdGroup(id int, send chan *SendData) *HdGroup {
 		Uuid:        Mconfig.McsmData[IdToOd[id]].Uuid,
 		Apikey:      Mconfig.McsmData[IdToOd[id]].Apikey,
 		Group_id:    Mconfig.McsmData[IdToOd[id]].Group_id,
+		UserCmd:     Mconfig.McsmData[IdToOd[id]].User_allows_commands,
 		Adminlist:   Mconfig.McsmData[IdToOd[id]].Adminlist,
 		SendChan:    send,
 	}
@@ -94,48 +95,44 @@ func (u *HdGroup) HdMessage() {
 	var msg *MsgData
 	for {
 		msg = <-u.ChGroupMsg
-		if InInt(msg.User_id, u.Adminlist) && msg.Group_id == u.Group_id {
+		if (InInt(msg.User_id, u.Adminlist) || InString(msg.Params[2], u.UserCmd)) && msg.Group_id == u.Group_id {
+			// 当一个群有两个实例监听时,则由第一个监听的实例执行
+			if len(GroupToId[u.Group_id]) >= 2 && GroupToId[u.Group_id][0] != u.Id {
+				continue
+			}
+			if msg.Params[2] == "" {
+				u.Send_group_msg("命令为空!\n请输入run help查看帮助!")
+				continue
+			}
 			go u.HandleMessage(msg)
 		}
 	}
 }
 
-func (u *HdGroup) HandleMessage(mdata *MsgData) {
-	flysnowRegexp, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
-	params := flysnowRegexp.FindString(mdata.Message)
-	if len(params) == 0 {
-		return
-	}
-	params2 := flysnowRegexp.FindStringSubmatch(params)
-	// 当一个群有两个实例监听时
+func (u *HdGroup) HandleMessage(msg *MsgData) {
 	if len(GroupToId[u.Group_id]) >= 2 {
-		// 则由第一个监听的实例执行
-		if GroupToId[u.Group_id][0] != u.Id {
-			return
-		}
-		if (params2)[2] == "" {
-			u.Send_group_msg("请输入run help查看帮助!")
-			return
-		}
-		if params2[1] == "" {
-			u.checkCMD2(params2[2])
+		if msg.Params[1] == "" {
+			u.checkCMD2(msg.Params[2])
 		} else {
-			u.checkCMD1(params2[2])
+			id, err := strconv.Atoi(msg.Params[1])
+			if err != nil {
+				Log.Error("strconv.Atoi error:%v", err)
+				u.Send_group_msg("命令格式错误!\n请输入run help查看帮助!")
+				return
+			}
+			if id == u.Id {
+				u.checkCMD1(msg.Params[2])
+			} else if v, ok := IdToOd[id]; ok && msg.Group_id == Mconfig.McsmData[v].Group_id {
+				GOnlineMap[id].HandleMessage(msg)
+			} else {
+				u.Send_group_msg("[CQ:at,qq=%d]权限不足", msg.User_id)
+			}
 		}
-		return
+	} else {
+		u.checkCMD1(msg.Params[2])
 	}
-	// 如果指定了Id则只由指定Id的goroutine执行
-	if len(GroupToId[u.Group_id]) >= 2 && params2[1] != strconv.Itoa(u.Id) {
-		return
-	}
-	if (params2)[2] == "" {
-		u.Send_group_msg("请输入run help查看帮助!")
-		return
-	}
-	u.checkCMD1(params2[2])
 }
 
-// 一群一个实例
 func (u *HdGroup) checkCMD1(params string) {
 	var msg string
 	var err error

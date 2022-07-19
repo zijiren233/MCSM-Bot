@@ -73,7 +73,7 @@ func (u *HdGroup) RunCmd(commd string) (string, error) {
 		Log.Error("运行命令 %s 失败！%v", commd, err)
 		return fmt.Sprintf("运行命令 %s 失败！", commd), err
 	}
-	time.Sleep(150 * time.Millisecond)
+	time.Sleep(180 * time.Millisecond)
 	return u.ReturnResult(commd)
 }
 
@@ -96,12 +96,12 @@ func (u *HdGroup) ReturnResult(command string) (string, error) {
 	var data Data
 	json.Unmarshal(b, &data)
 	b2, _ := nocolorable(&data.Data)
-	r3, _ := regexp.Compile(`(?m)` + command + `(\r)*?(\n)`)
+	r3, _ := regexp.Compile(`(?m)(` + command + `(\r)*?)$`)
 	i := r3.FindAllStringIndex(b2.String(), -1)
 	if len(i) != 0 {
 		return fmt.Sprintf("[%s] %s", u.Name, *(handle_End_Newline(b2.String()[i[len(i)-1][0]:]))), nil
 	}
-	Log.Error("查找命令失败:%#v", b2.String())
+	Log.Error("查找命令失败:%#v\ncmd:%s", b2.String(), command)
 	return "运行命令成功!", nil
 }
 
