@@ -9,7 +9,7 @@ import (
 	"github.com/zijiren233/MCSM-Bot/rwmessage"
 )
 
-var version = "v1.5.2-rc1"
+var version = "v1.5.2-rc2"
 var alone bool
 
 func Chose() {
