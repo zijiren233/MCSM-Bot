@@ -122,6 +122,8 @@ run (id) weather clear
 ```
 括号内的 id 可省略，则优先输出第一个监听此群的服务器
 
+run help 查看帮助
+
 run (id) status 查看服务器运行状态
 
 run (id) start 启动服务器
@@ -134,8 +136,6 @@ run (id) kill 终止服务器
 ```
 
 ### 效果展示
-
-- 注: 群组回显结果依赖正确的时间戳,建议所有服务器的时区都设置为上海东八区(Docker启动的服务器也需更改时区)!否则运行命令不会有结果回显!
 
 <img src="docs\sc\Sample_1.png" />
 
