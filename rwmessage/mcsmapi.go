@@ -14,10 +14,6 @@ type Data struct {
 	Data string `json:"data"`
 }
 
-type CmdData struct {
-	Time_unix int64 `json:"time"`
-}
-
 func (u *HdGroup) Start() (string, error) {
 	if u.Status == 2 || u.Status == 3 {
 		return fmt.Sprintf("服务器: %s 已经运行!", u.Name), nil
@@ -71,20 +67,16 @@ func (u *HdGroup) RunCmd(commd string) (string, error) {
 	q.Add("command", commd)
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	r, err := client.Do(r2)
+	_, err := client.Do(r2)
 	if err != nil {
-		// u.Send_group_msg("运行命令 %s 失败！", commd)
 		Log.Error("运行命令 %s 失败！%v", commd, err)
 		return fmt.Sprintf("运行命令 %s 失败！", commd), err
 	}
-	b, _ := ioutil.ReadAll(r.Body)
-	var time_unix CmdData
-	json.Unmarshal(b, &time_unix)
 	time.Sleep(150 * time.Millisecond)
-	return u.ReturnResult(commd, time_unix.Time_unix)
+	return u.ReturnResult(commd)
 }
 
-func (u *HdGroup) ReturnResult(command string, time_now int64) (string, error) {
+func (u *HdGroup) ReturnResult(command string) (string, error) {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", u.Url+"/api/protected_instance/outputlog", nil)
 	r2.Close = true
@@ -103,19 +95,9 @@ func (u *HdGroup) ReturnResult(command string, time_now int64) (string, error) {
 	var data Data
 	json.Unmarshal(b, &data)
 	b2, _ := nocolorable(&data.Data)
-	var index int
-	// var i int64
-	// Log.Debug("服务器 %s 运行命令 %s 返回时间: %s", u.Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
-	// for i = 0; i < 2; i++ {
-	// 	index = strings.Index(b2.String(), time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
-	// 	if index == -1 {
-	// 		continue
-	// 	}
-	// 	return fmt.Sprintf("> [%s] %s\n%s", u.Name, command, *(handle_End_Newline(b2.String()[index-1:]))), nil
-	// }
-	// Log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", u.Name, command, time.Unix((time_now/1000), 0).Format("15:04:05"))
-	index = strings.LastIndex(b2.String(), command+"\r\n")
+	index := strings.LastIndex(b2.String(), command+"\r\n")
 	if index == -1 {
+		Log.Debug("查找命令失败:%s", b2.String())
 		return "运行命令成功!", nil
 	}
 	return fmt.Sprintf("[%s] %s", u.Name, *(handle_End_Newline(b2.String()[index:]))), nil
