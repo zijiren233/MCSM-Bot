@@ -80,7 +80,7 @@ func (u *HdGroup) RunCmd(commd string) (string, error) {
 	b, _ := ioutil.ReadAll(r.Body)
 	var time_unix CmdData
 	json.Unmarshal(b, &time_unix)
-	time.Sleep(70 * time.Millisecond)
+	time.Sleep(90 * time.Millisecond)
 	return u.ReturnResult(commd, time_unix.Time_unix)
 }
 
@@ -113,8 +113,12 @@ func (u *HdGroup) ReturnResult(command string, time_now int64) (string, error) {
 		}
 		return fmt.Sprintf("> [%s] %s\n%s", u.Name, command, *(handle_End_Newline(b2.String()[index-1:]))), nil
 	}
-	Log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", u.Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
-	return "运行命令成功！", nil
+	Log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", u.Name, command, time.Unix((time_now/1000), 0).Format("15:04:05"))
+	index = strings.LastIndex(b2.String(), command+"\r\n")
+	if index == -1 {
+		return "运行命令成功!", nil
+	}
+	return fmt.Sprintf("> [%s] %s", u.Name, *(handle_End_Newline(b2.String()[index:]))), nil
 }
 
 func handle_End_Newline(msg string) *string {
