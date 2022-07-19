@@ -28,17 +28,6 @@ account里面的：
 
     如果 go-cqhttp QQ机器人登录不上，可以先在和自己同一个网络环境下的 **windows** 安装 go-cqhttp ，在 windows 下扫码登录成功后会生成 `session.token` 和 `device.json` 两个文件，请复制替换到远程 vps 后登录即可。
 
-- 如果你实在登录不上去，可以使用我提供的测试API地址
-    - 方法：
-        - 先添加 **公共机器人QQ** 为好友(自动通过) ： 3426898431
-        - 然后邀请机器人进入群即可(自动通过)
-        - 请不要给公共机器人管理员权限！请不要滥用！最好使用自己的机器人！
-
-        ```
-        "url": "ws://q-api.pyhdxy.com:8080",
-        "qq": "3426898431"
-        ```
-
 #### 2.启动MCSM-Bot
 
 - 下载运行程序 **[MCSM-Bot](https://github.com/zijiren233/MCSM-Bot/releases)** 
