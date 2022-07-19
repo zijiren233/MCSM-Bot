@@ -96,7 +96,7 @@ func (u *HdGroup) ReturnResult(command string) (string, error) {
 	var data Data
 	json.Unmarshal(b, &data)
 	b2, _ := nocolorable(&data.Data)
-	r3, _ := regexp.Compile(fmt.Sprintf("%s%s%s", `(?m)`, command, `(\r)*?(\n)`))
+	r3, _ := regexp.Compile(`(?m)` + command + `(\r)*?(\n)`)
 	i := r3.FindAllStringIndex(b2.String(), -1)
 	if len(i) != 0 {
 		return fmt.Sprintf("[%s] %s", u.Name, *(handle_End_Newline(b2.String()[i[len(i)-1][0]:]))), nil
