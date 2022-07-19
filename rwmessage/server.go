@@ -106,13 +106,13 @@ func (s *Server) Run() {
 }
 
 func (s *Server) BroadCast(msg *MsgData) {
+	re, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
+	params := re.FindStringSubmatch(msg.Message)
+	if len(params) == 0 {
+		return
+	}
+	msg.Params = params
 	if msg.Message_type == "group" {
-		re, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
-		params := re.FindStringSubmatch(msg.Message)
-		if len(params) == 0 {
-			return
-		}
-		msg.Params = params
 		for _, v := range GOnlineMap {
 			select {
 			case v.ChGroupMsg <- msg:
@@ -125,7 +125,7 @@ func (s *Server) BroadCast(msg *MsgData) {
 			select {
 			case v.ChCqOpMsg <- msg:
 			default:
-				logger.Log.Warring("ChPrivatemsg 堵塞!会造成消息丢失!")
+				Log.Warring("ChPrivatemsg 堵塞!会造成消息丢失!")
 			}
 		}
 	}

@@ -5,12 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/zijiren233/MCSM-Bot/logger"
 )
 
 type HdCqOp struct {
@@ -52,92 +49,70 @@ func NewHdCqOp(send chan *SendData) *HdCqOp {
 	return &p
 }
 
-func (p *HdCqOp) HdCqOp() {
+func (p *HdCqOp) HdChMessage() {
 	POnlineMap[0] = p
 	var msg *MsgData
-	var id int
 	for {
 		msg = <-p.ChCqOpMsg
-		if msg.User_id == Qconfig.Cqhttp.Op {
-			flysnowRegexp, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
-			params := flysnowRegexp.FindString(msg.Message)
-			if len(params) == 0 {
+		if msg.User_id == p.Op {
+			if msg.Params[2] == "" {
+				p.Send_private_msg("命令为空!")
+				p.help("help")
+				continue
+			} else if msg.Params[1] == "" {
+				p.help(msg.Params[2])
 				continue
 			}
-			params2 := flysnowRegexp.FindStringSubmatch(params)
-			if params2[1] == "" {
-				if params2[2] == "addlisten" {
-					var serverlist string
-					serverlist += "未监听服务器列表:\n"
-					for _, v := range AllId {
-						if _, ok := GOnlineMap[v]; !ok {
-							serverlist += fmt.Sprintf("Id: %-5dGroup: %d\n", id, Mconfig.McsmData[IdToOd[id]].Group_id)
-						}
-					}
-					serverlist += "添加具体服务器请输入 run id addlisten"
-					p.Send_private_msg(serverlist)
-					continue
-				}
-				go p.help(params2[2])
-				continue
-			}
-			id, _ = strconv.Atoi(params2[1])
-			if InInt(id, AllId) {
-				if params2[2] == "addlisten" {
-					NewHdGroup(id, S.SendMessage)
-					if v, ok := GOnlineMap[id]; ok {
-						p.Send_private_msg("添加服务器: %s 监听成功!", v.Name)
-					}
-					continue
-				}
-				if _, ok := GOnlineMap[id]; !ok {
-					logger.Log.Warring("OP 试图访问服务器Id: %d ,但未开启监听！", id)
-					p.Send_private_msg("服务器Id: %d 未开启监听！", id)
-					continue
-				}
-				go p.checkCMD(id, params2[2])
-			} else {
-				p.Send_private_msg("请输入正确的ID!")
-				logger.Log.Warring("OP 输入: %d 请输入正确的ID!", p.Op, params)
-			}
+			go p.HandleMessage(msg)
 		}
+	}
+}
+
+func (p *HdCqOp) HandleMessage(msg *MsgData) {
+	id, err := strconv.Atoi(msg.Params[1])
+	if err != nil {
+		Log.Error("strconv.Atoi error:%v", err)
+		p.Send_private_msg("命令格式错误!\n请输入run help查看帮助!")
+		return
+	}
+	if InInt(id, AllId) {
+		p.checkCMD(id, msg.Params[2])
+	} else {
+		p.Send_private_msg("请输入正确的ID!")
+		Log.Warring("OP 输入: %d 请输入正确的ID!", p.Op, msg.Params[1])
 	}
 }
 
 func (p *HdCqOp) help(params string) {
 	switch params {
 	case "help":
-		p.Send_private_msg("run list : 查看服务器列表\nrun status : 查看已监听服务器状态\nrun id addlisten : 添加监听服务器\nrun server : 查看MCSM后端状态\nrun add listen : 添加监听服务器\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 控制台命令 : 运行服务器命令")
+		p.Send_private_msg("run list : 查看服务器列表\nrun status : 查看服务器状态\nrun daemon status : 查看MCSM后端状态\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 服务器命令 : 运行服务器命令")
 	case "list":
 		var serverlist string
 		serverlist += "服务器列表:\n"
 		for _, v := range AllId {
 			if i, ok := GOnlineMap[v]; ok {
-				serverlist += fmt.Sprintf("Id: %-5dGroup: %-13dName: %s    监听状态: 是\n", i.Id, i.Group_id, i.Name)
-			} else {
-				serverlist += fmt.Sprintf("Id: %-5dGroup: %-13d    监听状态: 否\n", v, Mconfig.McsmData[IdToOd[v]].Group_id)
+				serverlist += fmt.Sprintf("Id: %-5dGroup: %-13dName: %s\n", i.Id, i.Group_id, i.Name)
 			}
 		}
 		serverlist += "运行具体服务器命令请输入 run id list"
 		p.Send_private_msg(serverlist)
 	case "status":
 		var serverstatus string
-		serverstatus += "已监听服务器状态:\n"
+		serverstatus += "服务器状态:\n"
 		for k, v := range GOnlineMap {
 			serverstatus += fmt.Sprintf("Id: %-5dStatus: %-5dName: %s\n", k, v.Status, v.Name)
 		}
 		serverstatus += "查询具体服务器请输入 run id status"
 		p.Send_private_msg(serverstatus)
-	case "server":
+	case "daemon status":
 		p.GetDaemonStatus()
 	default:
 		var serverlist string
 		serverlist += "服务器列表:\n"
 		for _, v := range AllId {
 			if i, ok := GOnlineMap[v]; ok {
-				serverlist += fmt.Sprintf("Id: %-5d监听状态: 是    Name: %s\n", i.Id, i.Name)
-			} else {
-				serverlist += fmt.Sprintf("Id: %-5d监听状态: 否\n", v)
+				serverlist += fmt.Sprintf("Id: %-5d Name: %s\n", i.Id, i.Name)
 			}
 		}
 		serverlist += "请添加 Id 参数"

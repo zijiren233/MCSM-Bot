@@ -88,10 +88,10 @@ func (u *HdGroup) Run() {
 	GOnlineMap[u.Id] = u
 	fmt.Println("监听实例 ", u.Name, " 成功")
 	logger.Log.Info("监听实例 %s 成功", u.Name)
-	go u.HdMessage()
+	go u.HdChMessage()
 }
 
-func (u *HdGroup) HdMessage() {
+func (u *HdGroup) HdChMessage() {
 	var msg *MsgData
 	for {
 		msg = <-u.ChGroupMsg
@@ -144,7 +144,7 @@ func (u *HdGroup) checkCMD1(params string) {
 	}
 	switch params {
 	case "help":
-		msg = "run status : 查看服务器状态\nrun start : 启动服务器\nrun stop : 关闭服务器\nrun restart : 重启服务器\nrun kill : 终止服务器\nrun 控制台命令 : 运行服务器命令"
+		msg = "run status : 查看服务器状态\nrun start : 启动服务器\nrun stop : 关闭服务器\nrun restart : 重启服务器\nrun kill : 终止服务器\nrun 服务器命令 : 运行服务器命令"
 	case "server":
 		msg += "服务器列表:\n"
 		msg = fmt.Sprintf("Name: %s    Id: %d", u.Name, u.Id)
@@ -167,14 +167,10 @@ func (u *HdGroup) checkCMD1(params string) {
 	u.Send_group_msg(msg)
 }
 
-// 一群多个实例不指定ID
+// 不指定ID
 func (u *HdGroup) checkCMD2(params string) {
 	params = strings.ReplaceAll(params, "\n", "")
 	params = strings.ReplaceAll(params, "\r", "")
-	if u.Status != 3 && u.Status != 2 && (params != "help" && params != "server" && params != "start") {
-		u.Send_group_msg("服务器: %s 未启动!\n请先启动服务器:\nrun %d start", u.Name, u.Id)
-		return
-	}
 	var msg string
 	switch params {
 	case "help":
@@ -206,14 +202,11 @@ func (u *HdGroup) checkCMD2(params string) {
 func (u *HdGroup) SendStatus() string {
 	if u.Status == 2 || u.Status == 3 {
 		if u.CurrentPlayers == "-1" {
-			// u.Send_group_msg("服务器: %s 正在运行!", u.Name)
 			return fmt.Sprintf("服务器: %s 正在运行!", u.Name)
 		} else {
-			// u.Send_group_msg("服务器: %s 正在运行!\n服务器人数: %s\n服务器最大人数: %s\n服务器版本: %s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
 			return fmt.Sprintf("服务器: %s 正在运行!\n服务器人数: %s\n服务器最大人数: %s\n服务器版本: %s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
 		}
 	} else {
-		// u.Send_group_msg("服务器: %s 未运行!", u.Name)
 		return fmt.Sprintf("服务器: %s 未运行!", u.Name)
 	}
 }

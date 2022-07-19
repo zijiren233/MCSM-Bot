@@ -42,7 +42,7 @@ func GetMConfig() MConfig {
 			"uuid": "a8788991a64e4a06b76d539b35db1b16",
 			"apikey": "vmajkfnvklNSdvkjbnfkdsnv7e0f",
 			"group_id": 383033610,
-			"user_allows_commands": [],
+			"user_allows_commands": ["help", "status"],
 			"adminlist": [
 				1670605849,
 				1145141919
@@ -55,7 +55,7 @@ func GetMConfig() MConfig {
 			"uuid": "76a49c5ef46a41f29b374109d58f994a",
 			"apikey": "vmajkfnvklNSdvkjbnfkdsnv7e0f",
 			"group_id": 383033610,
-			"user_allows_commands": [],
+			"user_allows_commands": ["help", "status"],
 			"adminlist": [
 				1670605849,
 				1145141919
@@ -78,7 +78,7 @@ func GetMConfig() MConfig {
 			"uuid": "a8788991a64e4a06b76d539b35db1b16", // 实例的UID
 			"apikey": "vmajkfnvklNSdvkjbnfkdsnv7e0f", // 不可为空，用户中心->右上角点蓝色用户名->个人资料->右方生成API密钥
 			"group_id": 234532, // 要管理的QQ群号
-			"user_allows_commands": ["help", "list", "status"], // 所有群成员均可运行的命令
+			"user_allows_commands": ["help", "status"], // 所有群成员均可运行的命令
 			"adminlist": [
 				1145141919, // 群管理员，第一个为主管理员，只有管理员才可以发送命令
 				1433223 // 管理员列表可以为空，则所有用户都可以发送命令
@@ -91,7 +91,7 @@ func GetMConfig() MConfig {
 			"uuid": "a8788991a6acasfaca76d539b35db1b16",
 			"apikey": "6ewc6292daefvlksmdvjadnvjbf",
 			"group_id": 234532,
-			"user_allows_commands": [],
+			"user_allows_commands": ["help", "status"],
 			"adminlist": [
 				114514, // 不同实例在同一个群也可以有不同的管理员
 				1919

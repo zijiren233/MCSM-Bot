@@ -76,7 +76,7 @@ func init() {
 func main() {
 	flag.Parse()
 	logger.Log = logger.Newlog(LogLevle)
-	if rwmessage.IsListDuplicated(rwmessage.GetAllId()) {
+	if rwmessage.IsListDuplicated(rwmessage.AllId) {
 		panic("有重复ID!")
 	}
 	if alone {
@@ -88,7 +88,7 @@ func main() {
 		fmt.Println()
 	}
 	p := rwmessage.NewHdCqOp(rwmessage.S.SendMessage)
-	go p.HdCqOp()
+	go p.HdChMessage()
 	for {
 		Chose()
 	}
