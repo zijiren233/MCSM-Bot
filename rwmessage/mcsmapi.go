@@ -80,7 +80,7 @@ func (u *HdGroup) RunCmd(commd string) (string, error) {
 	b, _ := ioutil.ReadAll(r.Body)
 	var time_unix CmdData
 	json.Unmarshal(b, &time_unix)
-	time.Sleep(90 * time.Millisecond)
+	time.Sleep(150 * time.Millisecond)
 	return u.ReturnResult(commd, time_unix.Time_unix)
 }
 
@@ -104,26 +104,26 @@ func (u *HdGroup) ReturnResult(command string, time_now int64) (string, error) {
 	json.Unmarshal(b, &data)
 	b2, _ := nocolorable(&data.Data)
 	var index int
-	var i int64
-	Log.Debug("服务器 %s 运行命令 %s 返回时间: %s", u.Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
-	for i = 0; i < 2; i++ {
-		index = strings.Index(b2.String(), time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
-		if index == -1 {
-			continue
-		}
-		return fmt.Sprintf("> [%s] %s\n%s", u.Name, command, *(handle_End_Newline(b2.String()[index-1:]))), nil
-	}
-	Log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", u.Name, command, time.Unix((time_now/1000), 0).Format("15:04:05"))
+	// var i int64
+	// Log.Debug("服务器 %s 运行命令 %s 返回时间: %s", u.Name, command, time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
+	// for i = 0; i < 2; i++ {
+	// 	index = strings.Index(b2.String(), time.Unix((time_now/1000)+i, 0).Format("15:04:05"))
+	// 	if index == -1 {
+	// 		continue
+	// 	}
+	// 	return fmt.Sprintf("> [%s] %s\n%s", u.Name, command, *(handle_End_Newline(b2.String()[index-1:]))), nil
+	// }
+	// Log.Warring("服务器 %s 命令 %s 成功,但未查找到返回时间: %s", u.Name, command, time.Unix((time_now/1000), 0).Format("15:04:05"))
 	index = strings.LastIndex(b2.String(), command+"\r\n")
 	if index == -1 {
 		return "运行命令成功!", nil
 	}
-	return fmt.Sprintf("> [%s] %s", u.Name, *(handle_End_Newline(b2.String()[index:]))), nil
+	return fmt.Sprintf("[%s] %s", u.Name, *(handle_End_Newline(b2.String()[index:]))), nil
 }
 
 func handle_End_Newline(msg string) *string {
-	last := strings.LastIndex(msg, "\n")
-	if last == len(msg)-2 {
+	last := strings.LastIndex(msg, "\r\n")
+	if last == len(msg)-3 {
 		msg = (msg)[:last]
 	}
 	return &msg
