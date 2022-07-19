@@ -95,7 +95,6 @@ account里面的：
 ### 参数
 
 ```
--a 运行时只监听某一个服务器 而 不是所有 (default false) | 格式: -a
 -log 记录命令日志的级别 0:Debug 1:Info 2:Warning 3:Error 4:None (default 1) | 格式: -log=3
 ```
 

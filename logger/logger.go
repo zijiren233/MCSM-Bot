@@ -19,15 +19,15 @@ const (
 
 type Logger struct {
 	Levle      uint
-	FileOBJ    *os.File
-	ErrFileOBJ *os.File
-	Message    chan *Logmsg
+	fileOBJ    *os.File
+	errFileOBJ *os.File
+	message    chan *logmsg
 }
 
-type Logmsg struct {
-	Levle   uint
-	Message string
-	Now     string
+type logmsg struct {
+	levle   uint
+	message string
+	now     string
 }
 
 func LevleToInt(s string) uint {
@@ -67,13 +67,13 @@ func IntToLevle(i uint) string {
 
 func Newlog(levle uint) *Logger {
 	logger := Logger{Levle: levle}
-	logger.FileInit()
-	logger.Message = make(chan *Logmsg, 500)
+	logger.fileInit()
+	logger.message = make(chan *logmsg, 500)
 	go logger.backWriteLog()
 	return &logger
 }
 
-func Exists(path string) bool {
+func exists(path string) bool {
 	_, err := os.Stat(path) //os.Stat获取文件信息
 	if err != nil {
 		return os.IsExist(err)
@@ -81,8 +81,8 @@ func Exists(path string) bool {
 	return true
 }
 
-func (l *Logger) FileInit() {
-	if !Exists("./logs") {
+func (l *Logger) fileInit() {
+	if !exists("./logs") {
 		os.Mkdir("./logs", os.ModePerm)
 	}
 	f, err := os.OpenFile("./logs/log.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0777)
@@ -95,38 +95,38 @@ func (l *Logger) FileInit() {
 		fmt.Println("打开Err日志错误！")
 		panic(err2)
 	}
-	l.FileOBJ = f
-	l.ErrFileOBJ = ef
+	l.fileOBJ = f
+	l.errFileOBJ = ef
 }
 
-func (l *Logger) BackupLog() {
-	file, _ := l.FileOBJ.Stat()
+func (l *Logger) backupLog() {
+	file, _ := l.fileOBJ.Stat()
 	// 2M
 	if file.Size() >= 2097152 {
-		l.FileOBJ.Close()
+		l.fileOBJ.Close()
 		os.Rename(`./logs/log.log`, fmt.Sprint(`./logs/`, time.Now().Format("2006_01_02_15_04_05_bak_log.log")))
 		f, _ := os.OpenFile("./logs/log.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
-		l.FileOBJ = f
+		l.fileOBJ = f
 	}
 }
 
-func (l *Logger) BackupErrLog() {
-	file, _ := l.ErrFileOBJ.Stat()
+func (l *Logger) backupErrLog() {
+	file, _ := l.errFileOBJ.Stat()
 	if file.Size() >= 2097152 {
-		l.ErrFileOBJ.Close()
+		l.errFileOBJ.Close()
 		os.Rename(`./logs/errlog.log`, fmt.Sprint(`./logs/`, time.Now().Format("2006_01_02_15_04_05_bak_errlog.log")))
 		f, _ := os.OpenFile("./logs/errlog.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
-		l.ErrFileOBJ = f
+		l.errFileOBJ = f
 	}
 }
 
 func (l *Logger) log(levle uint, format string, a ...interface{}) {
 	if l.Levle <= levle {
 		select {
-		case l.Message <- &Logmsg{
-			Levle:   levle,
-			Message: fmt.Sprintf(format, a...),
-			Now:     time.Now().Format("[2006-01-02 15:04:05] "),
+		case l.message <- &logmsg{
+			levle:   levle,
+			message: fmt.Sprintf(format, a...),
+			now:     time.Now().Format("[2006-01-02 15:04:05] "),
 		}:
 		default:
 		}
@@ -134,14 +134,14 @@ func (l *Logger) log(levle uint, format string, a ...interface{}) {
 }
 
 func (l *Logger) backWriteLog() {
-	var msgtmp *Logmsg
+	var msgtmp *logmsg
 	for {
-		msgtmp = <-l.Message
-		l.BackupLog()
-		fmt.Fprintln(l.FileOBJ, msgtmp.Now, fmt.Sprint("[", IntToLevle(msgtmp.Levle), "] "), msgtmp.Message)
-		if msgtmp.Levle >= Error {
-			l.BackupErrLog()
-			fmt.Fprintln(l.ErrFileOBJ, msgtmp.Now, fmt.Sprint("[", IntToLevle(msgtmp.Levle), "] "), msgtmp.Message)
+		msgtmp = <-l.message
+		l.backupLog()
+		fmt.Fprintln(l.fileOBJ, msgtmp.now, fmt.Sprint("[", IntToLevle(msgtmp.levle), "] "), msgtmp.message)
+		if msgtmp.levle >= Error {
+			l.backupErrLog()
+			fmt.Fprintln(l.errFileOBJ, msgtmp.now, fmt.Sprint("[", IntToLevle(msgtmp.levle), "] "), msgtmp.message)
 		}
 	}
 }
