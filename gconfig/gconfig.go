@@ -37,7 +37,7 @@ func GetMConfig() MConfig {
 	"mcsmdata": [
 		{
 			"id": 1,
-			"url": "https://mc.pyhdxy.com",
+			"url": "https://mcsm.domain.com:443",
 			"remote_uuid": "d6a27b0b13ad44ce879b5a56c88b4d34",
 			"uuid": "a8788991a64e4a06b76d539b35db1b16",
 			"apikey": "vmajkfnvklNSdvkjbnfkdsnv7e0f",
@@ -49,7 +49,7 @@ func GetMConfig() MConfig {
 		},
 		{
 			"id": 2,
-			"url": "http://154.209.91.180:23333",
+			"url": "http://mcsm.domain.com:24444",
 			"remote_uuid": "3ec8d0ff584c43bd95598b18949a8bac",
 			"uuid": "76a49c5ef46a41f29b374109d58f994a",
 			"apikey": "vmajkfnvklNSdvkjbnfkdsnv7e0f",

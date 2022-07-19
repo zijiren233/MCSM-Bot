@@ -10,7 +10,12 @@
 
 - 建议把 ``go-cqhttp`` 做为服务启动，或用 screen 运行并不再关闭，不然由于tx风控的原因每次运行都要重新登录扫码！
 
+<br>
+
 -----
+
+<br>
+
 ### 开始使用
 
 #### 1.启动QQ_API
@@ -28,12 +33,16 @@ account里面的：
 
     如果 go-cqhttp QQ机器人登录不上，可以先在和自己同一个网络环境下的 **windows** 安装 go-cqhttp ，在 windows 下扫码登录成功后会生成 `session.token` 和 `device.json` 两个文件，请复制替换到远程 vps 后登录即可。
 
+<br>
+
 #### 2.启动MCSM-Bot
 
 - 下载运行程序 **[MCSM-Bot](https://github.com/zijiren233/MCSM-Bot/releases)** 
 首次运行可执行程序会在当前文件夹生成配置文件 `config.json` ,按照下面的 `config.sample.json` 修改配置后再次运行即可，MCSM-Bot可以在不需要公网的环境下运行。
 
 - 如果 MCSM-Bot 和 CQHTTP 在同一台设备或同一个内网，则都不需要公网，MCSM-Bot 配置文件指定内网地址或者本机环回地址即可。
+
+<br>
 
 - config.sample.json :
 
@@ -79,14 +88,18 @@ account里面的：
 
 - 如果启动失败则为配置文件配置错误或 MCSM/CQHTTP 服务连接失败。
 
-    ```
-    选填启动参数:
+<br>
 
-    -a 运行时只监听某一个服务器 而 不是所有 (default false) | 格式: -a
-    -log 记录命令日志的级别 0:Debug 1:Info 2:Warning 3:Error 4:None (default 1) | 格式: -log=3
-    ```
+### 参数
+
+```
+-a 运行时只监听某一个服务器 而 不是所有 (default false) | 格式: -a
+-log 记录命令日志的级别 0:Debug 1:Info 2:Warning 3:Error 4:None (default 1) | 格式: -log=3
+```
 
 -----
+
+<br>
 
 ### 普通命令
 
@@ -105,6 +118,8 @@ run (id) weather clear
 
 控制台内可运行的命令在群内都可以输入！
 ```
+
+<br>
 
 ### 特殊命令
 
