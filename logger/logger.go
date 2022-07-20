@@ -151,10 +151,10 @@ func (l *Logger) backWriteLog() {
 	for {
 		msgtmp = <-l.message
 		l.backupLog()
-		fmt.Fprintf(l.fileOBJ, "[%s] [%s] [%s | %s | %d] %s\n", msgtmp.now, IntToLevle(msgtmp.levle), msgtmp.funcName, msgtmp.filename, msgtmp.line, msgtmp.message)
+		fmt.Fprintf(l.fileOBJ, "%s [%s] [%s | %s | %d] %s\n", msgtmp.now, IntToLevle(msgtmp.levle), msgtmp.funcName, msgtmp.filename, msgtmp.line, msgtmp.message)
 		if msgtmp.levle >= Error {
 			l.backupErrLog()
-			fmt.Fprintln(l.errFileOBJ, msgtmp.now, fmt.Sprint("[", IntToLevle(msgtmp.levle), "] "), msgtmp.message)
+			fmt.Fprintf(l.errFileOBJ, "%s [%s] [%s | %s | %d] %s\n", msgtmp.now, "ERROR", msgtmp.funcName, msgtmp.filename, msgtmp.line, msgtmp.message)
 		}
 	}
 }
