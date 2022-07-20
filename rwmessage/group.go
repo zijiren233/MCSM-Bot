@@ -63,6 +63,7 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 	err := u.statusTest()
 	if err != nil {
 		fmt.Printf("服务器Id: %d 监听失败!可能是 mcsm-web 端地址错误\n", u.Id)
+		return nil
 	}
 	GroupToId[u.Group_id] = append(GroupToId[u.Group_id], u.Id)
 	Log.Debug("GroupToId: %v", GroupToId)
@@ -88,6 +89,8 @@ func (u *HdGroup) hdChMessage() {
 				if GroupToId[u.Group_id][0] != u.Id {
 					continue
 				}
+				u.checkCMD2(msg.Params[2])
+				continue
 				// 当一个群有两个实例监听,且指定ID,则由指定ID的实例执行
 			} else if len(GroupToId[u.Group_id]) >= 2 && msg.Params[1] != "" {
 				// 检测id是否监听此群
@@ -110,17 +113,9 @@ func (u *HdGroup) hdChMessage() {
 				continue
 			}
 			if utils.InInt(msg.User_id, u.Adminlist) || utils.InString(msg.Params[2], u.UserCmd) {
-				go u.handleMessage(msg)
+				go u.checkCMD1(msg.Params[2])
 			}
 		}
-	}
-}
-
-func (u *HdGroup) handleMessage(msg *MsgData) {
-	if len(GroupToId[u.Group_id]) >= 2 && msg.Params[1] == "" {
-		u.checkCMD2(msg.Params[2])
-	} else {
-		u.checkCMD1(msg.Params[2])
 	}
 }
 

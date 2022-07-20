@@ -98,6 +98,7 @@ func (u *HdGroup) returnResult(command string) (string, error) {
 	json.Unmarshal(b, &data)
 	b2, _ := utils.NoColorable(&data.Data)
 	r3, _ := regexp.Compile(`(?m)(` + command + `(\r)+?)$`)
+	Log.Debug("b2.String(): %#v\n", b2.String())
 	i := r3.FindAllStringIndex(b2.String(), -1)
 	if len(i) != 0 {
 		msg := b2.String()

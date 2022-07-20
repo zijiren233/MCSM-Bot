@@ -12,7 +12,7 @@ import (
 	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
-var version = "v1.5.3"
+var version = "v1.6.0"
 
 func Chose() {
 	var chose string
@@ -64,6 +64,9 @@ func main() {
 
 	for i := 0; i < len(rwmessage.Mconfig.McsmData); i++ {
 		hg := rwmessage.NewHdGroup(rwmessage.Mconfig.McsmData[i].Id, serve.SendMessage)
+		if hg == nil {
+			continue
+		}
 		go hg.Run()
 		time.Sleep(time.Second)
 	}
