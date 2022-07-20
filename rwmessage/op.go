@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/zijiren233/MCSM-Bot/utils"
@@ -123,12 +122,6 @@ func (p *HdCqOp) help(params string) {
 }
 
 func (p *HdCqOp) checkCMD(id int, params string) {
-	params = strings.ReplaceAll(params, "\n", "")
-	params = strings.ReplaceAll(params, "\r", "")
-	if GOnlineMap[id].Status != 3 && GOnlineMap[id].Status != 2 && (params != "help" && params != "server" && params != "start") {
-		p.Send_private_msg("服务器: %s 未启动!\n请先启动服务器:\nrun %d start", GOnlineMap[id].Name, id)
-		return
-	}
 	var msg string
 	var err error
 	switch params {
@@ -136,19 +129,14 @@ func (p *HdCqOp) checkCMD(id int, params string) {
 		msg = GOnlineMap[id].SendStatus()
 	case "start":
 		msg, err = GOnlineMap[id].Start()
-		// p.Start(id)
 	case "stop":
 		msg, err = GOnlineMap[id].Stop()
-		// p.Stop(id)
 	case "restart":
 		msg, err = GOnlineMap[id].Restart()
-		// p.Restart(id)
 	case "kill":
 		msg, err = GOnlineMap[id].Kill()
-		// p.Kill(id)
 	default:
 		msg, err = GOnlineMap[id].RunCmd(params)
-		// p.RunCmd(params, id)
 	}
 	if err != nil {
 		return

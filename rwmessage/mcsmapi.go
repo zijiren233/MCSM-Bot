@@ -74,7 +74,7 @@ func (u *HdGroup) RunCmd(commd string) (string, error) {
 		Log.Error("运行命令 %s 失败！%v", commd, err)
 		return fmt.Sprintf("运行命令 %s 失败！", commd), err
 	}
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 	return u.returnResult(commd)
 }
 
@@ -103,7 +103,7 @@ func (u *HdGroup) returnResult(command string) (string, error) {
 		msg := b2.String()
 		return fmt.Sprintf("[%s] %s", u.Name, (*utils.Handle_End_Newline(&msg))[i[len(i)-1][0]:]), nil
 	}
-	Log.Error("查找命令失败:%#v\ncmd:%s", b2.String(), command)
+	Log.Debug("查找命令失败:%#v\ncmd:%s", b2.String(), command)
 	return "运行命令成功!", nil
 }
 

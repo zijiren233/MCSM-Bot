@@ -199,8 +199,8 @@ func (u *HdGroup) SendStatus() string {
 	u.lock.RLock()
 	defer u.lock.RUnlock()
 	if u.Status == 2 || u.Status == 3 {
-		if u.CurrentPlayers == "-1" {
-			return fmt.Sprintf("服务器: %s 正在运行!", u.Name)
+		if u.CurrentPlayers == "" {
+			return fmt.Sprintf("服务器: %s 状态查询 功能未开启!请前往实例中开启状态查询功能", u.Name)
 		} else {
 			return fmt.Sprintf("服务器: %s 正在运行!\n服务器人数: %s\n服务器最大人数: %s\n服务器版本: %s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
 		}
