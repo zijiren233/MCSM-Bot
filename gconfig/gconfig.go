@@ -45,7 +45,7 @@ func getMConfig() mConfig {
 			"uuid": "a8788991a64e4a06b76d539b35db1b16",
 			"apikey": "vmajkfnvklNSdvkjbnfkdsnv7e0f",
 			"group_id": 383033610,
-			"user_allows_commands": ["help", "status"],
+			"user_allows_commands": ["help", "list", "status"],
 			"adminlist": [
 				1670605849,
 				1145141919

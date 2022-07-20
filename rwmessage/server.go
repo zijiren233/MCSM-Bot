@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -69,10 +70,10 @@ func NewServer(url string) *Server {
 	var err error
 	w.ws, _, err = websocket.DefaultDialer.Dial(w.Url, nil)
 	if err != nil {
-		fmt.Println("cqhttp 连接失败,正在重连...")
+		fmt.Println("Cqhttp 连接失败,正在重连...")
 		w.retrydial()
 	}
-	fmt.Printf("cqhttp 连接成功!\n")
+	fmt.Printf("Cqhttp 连接成功!\n")
 	return &w
 }
 
@@ -124,6 +125,8 @@ func (s *Server) broadCast(msg *MsgData) {
 	if len(params) == 0 {
 		return
 	}
+	params[2] = strings.ReplaceAll(params[2], "\n", "")
+	params[2] = strings.ReplaceAll(params[2], "\r", "")
 	msg.Params = params
 	if msg.Message_type == "group" {
 		for _, v := range GOnlineMap {

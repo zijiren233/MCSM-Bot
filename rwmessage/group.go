@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -63,8 +62,7 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 	}
 	err := u.statusTest()
 	if err != nil {
-		fmt.Printf("服务器Id: %d 监听失败!\n", u.Id)
-		return nil
+		fmt.Printf("服务器Id: %d 监听失败!可能是 mcsm-web 端地址错误\n", u.Id)
 	}
 	GroupToId[u.Group_id] = append(GroupToId[u.Group_id], u.Id)
 	Log.Debug("GroupToId: %v", GroupToId)
@@ -129,8 +127,8 @@ func (u *HdGroup) handleMessage(msg *MsgData) {
 func (u *HdGroup) checkCMD1(params string) {
 	var msg string
 	var err error
-	params = strings.ReplaceAll(params, "\n", "")
-	params = strings.ReplaceAll(params, "\r", "")
+	u.lock.RLock()
+	defer u.lock.RUnlock()
 	if u.Status != 3 && u.Status != 2 && (params != "help" && params != "server" && params != "start") {
 		u.Send_group_msg("服务器: %s 未启动!\n请先启动服务器:\nrun %d start", u.Name, u.Id)
 		return
@@ -167,8 +165,8 @@ func (u *HdGroup) checkCMD1(params string) {
 
 // 不指定ID
 func (u *HdGroup) checkCMD2(params string) {
-	params = strings.ReplaceAll(params, "\n", "")
-	params = strings.ReplaceAll(params, "\r", "")
+	u.lock.RLock()
+	defer u.lock.RUnlock()
 	var msg string
 	switch params {
 	case "help":
@@ -198,6 +196,8 @@ func (u *HdGroup) checkCMD2(params string) {
 }
 
 func (u *HdGroup) SendStatus() string {
+	u.lock.RLock()
+	defer u.lock.RUnlock()
 	if u.Status == 2 || u.Status == 3 {
 		if u.CurrentPlayers == "-1" {
 			return fmt.Sprintf("服务器: %s 正在运行!", u.Name)
