@@ -69,8 +69,10 @@ func NewServer(url string) *Server {
 	var err error
 	w.ws, _, err = websocket.DefaultDialer.Dial(w.Url, nil)
 	if err != nil {
-		fmt.Println("cqhttp 连接失败，等待重连...")
+		fmt.Println("cqhttp 连接失败,正在重连...")
+		w.retrydial()
 	}
+	fmt.Printf("cqhttp 连接成功!\n")
 	return &w
 }
 
@@ -89,25 +91,30 @@ func (s *Server) Run() {
 		_, data, err = s.ws.ReadMessage()
 		s.lock.RUnlock()
 		if err != nil {
-			logger.Log.Error("cqhttp 连接失败!")
-			for i := 0; ; i++ {
-				logger.Log.Error("cqhttp 第 %d 次重连", i)
-				s.lock.Lock()
-				s.ws, _, err = websocket.DefaultDialer.Dial(s.Url, nil)
-				s.lock.Unlock()
-				if err != nil {
-					time.Sleep(5 * time.Second)
-					continue
-				}
-				logger.Log.Info("cqhttp 重连成功!")
-				break
-			}
+			s.retrydial()
+			continue
 		}
 		var msgdata MsgData
 		json.Unmarshal(data, &msgdata)
 		if msgdata.Post_type == "message" {
 			s.broadCast(&msgdata)
 		}
+	}
+}
+
+func (s *Server) retrydial() {
+	var err error
+	Log.Error("cqhttp 连接失败!")
+	for i := 0; ; i++ {
+		logger.Log.Error("cqhttp 第 %d 次重连", i)
+		s.lock.Lock()
+		s.ws, _, err = websocket.DefaultDialer.Dial(s.Url, nil)
+		s.lock.Unlock()
+		if err != nil {
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		Log.Info("cqhttp 重连成功!")
 	}
 }
 
