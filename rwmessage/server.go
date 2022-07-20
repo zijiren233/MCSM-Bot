@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/zijiren233/MCSM-Bot/gconfig"
 	"github.com/zijiren233/MCSM-Bot/logger"
+	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
 // 已监听群组 map[id](*HdGroup)
@@ -24,10 +26,9 @@ var GroupToId = make(map[int]([]int))
 var IdToOd = make(map[int]int)
 var LogLevle uint
 var Log = logger.Newlog(LogLevle)
-var Mconfig = gconfig.GetMConfig()
-var Qconfig = gconfig.GetQConfig()
-var AllId = GetAllId()
-var S = NewServer(Qconfig.Cqhttp.Url)
+var Mconfig = gconfig.Mconfig
+var Qconfig = gconfig.Qconfig
+var AllId = utils.GetAllId()
 
 // var AllDaemon = make(map[string]([]string))
 
@@ -42,8 +43,10 @@ type SendData struct {
 
 type Server struct {
 	Url         string
-	Ws          *websocket.Conn
 	SendMessage chan *SendData
+
+	ws   *websocket.Conn
+	lock sync.RWMutex
 }
 
 type MsgData struct {
@@ -64,11 +67,10 @@ func NewServer(url string) *Server {
 	w.init()
 	w.SendMessage = make(chan *SendData, 50)
 	var err error
-	w.Ws, _, err = websocket.DefaultDialer.Dial(w.Url, nil)
+	w.ws, _, err = websocket.DefaultDialer.Dial(w.Url, nil)
 	if err != nil {
 		fmt.Println("cqhttp 连接失败，等待重连...")
 	}
-	go w.Run()
 	return &w
 }
 
@@ -79,16 +81,20 @@ func (s *Server) init() {
 }
 
 func (s *Server) Run() {
-	go s.SendMsg()
+	go s.sendMsg()
 	var data []byte
 	var err error
 	for {
-		_, data, err = s.Ws.ReadMessage()
+		s.lock.RLock()
+		_, data, err = s.ws.ReadMessage()
+		s.lock.RUnlock()
 		if err != nil {
 			logger.Log.Error("cqhttp 连接失败!")
 			for i := 0; ; i++ {
 				logger.Log.Error("cqhttp 第 %d 次重连", i)
-				s.Ws, _, err = websocket.DefaultDialer.Dial(s.Url, nil)
+				s.lock.Lock()
+				s.ws, _, err = websocket.DefaultDialer.Dial(s.Url, nil)
+				s.lock.Unlock()
 				if err != nil {
 					time.Sleep(5 * time.Second)
 					continue
@@ -100,12 +106,12 @@ func (s *Server) Run() {
 		var msgdata MsgData
 		json.Unmarshal(data, &msgdata)
 		if msgdata.Post_type == "message" {
-			s.BroadCast(&msgdata)
+			s.broadCast(&msgdata)
 		}
 	}
 }
 
-func (s *Server) BroadCast(msg *MsgData) {
+func (s *Server) broadCast(msg *MsgData) {
 	re, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
 	params := re.FindStringSubmatch(msg.Message)
 	if len(params) == 0 {
@@ -131,43 +137,19 @@ func (s *Server) BroadCast(msg *MsgData) {
 	}
 }
 
-func (s *Server) SendMsg() {
+func (s *Server) sendMsg() {
 	var tmp []byte
+	var err error
 	for {
-		tmp, _ = json.Marshal(*<-s.SendMessage)
-		s.Ws.WriteMessage(websocket.TextMessage, tmp)
-	}
-}
-
-func GetAllId() []int {
-	tmp := make([]int, 0, len(Mconfig.McsmData))
-	for i := 0; i < len(Mconfig.McsmData); i++ {
-		tmp = append(tmp, Mconfig.McsmData[i].Id)
-	}
-	return tmp
-}
-
-func IsListDuplicated(list []int) bool {
-	tmpMap := make(map[int]int)
-	for _, value := range list {
-		tmpMap[value] += 1
-	}
-	for _, v := range tmpMap {
-		if v > 1 {
-			return true
+		tmp, err = json.Marshal(*<-s.SendMessage)
+		if err != nil {
+			continue
+		}
+		s.lock.RLock()
+		err = s.ws.WriteMessage(websocket.TextMessage, tmp)
+		s.lock.RUnlock()
+		if err != nil {
+			continue
 		}
 	}
-	return false
 }
-
-func GetAllDaemon() *map[string]string {
-	var tmplist = make(map[string]string)
-	for i := 0; i < len(Mconfig.McsmData); i++ {
-		tmplist[Mconfig.McsmData[i].Url] = Mconfig.McsmData[i].Apikey
-	}
-	return &tmplist
-}
-
-// func RemoveRep(list []string) []string {
-
-// }

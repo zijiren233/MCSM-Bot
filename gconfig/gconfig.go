@@ -7,7 +7,10 @@ import (
 	"os"
 )
 
-type MConfig struct {
+var Mconfig = getMConfig()
+var Qconfig = getQConfig()
+
+type mConfig struct {
 	McsmData []struct {
 		Id                   int      `json:"id"`
 		Url                  string   `json:"url"`
@@ -20,7 +23,7 @@ type MConfig struct {
 	} `json:"mcsmdata"`
 }
 
-type QConfig struct {
+type qConfig struct {
 	Cqhttp struct {
 		Url string `json:"url"`
 		Qq  int    `json:"qq"`
@@ -28,7 +31,7 @@ type QConfig struct {
 	} `json:"cqhttp"`
 }
 
-func GetMConfig() MConfig {
+func getMConfig() mConfig {
 	f, err := os.OpenFile("config.json", os.O_RDONLY, 0755)
 	if err != nil {
 		fmt.Printf("读取配置文件出错: %v\n", err)
@@ -108,7 +111,7 @@ func GetMConfig() MConfig {
 		panic(err)
 	}
 	b, _ := ioutil.ReadAll(f)
-	var config MConfig
+	var config mConfig
 	err2 := json.Unmarshal(b, &config)
 	if err2 != nil {
 		fmt.Printf("配置文件内容出错: %v\n", err2)
@@ -118,8 +121,8 @@ func GetMConfig() MConfig {
 	return config
 }
 
-func GetQConfig() QConfig {
-	var config QConfig
+func getQConfig() qConfig {
+	var config qConfig
 	f, err := os.OpenFile("config.json", os.O_RDWR, 0755)
 	if err != nil {
 		fmt.Printf("打开配置文件出错: %v\n", err)

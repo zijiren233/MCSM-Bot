@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/zijiren233/MCSM-Bot/logger"
+	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
 type HdGroup struct {
@@ -49,17 +50,7 @@ type Status struct {
 	} `json:"data"`
 }
 
-func NewHdGroup(id int, send chan *SendData) *HdGroup {
-	if !InInt(id, AllId) {
-		fmt.Println("Id错误!")
-		logger.Log.Error("监听Id: %d ,Id错误!", id)
-		fmt.Println()
-		return nil
-	} else if _, ok := GOnlineMap[id]; ok {
-		fmt.Printf("重复监听服务器: %s\n", GOnlineMap[id].Name)
-		logger.Log.Warring("重复监听服务器: %s", GOnlineMap[id].Name)
-		return nil
-	}
+func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 	u := HdGroup{
 		Id:          id,
 		Url:         Mconfig.McsmData[IdToOd[id]].Url,
@@ -69,9 +60,9 @@ func NewHdGroup(id int, send chan *SendData) *HdGroup {
 		Group_id:    Mconfig.McsmData[IdToOd[id]].Group_id,
 		UserCmd:     Mconfig.McsmData[IdToOd[id]].User_allows_commands,
 		Adminlist:   Mconfig.McsmData[IdToOd[id]].Adminlist,
-		SendChan:    send,
+		SendChan:    serveSend,
 	}
-	err := u.StatusTest()
+	err := u.statusTest()
 	if err != nil {
 		fmt.Printf("服务器Id: %d 监听失败!\n", u.Id)
 		return nil
@@ -79,8 +70,6 @@ func NewHdGroup(id int, send chan *SendData) *HdGroup {
 	GroupToId[u.Group_id] = append(GroupToId[u.Group_id], u.Id)
 	logger.Log.Debug("GroupToId: %v", GroupToId)
 	u.ChGroupMsg = make(chan *MsgData, 25)
-	go u.ReportStatus()
-	u.Run()
 	return &u
 }
 
@@ -88,14 +77,15 @@ func (u *HdGroup) Run() {
 	GOnlineMap[u.Id] = u
 	fmt.Println("监听实例 ", u.Name, " 成功")
 	logger.Log.Info("监听实例 %s 成功", u.Name)
-	go u.HdChMessage()
+	go u.reportStatus()
+	u.hdChMessage()
 }
 
-func (u *HdGroup) HdChMessage() {
+func (u *HdGroup) hdChMessage() {
 	var msg *MsgData
 	for {
 		msg = <-u.ChGroupMsg
-		if (InInt(msg.User_id, u.Adminlist) || InString(msg.Params[2], u.UserCmd)) && msg.Group_id == u.Group_id {
+		if (utils.InInt(msg.User_id, u.Adminlist) || utils.InString(msg.Params[2], u.UserCmd)) && msg.Group_id == u.Group_id {
 			// 当一个群有两个实例监听时,则由第一个监听的实例执行
 			if len(GroupToId[u.Group_id]) >= 2 && GroupToId[u.Group_id][0] != u.Id {
 				continue
@@ -104,12 +94,12 @@ func (u *HdGroup) HdChMessage() {
 				u.Send_group_msg("命令为空!\n请输入run help查看帮助!")
 				continue
 			}
-			go u.HandleMessage(msg)
+			go u.handleMessage(msg)
 		}
 	}
 }
 
-func (u *HdGroup) HandleMessage(msg *MsgData) {
+func (u *HdGroup) handleMessage(msg *MsgData) {
 	if len(GroupToId[u.Group_id]) >= 2 {
 		if msg.Params[1] == "" {
 			u.checkCMD2(msg.Params[2])
@@ -123,7 +113,7 @@ func (u *HdGroup) HandleMessage(msg *MsgData) {
 			if id == u.Id {
 				u.checkCMD1(msg.Params[2])
 			} else if v, ok := IdToOd[id]; ok && msg.Group_id == Mconfig.McsmData[v].Group_id {
-				GOnlineMap[id].HandleMessage(msg)
+				GOnlineMap[id].handleMessage(msg)
 			} else {
 				u.Send_group_msg("[CQ:at,qq=%d]权限不足", msg.User_id)
 			}
@@ -145,6 +135,11 @@ func (u *HdGroup) checkCMD1(params string) {
 	switch params {
 	case "help":
 		msg = "run status : 查看服务器状态\nrun start : 启动服务器\nrun stop : 关闭服务器\nrun restart : 重启服务器\nrun kill : 终止服务器\nrun 服务器命令 : 运行服务器命令"
+		msg += "\n\n普通用户可用命令:\n"
+		for _, v := range u.UserCmd {
+			msg += "run " + v + "\n"
+		}
+		msg = *utils.Handle_End_Newline(&msg)
 	case "server":
 		msg += "服务器列表:\n"
 		msg = fmt.Sprintf("Name: %s    Id: %d", u.Name, u.Id)
@@ -211,10 +206,10 @@ func (u *HdGroup) SendStatus() string {
 	}
 }
 
-func (u *HdGroup) ReportStatus() {
+func (u *HdGroup) reportStatus() {
 	go func() {
 		for {
-			u.StatusTest()
+			u.statusTest()
 			time.Sleep(3000 * time.Millisecond)
 		}
 	}()
@@ -234,7 +229,7 @@ func (u *HdGroup) ReportStatus() {
 	}
 }
 
-func (u *HdGroup) StatusTest() error {
+func (u *HdGroup) statusTest() error {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", u.Url+"/api/instance", nil)
 	r2.Close = true
@@ -285,24 +280,6 @@ func (u *HdGroup) StatusTest() error {
 		u.lock.Unlock()
 	}
 	return nil
-}
-
-func InInt(target int, str_array []int) bool {
-	for _, element := range str_array {
-		if target == element {
-			return true
-		}
-	}
-	return false
-}
-
-func InString(target string, str_array []string) bool {
-	for _, element := range str_array {
-		if target == element {
-			return true
-		}
-	}
-	return false
 }
 
 func (u *HdGroup) Send_group_msg(msg string, a ...interface{}) {

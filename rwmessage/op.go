@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
 type HdCqOp struct {
@@ -49,7 +51,7 @@ func NewHdCqOp(send chan *SendData) *HdCqOp {
 	return &p
 }
 
-func (p *HdCqOp) HdChMessage() {
+func (p *HdCqOp) Run() {
 	POnlineMap[0] = p
 	var msg *MsgData
 	for {
@@ -63,19 +65,19 @@ func (p *HdCqOp) HdChMessage() {
 				p.help(msg.Params[2])
 				continue
 			}
-			go p.HandleMessage(msg)
+			go p.handleMessage(msg)
 		}
 	}
 }
 
-func (p *HdCqOp) HandleMessage(msg *MsgData) {
+func (p *HdCqOp) handleMessage(msg *MsgData) {
 	id, err := strconv.Atoi(msg.Params[1])
 	if err != nil {
 		Log.Error("strconv.Atoi error:%v", err)
 		p.Send_private_msg("命令格式错误!\n请输入run help查看帮助!")
 		return
 	}
-	if InInt(id, AllId) {
+	if utils.InInt(id, AllId) {
 		p.checkCMD(id, msg.Params[2])
 	} else {
 		p.Send_private_msg("请输入正确的ID!")
@@ -106,7 +108,7 @@ func (p *HdCqOp) help(params string) {
 		serverstatus += "查询具体服务器请输入 run id status"
 		p.Send_private_msg(serverstatus)
 	case "daemon status":
-		p.GetDaemonStatus()
+		p.getDaemonStatus()
 	default:
 		var serverlist string
 		serverlist += "服务器列表:\n"
@@ -154,8 +156,8 @@ func (p *HdCqOp) checkCMD(id int, params string) {
 	p.Send_private_msg(msg)
 }
 
-func (p *HdCqOp) GetDaemonStatus() {
-	UrlAndKey := GetAllDaemon()
+func (p *HdCqOp) getDaemonStatus() {
+	UrlAndKey := utils.GetAllDaemon()
 	client := &http.Client{}
 	var data RemoteStatus
 	for url, key := range *UrlAndKey {

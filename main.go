@@ -6,8 +6,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/zijiren233/MCSM-Bot/gconfig"
 	"github.com/zijiren233/MCSM-Bot/logger"
 	"github.com/zijiren233/MCSM-Bot/rwmessage"
+	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
 var version = "v1.5.3"
@@ -51,19 +53,24 @@ func main() {
 	flag.Parse()
 	logger.Log = logger.Newlog(LogLevle)
 	log := logger.Log
-	if rwmessage.IsListDuplicated(rwmessage.AllId) {
+	// 检查配置文件内是否存在重复ID
+	if utils.IsListDuplicated(rwmessage.AllId) {
 		log.Error("配置文件中存在重复 id")
 		fmt.Printf("配置文件中存在重复 id")
 		return
 	}
+	serve := rwmessage.NewServer(gconfig.Qconfig.Cqhttp.Url)
+	go serve.Run()
 
 	for i := 0; i < len(rwmessage.Mconfig.McsmData); i++ {
-		rwmessage.NewHdGroup(rwmessage.Mconfig.McsmData[i].Id, rwmessage.S.SendMessage)
+		hg := rwmessage.NewHdGroup(rwmessage.Mconfig.McsmData[i].Id, serve.SendMessage)
+		go hg.Run()
+		time.Sleep(time.Second)
 	}
 	fmt.Println()
 
-	p := rwmessage.NewHdCqOp(rwmessage.S.SendMessage)
-	go p.HdChMessage()
+	p := rwmessage.NewHdCqOp(serve.SendMessage)
+	go p.Run()
 	for {
 		Chose()
 	}
