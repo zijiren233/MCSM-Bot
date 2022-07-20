@@ -85,39 +85,43 @@ func (u *HdGroup) hdChMessage() {
 	var msg *MsgData
 	for {
 		msg = <-u.ChGroupMsg
-		if (utils.InInt(msg.User_id, u.Adminlist) || utils.InString(msg.Params[2], u.UserCmd)) && msg.Group_id == u.Group_id {
-			// 当一个群有两个实例监听时,则由第一个监听的实例执行
-			if len(GroupToId[u.Group_id]) >= 2 && GroupToId[u.Group_id][0] != u.Id {
-				continue
+		if msg.Group_id == u.Group_id {
+			// 当一个群有两个实例监听,且没有指定ID,则由第一个监听的实例执行
+			if len(GroupToId[u.Group_id]) >= 2 && msg.Params[1] == "" {
+				if GroupToId[u.Group_id][0] != u.Id {
+					continue
+				}
+				// 当一个群有两个实例监听,且指定ID,则由指定ID的实例执行
+			} else if len(GroupToId[u.Group_id]) >= 2 && msg.Params[1] != "" {
+				// 检测id是否监听此群
+				id, _ := strconv.Atoi(msg.Params[1])
+				if utils.InInt(id, GroupToId[u.Group_id]) {
+					if msg.Params[1] != strconv.Itoa(u.Id) {
+						continue
+					}
+				} else {
+					if GroupToId[u.Group_id][0] != u.Id {
+						continue
+					}
+					GOnlineMap[GroupToId[u.Group_id][0]].Send_group_msg("[CQ:at,qq=%d] ID 不存在", msg.User_id)
+					GOnlineMap[GroupToId[u.Group_id][0]].checkCMD2("server")
+					continue
+				}
 			}
 			if msg.Params[2] == "" {
 				u.Send_group_msg("命令为空!\n请输入run help查看帮助!")
 				continue
 			}
-			go u.handleMessage(msg)
+			if utils.InInt(msg.User_id, u.Adminlist) || utils.InString(msg.Params[2], u.UserCmd) {
+				go u.handleMessage(msg)
+			}
 		}
 	}
 }
 
 func (u *HdGroup) handleMessage(msg *MsgData) {
-	if len(GroupToId[u.Group_id]) >= 2 {
-		if msg.Params[1] == "" {
-			u.checkCMD2(msg.Params[2])
-		} else {
-			id, err := strconv.Atoi(msg.Params[1])
-			if err != nil {
-				Log.Error("strconv.Atoi error:%v", err)
-				u.Send_group_msg("命令格式错误!\n请输入run help查看帮助!")
-				return
-			}
-			if id == u.Id {
-				u.checkCMD1(msg.Params[2])
-			} else if v, ok := IdToOd[id]; ok && msg.Group_id == Mconfig.McsmData[v].Group_id {
-				GOnlineMap[id].handleMessage(msg)
-			} else {
-				u.Send_group_msg("[CQ:at,qq=%d]权限不足", msg.User_id)
-			}
-		}
+	if len(GroupToId[u.Group_id]) >= 2 && msg.Params[1] == "" {
+		u.checkCMD2(msg.Params[2])
 	} else {
 		u.checkCMD1(msg.Params[2])
 	}
@@ -174,9 +178,9 @@ func (u *HdGroup) checkCMD2(params string) {
 		msg += "服务器列表:\n"
 		for _, v := range GroupToId[u.Group_id] {
 			if GOnlineMap[v].Status == 2 || GOnlineMap[v].Status == 3 {
-				msg += fmt.Sprintf("Id: %-5dName: %s    Status: RUN\n", GOnlineMap[v].Id, GOnlineMap[v].Name)
+				msg += fmt.Sprintf("Id: %-5dName: %s    Status: 运行中\n", GOnlineMap[v].Id, GOnlineMap[v].Name)
 			} else {
-				msg += fmt.Sprintf("Id: %-5dName: %s    Status: STOP\n", GOnlineMap[v].Id, GOnlineMap[v].Name)
+				msg += fmt.Sprintf("Id: %-5dName: %s    Status: 已停止\n", GOnlineMap[v].Id, GOnlineMap[v].Name)
 			}
 		}
 		u.Send_group_msg(msg[:len(msg)-1])
@@ -184,9 +188,9 @@ func (u *HdGroup) checkCMD2(params string) {
 		msg += "服务器列表:\n"
 		for _, v := range GroupToId[u.Group_id] {
 			if GOnlineMap[v].Status == 2 || GOnlineMap[v].Status == 3 {
-				msg += fmt.Sprintf("Id: %-5dName: %s    Status: RUN\n", GOnlineMap[v].Id, GOnlineMap[v].Name)
+				msg += fmt.Sprintf("Id: %-5dName: %s    Status: 运行中\n", GOnlineMap[v].Id, GOnlineMap[v].Name)
 			} else {
-				msg += fmt.Sprintf("Id: %-5dName: %s    Status: STOP\n", GOnlineMap[v].Id, GOnlineMap[v].Name)
+				msg += fmt.Sprintf("Id: %-5dName: %s    Status: 已停止\n", GOnlineMap[v].Id, GOnlineMap[v].Name)
 			}
 		}
 		msg += fmt.Sprintf("查询具体服务器请输入 run id %s", params)
