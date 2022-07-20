@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/zijiren233/MCSM-Bot/logger"
 	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
@@ -68,7 +67,7 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 		return nil
 	}
 	GroupToId[u.Group_id] = append(GroupToId[u.Group_id], u.Id)
-	logger.Log.Debug("GroupToId: %v", GroupToId)
+	Log.Debug("GroupToId: %v", GroupToId)
 	u.ChGroupMsg = make(chan *MsgData, 25)
 	return &u
 }
@@ -76,7 +75,7 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 func (u *HdGroup) Run() {
 	GOnlineMap[u.Id] = u
 	fmt.Println("监听实例 ", u.Name, " 成功")
-	logger.Log.Info("监听实例 %s 成功", u.Name)
+	Log.Info("监听实例 %s 成功", u.Name)
 	go u.reportStatus()
 	u.hdChMessage()
 }
@@ -246,13 +245,13 @@ func (u *HdGroup) statusTest() error {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	r, err := client.Do(r2)
 	if err != nil {
-		logger.Log.Error("获取服务器Id: %d 信息失败! err: %v", u.Id, err)
+		Log.Error("获取服务器Id: %d 信息失败! err: %v", u.Id, err)
 		return err
 	}
 	b, _ := ioutil.ReadAll(r.Body)
 	var status Status
 	json.Unmarshal(b, &status)
-	// logger.Log.Debug("status: %v", status)
+	// Log.Debug("status: %v", status)
 	if u.Status != status.Data.Status {
 		u.lock.Lock()
 		u.Status = status.Data.Status

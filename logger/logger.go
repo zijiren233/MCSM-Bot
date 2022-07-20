@@ -3,11 +3,13 @@ package logger
 import (
 	"fmt"
 	"os"
+	"path"
+	"runtime"
 	"strings"
 	"time"
 )
 
-var Log *Logger
+var Log = newlog(1)
 
 const (
 	Debug uint = iota
@@ -25,9 +27,12 @@ type Logger struct {
 }
 
 type logmsg struct {
-	levle   uint
-	message string
-	now     string
+	levle    uint
+	message  string
+	now      string
+	funcName string
+	filename string
+	line     int
 }
 
 func LevleToInt(s string) uint {
@@ -65,7 +70,11 @@ func IntToLevle(i uint) string {
 	}
 }
 
-func Newlog(levle uint) *Logger {
+func Getlog() *Logger {
+	return Log
+}
+
+func newlog(levle uint) *Logger {
 	logger := Logger{Levle: levle}
 	logger.fileInit()
 	logger.message = make(chan *logmsg, 500)
@@ -87,12 +96,12 @@ func (l *Logger) fileInit() {
 	}
 	f, err := os.OpenFile("./logs/log.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
-		fmt.Println("打开日志错误！")
+		fmt.Println("打开日志错误!")
 		panic(err)
 	}
 	ef, err2 := os.OpenFile("./logs/errlog.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
 	if err != nil {
-		fmt.Println("打开Err日志错误！")
+		fmt.Println("打开Err日志错误!")
 		panic(err2)
 	}
 	l.fileOBJ = f
@@ -121,12 +130,16 @@ func (l *Logger) backupErrLog() {
 }
 
 func (l *Logger) log(levle uint, format string, a ...interface{}) {
+	funcName, filename, line := getInfo()
 	if l.Levle <= levle {
 		select {
 		case l.message <- &logmsg{
-			levle:   levle,
-			message: fmt.Sprintf(format, a...),
-			now:     time.Now().Format("[2006-01-02 15:04:05] "),
+			levle:    levle,
+			message:  fmt.Sprintf(format, a...),
+			now:      time.Now().Format("[2006-01-02 15:04:05] "),
+			funcName: funcName,
+			filename: filename,
+			line:     line,
 		}:
 		default:
 		}
@@ -138,12 +151,20 @@ func (l *Logger) backWriteLog() {
 	for {
 		msgtmp = <-l.message
 		l.backupLog()
-		fmt.Fprintln(l.fileOBJ, msgtmp.now, fmt.Sprint("[", IntToLevle(msgtmp.levle), "] "), msgtmp.message)
+		fmt.Fprintf(l.fileOBJ, "[%s] [%s] [%s | %s | %d] %s\n", msgtmp.now, IntToLevle(msgtmp.levle), msgtmp.funcName, msgtmp.filename, msgtmp.line, msgtmp.message)
 		if msgtmp.levle >= Error {
 			l.backupErrLog()
 			fmt.Fprintln(l.errFileOBJ, msgtmp.now, fmt.Sprint("[", IntToLevle(msgtmp.levle), "] "), msgtmp.message)
 		}
 	}
+}
+
+func getInfo() (string, string, int) {
+	pc, file, line, ok := runtime.Caller(3)
+	if !ok {
+		return "", "", 0
+	}
+	return runtime.FuncForPC(pc).Name(), path.Base(file), line
 }
 
 func (l *Logger) Debug(format string, a ...interface{}) {

@@ -51,8 +51,8 @@ func init() {
 
 func main() {
 	flag.Parse()
-	logger.Log = logger.Newlog(LogLevle)
-	log := logger.Log
+	log := logger.Getlog()
+	log.Levle = LogLevle
 	// 检查配置文件内是否存在重复ID
 	if utils.IsListDuplicated(rwmessage.AllId) {
 		log.Error("配置文件中存在重复 id")

@@ -25,7 +25,7 @@ var GroupToId = make(map[int]([]int))
 // map[id](config index)
 var IdToOd = make(map[int]int)
 var LogLevle uint
-var Log = logger.Newlog(LogLevle)
+var Log = logger.Getlog()
 var Mconfig = gconfig.Mconfig
 var Qconfig = gconfig.Qconfig
 var AllId = utils.GetAllId()
