@@ -7,20 +7,24 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
-var Log = newlog(1)
+var log Logger
 
 const (
 	Debug uint = iota
 	Info
 	Warning
 	Error
+	Fatal
 	None
 )
 
 type Logger struct {
-	Levle      uint
+	levle      uint
+	printAble  bool
 	fileOBJ    *os.File
 	errFileOBJ *os.File
 	message    chan *logmsg
@@ -46,6 +50,8 @@ func LevleToInt(s string) uint {
 		return Warning
 	case "error":
 		return Error
+	case "fatal":
+		return Fatal
 	case "none":
 		return None
 	default:
@@ -63,6 +69,8 @@ func IntToLevle(i uint) string {
 		return "WARNING"
 	case Error:
 		return "ERROR"
+	case Fatal:
+		return "FATAL"
 	case None:
 		return "NONE"
 	default:
@@ -70,28 +78,23 @@ func IntToLevle(i uint) string {
 	}
 }
 
-func Getlog() *Logger {
-	return Log
+func init() {
+	log = Logger{levle: Info, printAble: true}
+	log.fileInit()
+	log.message = make(chan *logmsg, 500)
+	go log.backWriteLog()
 }
 
-func newlog(levle uint) *Logger {
-	logger := Logger{Levle: levle}
-	logger.fileInit()
-	logger.message = make(chan *logmsg, 500)
-	go logger.backWriteLog()
-	return &logger
+func GetLog() *Logger {
+	return &log
 }
 
-func exists(path string) bool {
-	_, err := os.Stat(path) //os.Stat获取文件信息
-	if err != nil {
-		return os.IsExist(err)
-	}
-	return true
+func ChangePrintAble(b bool) {
+	log.printAble = b
 }
 
 func (l *Logger) fileInit() {
-	if !exists("./logs") {
+	if !utils.FileExists("./logs") {
 		os.Mkdir("./logs", os.ModePerm)
 	}
 	f, err := os.OpenFile("./logs/log.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0777)
@@ -130,8 +133,8 @@ func (l *Logger) backupErrLog() {
 }
 
 func (l *Logger) log(levle uint, format string, a ...interface{}) {
-	funcName, filename, line := getInfo()
-	if l.Levle <= levle {
+	filename, funcName, line := getInfo()
+	if l.levle <= levle {
 		select {
 		case l.message <- &logmsg{
 			levle:    levle,
@@ -146,15 +149,22 @@ func (l *Logger) log(levle uint, format string, a ...interface{}) {
 	}
 }
 
+func (l *Logger) SetLogLevle(levle uint) {
+	l.levle = levle
+}
+
 func (l *Logger) backWriteLog() {
 	var msgtmp *logmsg
 	for {
 		msgtmp = <-l.message
 		l.backupLog()
-		fmt.Fprintf(l.fileOBJ, "%s [%s] [%s | %s | %d] %s\n", msgtmp.now, IntToLevle(msgtmp.levle), msgtmp.funcName, msgtmp.filename, msgtmp.line, msgtmp.message)
+		fmt.Fprintf(l.fileOBJ, "%s[%s] [%s|%s|%d] %s\n", msgtmp.now, IntToLevle(msgtmp.levle), msgtmp.filename, msgtmp.funcName, msgtmp.line, msgtmp.message)
+		if l.printAble {
+			fmt.Printf("%s[%s] %s\n", msgtmp.now, IntToLevle(msgtmp.levle), msgtmp.message)
+		}
 		if msgtmp.levle >= Error {
 			l.backupErrLog()
-			fmt.Fprintf(l.errFileOBJ, "%s [%s] [%s | %s | %d] %s\n", msgtmp.now, "ERROR", msgtmp.funcName, msgtmp.filename, msgtmp.line, msgtmp.message)
+			fmt.Fprintf(l.errFileOBJ, "%s[%s] [%s|%s|%d] %s\n", msgtmp.now, "ERROR", msgtmp.filename, msgtmp.funcName, msgtmp.line, msgtmp.message)
 		}
 	}
 }
@@ -164,7 +174,7 @@ func getInfo() (string, string, int) {
 	if !ok {
 		return "", "", 0
 	}
-	return runtime.FuncForPC(pc).Name(), path.Base(file), line
+	return path.Base(file), path.Base(runtime.FuncForPC(pc).Name()), line
 }
 
 func (l *Logger) Debug(format string, a ...interface{}) {
@@ -181,4 +191,8 @@ func (l *Logger) Warring(format string, a ...interface{}) {
 
 func (l *Logger) Error(format string, a ...interface{}) {
 	l.log(Error, format, a...)
+}
+
+func (l *Logger) Fatal(format string, a ...interface{}) {
+	l.log(Fatal, format, a...)
 }

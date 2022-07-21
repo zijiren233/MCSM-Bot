@@ -41,7 +41,7 @@ type RemoteStatus struct {
 	} `json:"data"`
 }
 
-func NewHdCqOp(send chan *SendData) *Op {
+func NewHdOp(send chan *SendData) *Op {
 	p := Op{
 		Op:        Qconfig.Cqhttp.Op,
 		ChCqOpMsg: make(chan *MsgData, 25),
@@ -72,7 +72,7 @@ func (p *Op) Run() {
 func (p *Op) handleMessage(msg *MsgData) {
 	id, err := strconv.Atoi(msg.Params[1])
 	if err != nil {
-		Log.Error("strconv.Atoi error:%v", err)
+		log.Error("strconv.Atoi error:%v", err)
 		p.Send_private_msg("命令格式错误!\n请输入run help查看帮助!")
 		return
 	}
@@ -80,7 +80,7 @@ func (p *Op) handleMessage(msg *MsgData) {
 		p.checkCMD(id, msg.Params[2])
 	} else {
 		p.Send_private_msg("请输入正确的ID!")
-		Log.Warring("OP 输入: %d 请输入正确的ID!", p.Op, msg.Params[1])
+		log.Warring("OP 输入: %d 请输入正确的ID!", p.Op, msg.Params[1])
 	}
 }
 
@@ -102,7 +102,11 @@ func (p *Op) help(params string) {
 		var serverstatus string
 		serverstatus += "服务器状态:\n"
 		for k, v := range GOnlineMap {
-			serverstatus += fmt.Sprintf("Id: %-5dStatus: %-5dName: %s\n", k, v.Status, v.Name)
+			if v.Status == 2 || v.Status == 3 {
+				serverstatus += fmt.Sprintf("Id: %-5dStatus: RUNNING  Name: %s\n", k, v.Name)
+			} else {
+				serverstatus += fmt.Sprintf("Id: %-5dStatus: STOPPED  Name: %s\n", k, v.Name)
+			}
 		}
 		serverstatus += "查询具体服务器请输入 run id status"
 		p.Send_private_msg(serverstatus)
@@ -126,7 +130,7 @@ func (p *Op) checkCMD(id int, params string) {
 	var err error
 	switch params {
 	case "status":
-		msg = GOnlineMap[id].SendStatus()
+		msg = GOnlineMap[id].GetStatus()
 	case "start":
 		msg, err = GOnlineMap[id].Start()
 	case "stop":
@@ -145,7 +149,7 @@ func (p *Op) checkCMD(id int, params string) {
 }
 
 func (p *Op) getDaemonStatus() {
-	UrlAndKey := utils.GetAllDaemon()
+	UrlAndKey := GetAllDaemon()
 	client := &http.Client{}
 	var data RemoteStatus
 	for url, key := range *UrlAndKey {

@@ -2,12 +2,10 @@ package utils
 
 import (
 	"bytes"
+	"fmt"
+	"os"
 	"strings"
-
-	"github.com/zijiren233/MCSM-Bot/gconfig"
 )
-
-var Mconfig = gconfig.Mconfig
 
 func InInt(target int, str_array []int) bool {
 	for _, element := range str_array {
@@ -25,22 +23,6 @@ func InString(target string, str_array []string) bool {
 		}
 	}
 	return false
-}
-
-func GetAllDaemon() *map[string]string {
-	var tmplist = make(map[string]string)
-	for i := 0; i < len(Mconfig.McsmData); i++ {
-		tmplist[Mconfig.McsmData[i].Url] = Mconfig.McsmData[i].Apikey
-	}
-	return &tmplist
-}
-
-func GetAllId() []int {
-	tmp := make([]int, 0, len(Mconfig.McsmData))
-	for i := 0; i < len(Mconfig.McsmData); i++ {
-		tmp = append(tmp, Mconfig.McsmData[i].Id)
-	}
-	return tmp
 }
 
 func NoColorable(data *string) (*bytes.Buffer, error) {
@@ -96,4 +78,26 @@ func IsListDuplicated(list []int) bool {
 		}
 	}
 	return false
+}
+
+func WaitExit() {
+	var chose string
+	for {
+		fmt.Scan(&chose)
+		switch chose {
+		case "exit":
+			os.Exit(0)
+		case "stop":
+			os.Exit(0)
+		default:
+		}
+	}
+}
+
+func FileExists(path string) bool {
+	_, err := os.Stat(path) //os.Stat获取文件信息
+	if err != nil {
+		return os.IsExist(err)
+	}
+	return true
 }

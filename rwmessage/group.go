@@ -10,70 +10,79 @@ import (
 )
 
 type HdGroup struct {
-	Id             int
-	Name           string
-	Url            string
-	Remote_uuid    string
-	Uuid           string
-	Apikey         string
-	Group_id       int
-	UserCmd        []string
-	Adminlist      []int
+	Name string
+	config
+	instance
+	ChGroupMsg chan *MsgData
+	SendChan   chan *SendData
+
+	lock sync.RWMutex
+}
+
+type config struct {
+	Id          int
+	Url         string
+	Remote_uuid string
+	Uuid        string
+	Apikey      string
+	Group_id    int
+	UserCmd     []string
+	Adminlist   []int
+}
+
+type instance struct {
 	Status         int
 	EndTime        string
 	CurrentPlayers string
 	MaxPlayers     string
 	Version        string
-	ChGroupMsg     chan *MsgData
-	SendChan       chan *SendData
-
-	lock sync.RWMutex
 }
 
 type Status struct {
-	Data struct {
-		Status int `json:"status"`
-		Config struct {
-			Nickname string `json:"nickname"`
-			EndTime  string `json:"endTime"`
-		} `json:"config"`
-		Info struct {
-			CurrentPlayers string `json:"currentPlayers"`
-			MaxPlayers     string `json:"maxPlayers"`
-			Version        string `json:"version"`
-		} `json:"info"`
-	} `json:"data"`
+	Data data `json:"data"`
+}
+
+type data struct {
+	Status int `json:"status"`
+	Config struct {
+		Nickname string `json:"nickname"`
+		EndTime  string `json:"endTime"`
+	} `json:"config"`
+	Info struct {
+		CurrentPlayers string `json:"currentPlayers"`
+		MaxPlayers     string `json:"maxPlayers"`
+		Version        string `json:"version"`
+	} `json:"info"`
 }
 
 func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 	u := HdGroup{
-		Id:          id,
-		Url:         Mconfig.McsmData[IdToOd[id]].Url,
-		Remote_uuid: Mconfig.McsmData[IdToOd[id]].Remote_uuid,
-		Uuid:        Mconfig.McsmData[IdToOd[id]].Uuid,
-		Apikey:      Mconfig.McsmData[IdToOd[id]].Apikey,
-		Group_id:    Mconfig.McsmData[IdToOd[id]].Group_id,
-		UserCmd:     Mconfig.McsmData[IdToOd[id]].User_allows_commands,
-		Adminlist:   Mconfig.McsmData[IdToOd[id]].Adminlist,
-		SendChan:    serveSend,
+		config: config{Id: id,
+			Url:         Mconfig.McsmData[IdToOd[id]].Url,
+			Remote_uuid: Mconfig.McsmData[IdToOd[id]].Remote_uuid,
+			Uuid:        Mconfig.McsmData[IdToOd[id]].Uuid,
+			Apikey:      Mconfig.McsmData[IdToOd[id]].Apikey,
+			Group_id:    Mconfig.McsmData[IdToOd[id]].Group_id,
+			UserCmd:     Mconfig.McsmData[IdToOd[id]].User_allows_commands,
+			Adminlist:   Mconfig.McsmData[IdToOd[id]].Adminlist},
+		SendChan: serveSend,
 	}
-	err := u.statusTest()
+	err := u.getStatusInfo()
 	if err != nil {
-		fmt.Printf("服务器Id: %d 监听失败!可能是 mcsm-web 端地址错误\n", u.Id)
+		log.Error("服务器Id: %d 监听失败!可能是 mcsm-web 端地址错误\n", u.Id)
 		return nil
 	}
 	GroupToId[u.Group_id] = append(GroupToId[u.Group_id], u.Id)
-	Log.Debug("GroupToId: %v", GroupToId)
+	log.Debug("GroupToId: %v", GroupToId)
 	u.ChGroupMsg = make(chan *MsgData, 25)
 	return &u
 }
 
 func (u *HdGroup) Run() {
 	GOnlineMap[u.Id] = u
-	fmt.Println("监听实例 ", u.Name, " 成功")
-	Log.Info("监听实例 %s 成功", u.Name)
+	log.Info("监听实例 %s 成功", u.Name)
 	go u.reportStatus()
-	u.hdChMessage()
+	go u.hdChMessage()
 }
 
 func (u *HdGroup) hdChMessage() {
@@ -83,27 +92,30 @@ func (u *HdGroup) hdChMessage() {
 		if msg.Group_id == u.Group_id {
 			// 当一个群有两个实例监听,且没有指定ID,则由第一个监听的实例执行
 			if len(GroupToId[u.Group_id]) >= 2 && msg.Params[1] == "" {
+				// 只保留一个goroutine执行
 				if GroupToId[u.Group_id][0] != u.Id {
 					continue
 				}
 				if utils.InInt(msg.User_id, u.Adminlist) || utils.InString(msg.Params[2], u.UserCmd) {
-					u.checkCMD2(msg.Params[2])
+					u.checkCMD2(msg)
 				}
+				log.Warring("权限不足:群组:%d,用户:%d,命令:%#v", msg.Group_id, msg.User_id, msg.Params[0])
 				continue
 				// 当一个群有两个实例监听,且指定ID,则由指定ID的实例执行
 			} else if len(GroupToId[u.Group_id]) >= 2 && msg.Params[1] != "" {
 				// 检测id是否监听此群
 				id, _ := strconv.Atoi(msg.Params[1])
 				if utils.InInt(id, GroupToId[u.Group_id]) {
+					// 只保留指定 id goroutine 执行
 					if msg.Params[1] != strconv.Itoa(u.Id) {
 						continue
 					}
 				} else {
+					// 只保留一个goroutine执行
 					if GroupToId[u.Group_id][0] != u.Id {
 						continue
 					}
-					GOnlineMap[GroupToId[u.Group_id][0]].Send_group_msg("[CQ:at,qq=%d] ID 不存在", msg.User_id)
-					GOnlineMap[GroupToId[u.Group_id][0]].checkCMD2("server")
+					u.Send_group_msg("[CQ:reply,id=%d] ID 不存在", msg.Message_id)
 					continue
 				}
 			}
@@ -112,57 +124,60 @@ func (u *HdGroup) hdChMessage() {
 				continue
 			}
 			if utils.InInt(msg.User_id, u.Adminlist) || utils.InString(msg.Params[2], u.UserCmd) {
-				go u.checkCMD1(msg.Params[2])
+				go u.checkCMD1(msg)
+			} else {
+				log.Warring("权限不足:群组:%d,用户:%d,命令:%#v", msg.Group_id, msg.User_id, msg.Params[0])
+				u.Send_group_msg("[CQ:reply,id=%d] 权限不足!", msg.Message_id)
 			}
 		}
 	}
 }
 
-func (u *HdGroup) checkCMD1(params string) {
-	var msg string
+func (u *HdGroup) checkCMD1(msg *MsgData) {
+	var sendmsg string
 	var err error
 	u.lock.RLock()
 	defer u.lock.RUnlock()
-	if u.Status != 3 && u.Status != 2 && (params != "help" && params != "server" && params != "start") {
+	if u.Status != 3 && u.Status != 2 && (msg.Params[2] != "help" && msg.Params[2] != "server" && msg.Params[2] != "start") {
 		u.Send_group_msg("服务器: %s 未启动!\n请先启动服务器:\nrun %d start", u.Name, u.Id)
 		return
 	}
-	switch params {
+	switch msg.Params[2] {
 	case "help":
-		msg = "run status : 查看服务器状态\nrun start : 启动服务器\nrun stop : 关闭服务器\nrun restart : 重启服务器\nrun kill : 终止服务器\nrun 服务器命令 : 运行服务器命令"
-		msg += "\n\n普通用户可用命令:\n"
+		sendmsg = "run status : 查看服务器状态\nrun start : 启动服务器\nrun stop : 关闭服务器\nrun restart : 重启服务器\nrun kill : 终止服务器\nrun 服务器命令 : 运行服务器命令"
+		sendmsg += "\n\n普通用户可用命令:\n"
 		for _, v := range u.UserCmd {
-			msg += "run " + v + "\n"
+			sendmsg += "run " + v + "\n"
 		}
-		msg = *utils.Handle_End_Newline(&msg)
+		sendmsg = *utils.Handle_End_Newline(&sendmsg)
 	case "server":
-		msg += "服务器列表:\n"
-		msg = fmt.Sprintf("Name: %s    Id: %d", u.Name, u.Id)
+		sendmsg += "服务器列表:\n"
+		sendmsg = fmt.Sprintf("Name: %s    Id: %d", u.Name, u.Id)
 	case "status":
-		msg = u.SendStatus()
+		sendmsg = u.GetStatus()
 	case "start":
-		msg, err = u.Start()
+		sendmsg, err = u.Start()
 	case "stop":
-		msg, err = u.Stop()
+		sendmsg, err = u.Stop()
 	case "restart":
-		msg, err = u.Restart()
+		sendmsg, err = u.Restart()
 	case "kill":
-		msg, err = u.Kill()
+		sendmsg, err = u.Kill()
 	default:
-		msg, err = u.RunCmd(params)
+		sendmsg, err = u.RunCmd(msg.Params[2])
 	}
 	if err != nil {
 		return
 	}
-	u.Send_group_msg(msg)
+	u.Send_group_msg("[CQ:reply,id=%d]%s", msg.Message_id, sendmsg)
 }
 
 // 不指定ID
-func (u *HdGroup) checkCMD2(params string) {
+func (u *HdGroup) checkCMD2(msgdata *MsgData) {
 	u.lock.RLock()
 	defer u.lock.RUnlock()
 	var msg string
-	switch params {
+	switch msgdata.Params[2] {
 	case "help":
 		msg = "run server : 查看服务器列表\nrun status : 查看服务器状态\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 控制台命令 : 运行服务器命令"
 		msg += "\n\n普通用户可用命令:\n"
@@ -170,7 +185,6 @@ func (u *HdGroup) checkCMD2(params string) {
 			msg += "run " + v + "\n"
 		}
 		msg = *utils.Handle_End_Newline(&msg)
-		u.Send_group_msg(msg)
 	case "server":
 		msg += "服务器列表:\n"
 		for _, v := range GroupToId[u.Group_id] {
@@ -180,7 +194,7 @@ func (u *HdGroup) checkCMD2(params string) {
 				msg += fmt.Sprintf("Id: %-5dName: %s    Status: 已停止\n", GOnlineMap[v].Id, GOnlineMap[v].Name)
 			}
 		}
-		u.Send_group_msg(msg[:len(msg)-1])
+		msg = *utils.Handle_End_Newline(&msg)
 	default:
 		msg += "服务器列表:\n"
 		for _, v := range GroupToId[u.Group_id] {
@@ -190,29 +204,15 @@ func (u *HdGroup) checkCMD2(params string) {
 				msg += fmt.Sprintf("Id: %-5dName: %s    Status: 已停止\n", GOnlineMap[v].Id, GOnlineMap[v].Name)
 			}
 		}
-		msg += fmt.Sprintf("查询具体服务器请输入 run id %s", params)
-		u.Send_group_msg(msg)
+		msg += fmt.Sprintf("查询具体服务器请输入 run id %s", msgdata.Params[2])
 	}
-}
-
-func (u *HdGroup) SendStatus() string {
-	u.lock.RLock()
-	defer u.lock.RUnlock()
-	if u.Status == 2 || u.Status == 3 {
-		if u.CurrentPlayers == "" {
-			return fmt.Sprintf("服务器: %s 状态查询 功能未开启!请前往实例中开启状态查询功能", u.Name)
-		} else {
-			return fmt.Sprintf("服务器: %s 正在运行!\n服务器人数: %s\n服务器最大人数: %s\n服务器版本: %s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
-		}
-	} else {
-		return fmt.Sprintf("服务器: %s 未运行!", u.Name)
-	}
+	u.Send_group_msg("[CQ:reply,id=%d]%s", msgdata.Message_id, msg)
 }
 
 func (u *HdGroup) reportStatus() {
 	go func() {
 		for {
-			u.statusTest()
+			u.getStatusInfo()
 			time.Sleep(3000 * time.Millisecond)
 		}
 	}()
@@ -228,7 +228,7 @@ func (u *HdGroup) reportStatus() {
 			status = u.Status
 		}
 		u.lock.RUnlock()
-		time.Sleep(1500 * time.Millisecond)
+		time.Sleep(2000 * time.Millisecond)
 	}
 }
 

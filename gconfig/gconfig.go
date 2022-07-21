@@ -2,13 +2,16 @@ package gconfig
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
+
+	"github.com/zijiren233/MCSM-Bot/logger"
+	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
-var Mconfig = getMConfig()
-var Qconfig = getQConfig()
+var Mconfig mConfig
+var Qconfig qConfig
+var log = logger.GetLog()
 
 type mConfig struct {
 	McsmData []struct {
@@ -31,12 +34,60 @@ type qConfig struct {
 	} `json:"cqhttp"`
 }
 
-func getMConfig() mConfig {
+func init() {
+	if !utils.FileExists("config.json") {
+		creatConfig()
+	}
+	var err error
+	Mconfig, err = getMConfig()
+	if err != nil {
+		log.Fatal("读取配置配置文件失败! err: %v", err)
+		panic(err)
+	}
+	Qconfig, err = getQConfig()
+	if err != nil {
+		log.Fatal("读取配置配置文件失败! err: %v", err)
+		panic(err)
+	}
+}
+
+func getMConfig() (mConfig, error) {
+	var config mConfig
 	f, err := os.OpenFile("config.json", os.O_RDONLY, 0755)
 	if err != nil {
-		fmt.Printf("读取配置文件出错: %v\n", err)
-		f, _ := os.OpenFile("config.json", os.O_CREATE|os.O_WRONLY, 0755)
-		f.WriteString(`{
+		return config, err
+	}
+	b, _ := ioutil.ReadAll(f)
+	err = json.Unmarshal(b, &config)
+	if err != nil {
+		return config, err
+	}
+	return config, nil
+}
+
+func getQConfig() (qConfig, error) {
+	var config qConfig
+	f, err := os.OpenFile("config.json", os.O_RDWR, 0755)
+	if err != nil {
+		return config, err
+	}
+	b, _ := ioutil.ReadAll(f)
+	err = json.Unmarshal(b, &config)
+	if err != nil {
+		return config, err
+	}
+	return config, nil
+}
+
+func creatConfig() {
+	f, _ := os.OpenFile("config.json", os.O_CREATE|os.O_WRONLY, 0755)
+	f.WriteString(config)
+	f2, _ := os.OpenFile("config.sample.json", os.O_CREATE|os.O_WRONLY, 0755)
+	f2.WriteString(confit_sample)
+	log.Fatal("已创建配置文件config.json 和 config.sample.json,请根据注释填写配置")
+}
+
+const config = `{
 	"mcsmdata": [
 		{
 			"id": 1,
@@ -70,9 +121,9 @@ func getMConfig() mConfig {
 		"qq": 3426898431,
 		"op": 1670605849
 	}
-}`)
-		f2, _ := os.OpenFile("config.sample.json", os.O_CREATE|os.O_WRONLY, 0755)
-		f2.WriteString(`{ // 真正的配置文件为标准的json格式，里面不要有注释！！！
+}`
+
+const confit_sample = `{ // 真正的配置文件为标准的json格式，里面不要有注释！！！
 	"mcsmdata": [
 		{
 			"id": 2, // Id 为任意小于256的数，但不可重复！
@@ -106,33 +157,4 @@ func getMConfig() mConfig {
 		"qq": 3426898431, // 机器人QQ号
 		"op": 1670605849 // op里的qq可以在私聊机器人以访问所有实例，填服务器所有者的QQ号，用于管理所有实例
 	}
-}`)
-		fmt.Println("已创建配置文件config.json 和 config.sample.json，请根据注释填写配置")
-		panic(err)
-	}
-	b, _ := ioutil.ReadAll(f)
-	var config mConfig
-	err2 := json.Unmarshal(b, &config)
-	if err2 != nil {
-		fmt.Printf("配置文件内容出错: %v\n", err2)
-		fmt.Print("可能是配置文件内容格式错误 或 配置文件格式和当前版本不匹配，删除当前配置文件重新启动以获取最新配置文件模板")
-		panic(err2)
-	}
-	return config
-}
-
-func getQConfig() qConfig {
-	var config qConfig
-	f, err := os.OpenFile("config.json", os.O_RDWR, 0755)
-	if err != nil {
-		fmt.Printf("打开配置文件出错: %v\n", err)
-		panic(err)
-	}
-	b, _ := ioutil.ReadAll(f)
-	err2 := json.Unmarshal(b, &config)
-	if err2 != nil {
-		fmt.Printf("读取配置文件出错: %v\n", err2)
-		panic(err2)
-	}
-	return config
-}
+}`
