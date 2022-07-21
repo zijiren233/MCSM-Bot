@@ -11,7 +11,7 @@ import (
 	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
-var version = "v1.5.3-rc1"
+var version = "v1.5.4"
 
 var logLevle uint
 var disableLogPrint bool
