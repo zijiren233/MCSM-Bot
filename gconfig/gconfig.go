@@ -3,15 +3,15 @@ package gconfig
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"os"
 
-	"github.com/zijiren233/MCSM-Bot/logger"
 	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
 var Mconfig mConfig
 var Qconfig qConfig
-var log = logger.GetLog()
+var Log = log.Default()
 
 type mConfig struct {
 	McsmData []struct {
@@ -41,12 +41,12 @@ func init() {
 	var err error
 	Mconfig, err = getMConfig()
 	if err != nil {
-		log.Fatal("读取配置配置文件失败! err: %v", err)
+		Log.Fatalf("读取配置配置文件失败! err: %v", err)
 		panic(err)
 	}
 	Qconfig, err = getQConfig()
 	if err != nil {
-		log.Fatal("读取配置配置文件失败! err: %v", err)
+		Log.Fatalf("读取配置配置文件失败! err: %v", err)
 		panic(err)
 	}
 }
