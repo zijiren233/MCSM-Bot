@@ -23,11 +23,11 @@ const (
 )
 
 type Logger struct {
-	levle      uint
-	printAble  bool
-	fileOBJ    *os.File
-	errFileOBJ *os.File
-	message    chan *logmsg
+	levle        uint
+	disableprint bool
+	fileOBJ      *os.File
+	errFileOBJ   *os.File
+	message      chan *logmsg
 }
 
 type logmsg struct {
@@ -79,7 +79,7 @@ func IntToLevle(i uint) string {
 }
 
 func init() {
-	log = Logger{levle: Info, printAble: true}
+	log = Logger{levle: Info, disableprint: false}
 	log.fileInit()
 	log.message = make(chan *logmsg, 500)
 	go log.backWriteLog()
@@ -89,8 +89,12 @@ func GetLog() *Logger {
 	return &log
 }
 
-func ChangePrintAble(b bool) {
-	log.printAble = b
+func DisableLogPrint() {
+	log.disableprint = true
+}
+
+func EnableLogPrint() {
+	log.disableprint = false
 }
 
 func (l *Logger) fileInit() {
@@ -159,7 +163,7 @@ func (l *Logger) backWriteLog() {
 		msgtmp = <-l.message
 		l.backupLog()
 		fmt.Fprintf(l.fileOBJ, "%s[%s] [%s|%s|%d] %s\n", msgtmp.now, IntToLevle(msgtmp.levle), msgtmp.filename, msgtmp.funcName, msgtmp.line, msgtmp.message)
-		if l.printAble {
+		if !l.disableprint {
 			fmt.Printf("%s[%s] %s\n", msgtmp.now, IntToLevle(msgtmp.levle), msgtmp.message)
 		}
 		if msgtmp.levle >= Error {

@@ -13,18 +13,23 @@ import (
 
 var version = "v1.5.3-rc1"
 
-var LogLevle uint
+var logLevle uint
+var disableLogPrint bool
 
 func init() {
-	flag.UintVar(&LogLevle, "log", 1, "记录命令日志的级别 0:Debug 1:Info 2:Warning 3:Error 4:Fatal 5:None")
+	flag.UintVar(&logLevle, "log", 1, "记录命令日志的级别 0:Debug 1:Info 2:Warning 3:Error 4:Fatal 5:None")
+	flag.BoolVar(&disableLogPrint, "dlp", false, "Disable Log Print")
 }
 
 func main() {
 	fmt.Printf("%s[%s] MCSM-BOT Version:%s\n", time.Now().Format("[2006-01-02 15:04:05] "), "INFO", version)
 	flag.Parse()
 	log := logger.GetLog()
-	log.SetLogLevle(LogLevle)
-	fmt.Printf("%s[%s] 当前日志级别:%s\n", time.Now().Format("[2006-01-02 15:04:05] "), "DEBUG", logger.IntToLevle(LogLevle))
+	if disableLogPrint {
+		logger.DisableLogPrint()
+	}
+	log.SetLogLevle(logLevle)
+	fmt.Printf("%s[%s] 当前日志级别:%s\n", time.Now().Format("[2006-01-02 15:04:05] "), "DEBUG", logger.IntToLevle(logLevle))
 	// 检查配置文件内是否存在重复ID
 	if utils.IsListDuplicated(rwmessage.AllId) {
 		log.Error("配置文件中存在重复 id")
