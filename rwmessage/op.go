@@ -11,7 +11,7 @@ import (
 	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
-type HdCqOp struct {
+type Op struct {
 	Op        int
 	ChCqOpMsg chan *MsgData
 	SendChan  chan *SendData
@@ -41,8 +41,8 @@ type RemoteStatus struct {
 	} `json:"data"`
 }
 
-func NewHdCqOp(send chan *SendData) *HdCqOp {
-	p := HdCqOp{
+func NewHdCqOp(send chan *SendData) *Op {
+	p := Op{
 		Op:        Qconfig.Cqhttp.Op,
 		ChCqOpMsg: make(chan *MsgData, 25),
 		SendChan:  send,
@@ -50,7 +50,7 @@ func NewHdCqOp(send chan *SendData) *HdCqOp {
 	return &p
 }
 
-func (p *HdCqOp) Run() {
+func (p *Op) Run() {
 	POnlineMap[0] = p
 	var msg *MsgData
 	for {
@@ -69,7 +69,7 @@ func (p *HdCqOp) Run() {
 	}
 }
 
-func (p *HdCqOp) handleMessage(msg *MsgData) {
+func (p *Op) handleMessage(msg *MsgData) {
 	id, err := strconv.Atoi(msg.Params[1])
 	if err != nil {
 		Log.Error("strconv.Atoi error:%v", err)
@@ -84,7 +84,7 @@ func (p *HdCqOp) handleMessage(msg *MsgData) {
 	}
 }
 
-func (p *HdCqOp) help(params string) {
+func (p *Op) help(params string) {
 	switch params {
 	case "help":
 		p.Send_private_msg("run list : 查看服务器列表\nrun status : 查看服务器状态\nrun daemon status : 查看MCSM后端状态\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 服务器命令 : 运行服务器命令")
@@ -121,7 +121,7 @@ func (p *HdCqOp) help(params string) {
 	}
 }
 
-func (p *HdCqOp) checkCMD(id int, params string) {
+func (p *Op) checkCMD(id int, params string) {
 	var msg string
 	var err error
 	switch params {
@@ -144,7 +144,7 @@ func (p *HdCqOp) checkCMD(id int, params string) {
 	p.Send_private_msg(msg)
 }
 
-func (p *HdCqOp) getDaemonStatus() {
+func (p *Op) getDaemonStatus() {
 	UrlAndKey := utils.GetAllDaemon()
 	client := &http.Client{}
 	var data RemoteStatus
@@ -178,7 +178,7 @@ func (p *HdCqOp) getDaemonStatus() {
 	}
 }
 
-func (p *HdCqOp) Send_private_msg(msg string, a ...interface{}) {
+func (p *Op) Send_private_msg(msg string, a ...interface{}) {
 	var tmp SendData
 	tmp.Action = "send_private_msg"
 	tmp.Params.User_id = p.Op

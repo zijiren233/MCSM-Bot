@@ -18,7 +18,7 @@ import (
 var GOnlineMap = make(map[int]*HdGroup)
 
 // 已监听OP qq map[0](*HdGroup)
-var POnlineMap = make(map[int]*HdCqOp)
+var POnlineMap = make(map[int]*Op)
 
 // map[群号](id)
 var GroupToId = make(map[int]([]int))
@@ -107,7 +107,7 @@ func (s *Server) retrydial() {
 	var err error
 	Log.Error("cqhttp 连接失败!")
 	for i := 0; ; i++ {
-		logger.Log.Error("cqhttp 第 %d 次重连", i)
+		Log.Error("cqhttp 第 %d 次重连", i)
 		s.lock.Lock()
 		s.ws, _, err = websocket.DefaultDialer.Dial(s.Url, nil)
 		s.lock.Unlock()
@@ -116,6 +116,7 @@ func (s *Server) retrydial() {
 			continue
 		}
 		Log.Info("cqhttp 重连成功!")
+		return
 	}
 }
 

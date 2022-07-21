@@ -1,10 +1,7 @@
 package rwmessage
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strconv"
 	"sync"
 	"time"
@@ -89,7 +86,9 @@ func (u *HdGroup) hdChMessage() {
 				if GroupToId[u.Group_id][0] != u.Id {
 					continue
 				}
-				u.checkCMD2(msg.Params[2])
+				if utils.InInt(msg.User_id, u.Adminlist) || utils.InString(msg.Params[2], u.UserCmd) {
+					u.checkCMD2(msg.Params[2])
+				}
 				continue
 				// 当一个群有两个实例监听,且指定ID,则由指定ID的实例执行
 			} else if len(GroupToId[u.Group_id]) >= 2 && msg.Params[1] != "" {
@@ -165,7 +164,13 @@ func (u *HdGroup) checkCMD2(params string) {
 	var msg string
 	switch params {
 	case "help":
-		u.Send_group_msg("run server : 查看服务器列表\nrun status : 查看服务器状态\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 控制台命令 : 运行服务器命令")
+		msg = "run server : 查看服务器列表\nrun status : 查看服务器状态\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 控制台命令 : 运行服务器命令"
+		msg += "\n\n普通用户可用命令:\n"
+		for _, v := range u.UserCmd {
+			msg += "run " + v + "\n"
+		}
+		msg = *utils.Handle_End_Newline(&msg)
+		u.Send_group_msg(msg)
 	case "server":
 		msg += "服务器列表:\n"
 		for _, v := range GroupToId[u.Group_id] {
@@ -225,59 +230,6 @@ func (u *HdGroup) reportStatus() {
 		u.lock.RUnlock()
 		time.Sleep(1500 * time.Millisecond)
 	}
-}
-
-func (u *HdGroup) statusTest() error {
-	client := &http.Client{}
-	r2, _ := http.NewRequest("GET", u.Url+"/api/instance", nil)
-	r2.Close = true
-	q := r2.URL.Query()
-	q.Add("apikey", u.Apikey)
-	q.Add("uuid", u.Uuid)
-	q.Add("remote_uuid", u.Remote_uuid)
-	r2.URL.RawQuery = q.Encode()
-	r2.URL.RawQuery = q.Encode()
-	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	r, err := client.Do(r2)
-	if err != nil {
-		Log.Error("获取服务器Id: %d 信息失败! err: %v", u.Id, err)
-		return err
-	}
-	b, _ := ioutil.ReadAll(r.Body)
-	var status Status
-	json.Unmarshal(b, &status)
-	// Log.Debug("status: %v", status)
-	if u.Status != status.Data.Status {
-		u.lock.Lock()
-		u.Status = status.Data.Status
-		u.lock.Unlock()
-	}
-	if u.Name != status.Data.Config.Nickname {
-		u.lock.Lock()
-		u.Name = status.Data.Config.Nickname
-		u.lock.Unlock()
-	}
-	if u.EndTime != status.Data.Config.EndTime {
-		u.lock.Lock()
-		u.EndTime = status.Data.Config.EndTime
-		u.lock.Unlock()
-	}
-	if u.CurrentPlayers != status.Data.Info.CurrentPlayers {
-		u.lock.Lock()
-		u.CurrentPlayers = status.Data.Info.CurrentPlayers
-		u.lock.Unlock()
-	}
-	if u.MaxPlayers != status.Data.Info.MaxPlayers {
-		u.lock.Lock()
-		u.MaxPlayers = status.Data.Info.MaxPlayers
-		u.lock.Unlock()
-	}
-	if u.Version != status.Data.Info.Version {
-		u.lock.Lock()
-		u.Version = status.Data.Info.Version
-		u.lock.Unlock()
-	}
-	return nil
 }
 
 func (u *HdGroup) Send_group_msg(msg string, a ...interface{}) {

@@ -12,7 +12,7 @@ import (
 	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
-var version = "v1.6.0"
+var version = "v1.5.3-rc1"
 
 func Chose() {
 	var chose string
