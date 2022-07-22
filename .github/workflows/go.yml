@@ -22,10 +22,13 @@ jobs:
               run: |
                   CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o MCSM-Bot_windows_amd64.exe
                   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o MCSM-Bot_linux_amd64
-                  CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o nMCSM-Bot_darwin_amd64
+                  CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o MCSM-Bot_darwin_amd64
 
             - name: Upload a Build Artifact
               uses: actions/upload-artifact@v3.1.0
               with:
                   name: MCSM-Bot
-                  path: ./
+                  path: |
+                      MCSM-Bot_windows_amd64.exe
+                      MCSM-Bot_linux_amd64
+                      MCSM-Bot_darwin_amd64
