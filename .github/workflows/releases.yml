@@ -30,7 +30,7 @@ jobs:
                   strip_v: true
 
             - name: Use tag
-                run: echo ${{steps.tag.outputs.tag}}
+              run: echo ${{steps.tag.outputs.tag}}
 
             - uses: "marvinpinto/action-automatic-releases@latest"
               with:
