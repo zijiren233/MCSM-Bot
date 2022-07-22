@@ -1,12 +1,10 @@
-name: Go
+name: Releases
 
 on:
     push:
         branches: ["main"]
         tags:
-            - "v*"
-    pull_request:
-        branches: ["main"]
+            - v*
 
 jobs:
     release:
@@ -26,15 +24,12 @@ jobs:
                   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o MCSM-Bot_linux_amd64
                   CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o MCSM-Bot_darwin_amd64
 
-            - name: Get Version
-              id: get_version
-              run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-
             - uses: "marvinpinto/action-automatic-releases@latest"
               with:
                   repo_token: "${{ secrets.GITHUB_TOKEN }}"
-                  automatic_release_tag: ${{ steps.get_version.outputs.VERSION }}
-                  title: ${{ steps.get_version.outputs.VERSION }}
+                  automatic_release_tag: ${{ github.ref }}
+                  title: ${{ github.ref }}
+                  prerelease: false
                   files: |
                       MCSM-Bot_windows_amd64.exe
                       MCSM-Bot_linux_amd64
