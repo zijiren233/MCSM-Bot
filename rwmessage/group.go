@@ -35,6 +35,7 @@ type instanceConfig struct {
 	EndTime        string
 	ProcessType    string
 	Pty            bool
+	PingIp         string
 	CurrentPlayers string
 	MaxPlayers     string
 	Version        string
@@ -50,6 +51,9 @@ type InstanceConfig struct {
 			TerminalOption struct {
 				Pty bool `json:"pty"`
 			} `json:"terminalOption"`
+			PingConfig struct {
+				PingIp string `json:"ip"`
+			} `json:"pingConfig"`
 		} `json:"config"`
 		Info struct {
 			CurrentPlayers string `json:"currentPlayers"`
@@ -91,7 +95,7 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 func (u *HdGroup) Run() {
 	GOnlineMap[u.Id] = u
 	log.Info("监听实例 %s 成功", u.Name)
-	if u.CurrentPlayers == "" {
+	if u.PingIp == "" {
 		log.Warring("ID: %d ,NAME: %s 未开启 状态查询,请开启 状态查询 以获得完整体验", u.Id, u.Name)
 	}
 	go u.reportStatus()
@@ -234,9 +238,9 @@ func (u *HdGroup) reportStatus() {
 		u.lock.RLock()
 		if status != u.Status {
 			if (u.Status == 2 && status != 3) || (u.Status == 3 && status != 2) {
-				u.Send_group_msg("服务器ID: %-5d  %s 已运行!", u.Id, u.Name)
+				u.Send_group_msg("服务器ID: %-4d NAME: %s 已运行!", u.Id, u.Name)
 			} else if u.Status == 0 {
-				u.Send_group_msg("服务器ID: %-5d  %s 已停止!", u.Id, u.Name)
+				u.Send_group_msg("服务器ID: %-4d NAME: %s 已停止!", u.Id, u.Name)
 			}
 			status = u.Status
 		}

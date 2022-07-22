@@ -19,6 +19,13 @@ func (u *HdGroup) Start() (string, error) {
 	if u.Status == 2 || u.Status == 3 {
 		return fmt.Sprintf("服务器: %s 已经运行!", u.Name), nil
 	}
+	if u.EndTime != "" {
+		t, _ := time.Parse("2006/1/2", u.EndTime)
+		if t.Before(time.Now()) {
+			log.Warring("服务器ID: %d ,NAME: %s 已到期,启动失败!", u.Id, u.Name)
+			return fmt.Sprintf("服务器ID: %d ,NAME: %s 已到期,启动失败!", u.Id, u.Name), nil
+		}
+	}
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", u.Url+"/api/protected_instance/open", nil)
 	r2.Close = true
@@ -171,6 +178,7 @@ func (u *HdGroup) getStatusInfo() error {
 	u.EndTime = status.Data.Config.EndTime
 	u.ProcessType = status.Data.Config.ProcessType
 	u.Pty = status.Data.Config.TerminalOption.Pty
+	u.PingIp = status.Data.Config.PingConfig.PingIp
 	u.CurrentPlayers = status.Data.Info.CurrentPlayers
 	u.MaxPlayers = status.Data.Info.MaxPlayers
 	return nil
