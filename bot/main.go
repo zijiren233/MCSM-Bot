@@ -39,6 +39,4 @@ func Main() {
 	go p.Run()
 
 	log.Info("MCSM-Bot 启动成功")
-
-	utils.WaitExit()
 }

@@ -1,46 +1,45 @@
 name: Go
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    push:
+        branches: ["main"]
+    pull_request:
+        branches: ["main"]
 
 jobs:
+    build:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                include:
+                    - goarch: amd64
+                      goos: linux
+                    - goarch: amd64
+                      goos: windows
+                    - goarch: amd64
+                      goos: darwin
+                    - goarch: arm64
+                      goos: linux
+                    - goarch: arm64
+                      goos: windows
+                    - goarch: arm64
+                      goos: darwin
+        steps:
+            - uses: actions/checkout@v3
 
-  build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - goarch: amd64
-            goos: linux
-          - goarch: amd64
-            goos: windows
-          - goarch: amd64
-            goos: darwin
-          - goarch: arm64
-            goos: linux
-          - goarch: arm64
-            goos: windows
-          - goarch: arm64
-            goos: darwin
-    steps:
-    - uses: actions/checkout@v3
+            - name: Set up Go
+              uses: actions/setup-go@v3
+              with:
+                  go-version: 1.18
 
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.18
+            - name: Build
+              run: go build
+              env:
+                  GOOS: ${{ matrix.goos }}
+                  GOARCH: ${{ matrix.goarch }}
 
-    - name: Build
-      run: go build -v ./...
-      env:
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
-
-    - name: Upload a Build Artifact
-      uses: actions/upload-artifact@v3.1.0
-      with:
-        name: MCSM-Bot
-        path: ./
+            - name: Upload a Build Artifact
+              uses: actions/upload-artifact@v3.1.0
+              with:
+                  name: MCSM-Bot
+                  path: ./

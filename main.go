@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/zijiren233/MCSM-Bot/bot"
+	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
 var version = "v1.5.4"
@@ -12,4 +13,5 @@ var version = "v1.5.4"
 func main() {
 	fmt.Printf("%s[%s] MCSM-BOT Version:%s\n", time.Now().Format("[2006-01-02 15:04:05] "), "INFO", version)
 	bot.Main()
+	utils.WaitExit()
 }
