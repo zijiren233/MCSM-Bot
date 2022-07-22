@@ -10,9 +10,8 @@ import (
 )
 
 type HdGroup struct {
-	Name string
 	config
-	instance
+	instanceConfig
 	ChGroupMsg chan *MsgData
 	SendChan   chan *SendData
 
@@ -30,34 +29,40 @@ type config struct {
 	Adminlist   []int
 }
 
-type instance struct {
+type instanceConfig struct {
+	Name           string
 	Status         int
 	EndTime        string
+	ProcessType    string
+	Pty            bool
 	CurrentPlayers string
 	MaxPlayers     string
 	Version        string
 }
 
-type Status struct {
-	Data data `json:"data"`
-}
-
-type data struct {
-	Status int `json:"status"`
-	Config struct {
-		Nickname string `json:"nickname"`
-		EndTime  string `json:"endTime"`
-	} `json:"config"`
-	Info struct {
-		CurrentPlayers string `json:"currentPlayers"`
-		MaxPlayers     string `json:"maxPlayers"`
-		Version        string `json:"version"`
-	} `json:"info"`
+type InstanceConfig struct {
+	Data struct {
+		Status int `json:"status"`
+		Config struct {
+			Nickname       string `json:"nickname"`
+			EndTime        string `json:"endTime"`
+			ProcessType    string `json:"processType"`
+			TerminalOption struct {
+				Pty bool `json:"pty"`
+			} `json:"terminalOption"`
+		} `json:"config"`
+		Info struct {
+			CurrentPlayers string `json:"currentPlayers"`
+			MaxPlayers     string `json:"maxPlayers"`
+			Version        string `json:"version"`
+		} `json:"info"`
+	} `json:"data"`
 }
 
 func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 	u := HdGroup{
-		config: config{Id: id,
+		config: config{
+			Id:          id,
 			Url:         Mconfig.McsmData[IdToOd[id]].Url,
 			Remote_uuid: Mconfig.McsmData[IdToOd[id]].Remote_uuid,
 			Uuid:        Mconfig.McsmData[IdToOd[id]].Uuid,
@@ -69,11 +74,16 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 	}
 	err := u.getStatusInfo()
 	if err != nil {
-		log.Error("服务器Id: %d 监听失败!可能是 mcsm-web 端地址错误\n", u.Id)
+		log.Fatal("服务器Id: %d 监听失败!可能是 mcsm-web 端地址错误\n", u.Id)
+		return nil
+	}
+	log.Debug("ID: %d ,NAME: %s ,TYPE:%s ,PTY: %v", u.Id, u.Name, u.ProcessType, u.Pty)
+	if u.ProcessType != "docker" && !u.Pty {
+		log.Error("实例:%s 未开启 仿真终端 或 未使用 docker 启动！", u.Name)
+		log.Fatal("实例:%s 监听失败", u.Name)
 		return nil
 	}
 	GroupToId[u.Group_id] = append(GroupToId[u.Group_id], u.Id)
-	log.Debug("GroupToId: %v", GroupToId)
 	u.ChGroupMsg = make(chan *MsgData, 25)
 	return &u
 }
@@ -81,6 +91,9 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 func (u *HdGroup) Run() {
 	GOnlineMap[u.Id] = u
 	log.Info("监听实例 %s 成功", u.Name)
+	if u.CurrentPlayers == "" {
+		log.Warring("ID: %d ,NAME: %s 未开启 状态查询,请开启 状态查询 以获得完整体验", u.Id, u.Name)
+	}
 	go u.reportStatus()
 	go u.hdChMessage()
 }
@@ -149,7 +162,10 @@ func (u *HdGroup) checkCMD1(msg *MsgData) {
 		for _, v := range u.UserCmd {
 			sendmsg += "run " + v + "\n"
 		}
+		sendmsg += "要在控制台内运行 help 命令请输入 run terminal help"
 		sendmsg = *utils.Handle_End_Newline(&sendmsg)
+	case "terminal help":
+		sendmsg, err = u.RunCmd("help")
 	case "server":
 		sendmsg += "服务器列表:\n"
 		sendmsg = fmt.Sprintf("Name: %s    Id: %d", u.Name, u.Id)
@@ -180,10 +196,7 @@ func (u *HdGroup) checkCMD2(msgdata *MsgData) {
 	switch msgdata.Params[2] {
 	case "help":
 		msg = "run server : 查看服务器列表\nrun status : 查看服务器状态\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 控制台命令 : 运行服务器命令"
-		msg += "\n\n普通用户可用命令:\n"
-		for _, v := range u.UserCmd {
-			msg += "run " + v + "\n"
-		}
+		msg += "\n\n普通用户可用命令:\n请输入 run id help 查询"
 		msg = *utils.Handle_End_Newline(&msg)
 	case "server":
 		msg += "服务器列表:\n"
@@ -221,9 +234,9 @@ func (u *HdGroup) reportStatus() {
 		u.lock.RLock()
 		if status != u.Status {
 			if (u.Status == 2 && status != 3) || (u.Status == 3 && status != 2) {
-				u.Send_group_msg("服务器: %s 已运行!", u.Name)
+				u.Send_group_msg("服务器ID: %-5d  %s 已运行!", u.Id, u.Name)
 			} else if u.Status == 0 {
-				u.Send_group_msg("服务器: %s 已停止!", u.Name)
+				u.Send_group_msg("服务器ID: %-5d  %s 已停止!", u.Id, u.Name)
 			}
 			status = u.Status
 		}

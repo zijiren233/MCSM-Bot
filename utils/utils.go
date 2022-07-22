@@ -25,7 +25,7 @@ func InString(target string, str_array []string) bool {
 	return false
 }
 
-func NoColorable(data *string) (*bytes.Buffer, error) {
+func NoColorable(data *string) *bytes.Buffer {
 	er := bytes.NewReader([]byte(*data))
 	var plaintext bytes.Buffer
 loop:
@@ -56,7 +56,7 @@ loop:
 			}
 		}
 	}
-	return &plaintext, nil
+	return &plaintext
 }
 
 func Handle_End_Newline(msg *string) *string {

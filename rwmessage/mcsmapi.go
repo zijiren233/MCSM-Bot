@@ -59,6 +59,9 @@ func (u *HdGroup) Stop() (string, error) {
 
 // 返回控制台结果，如果未查询到则返回 "运行成功"
 func (u *HdGroup) RunCmd(commd string) (string, error) {
+	if u.Status != 2 && u.Status != 3 {
+		return fmt.Sprintf("服务器: %s 未运行!", u.Name), nil
+	}
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", u.Url+"/api/protected_instance/command", nil)
 	r2.Close = true
@@ -74,7 +77,7 @@ func (u *HdGroup) RunCmd(commd string) (string, error) {
 		log.Error("运行命令 %s 失败！%v", commd, err)
 		return fmt.Sprintf("运行命令 %s 失败！", commd), err
 	}
-	time.Sleep(300 * time.Millisecond)
+	time.Sleep(350 * time.Millisecond)
 	return u.returnResult(commd)
 }
 
@@ -96,15 +99,14 @@ func (u *HdGroup) returnResult(command string) (string, error) {
 	b, _ := ioutil.ReadAll(r.Body)
 	var data Data
 	json.Unmarshal(b, &data)
-	b2, _ := utils.NoColorable(&data.Data)
+	b2 := utils.NoColorable(&data.Data).String()
 	r3, _ := regexp.Compile(`(?m)(` + command + `(\r)+?)$`)
-	i := r3.FindAllStringIndex(b2.String(), -1)
+	i := r3.FindAllStringIndex(b2, -1)
 	if len(i) != 0 {
-		msg := b2.String()
-		return fmt.Sprintf("[%s] %s", u.Name, (*utils.Handle_End_Newline(&msg))[i[len(i)-1][0]:]), nil
+		return fmt.Sprintf("[%s] %s", u.Name, (*utils.Handle_End_Newline(&b2))[i[len(i)-1][0]:]), nil
 	}
-	log.Debug("终端信息: %#v\n", b2.String())
-	return "运行命令成功! 可能由于 {网络波动,未开启仿真终端} 导致", nil
+	log.Debug("终端信息: %#v\n", b2)
+	return "运行命令成功! 可能由于 {网络延迟,控制台乱码} 导致", nil
 }
 
 func (u *HdGroup) Restart() (string, error) {
@@ -160,13 +162,15 @@ func (u *HdGroup) getStatusInfo() error {
 		return err
 	}
 	b, _ := ioutil.ReadAll(r.Body)
-	var status Status
+	var status InstanceConfig
 	json.Unmarshal(b, &status)
 	u.lock.Lock()
 	defer u.lock.Unlock()
 	u.Status = status.Data.Status
 	u.Name = status.Data.Config.Nickname
 	u.EndTime = status.Data.Config.EndTime
+	u.ProcessType = status.Data.Config.ProcessType
+	u.Pty = status.Data.Config.TerminalOption.Pty
 	u.CurrentPlayers = status.Data.Info.CurrentPlayers
 	u.MaxPlayers = status.Data.Info.MaxPlayers
 	return nil
