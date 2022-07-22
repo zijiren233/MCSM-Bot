@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/zijiren233/MCSM-Bot/bot"
+	"github.com/zijiren233/MCSM-Bot/cmd/bot"
 	"github.com/zijiren233/MCSM-Bot/utils"
 )
 

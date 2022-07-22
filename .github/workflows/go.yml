@@ -9,21 +9,7 @@ on:
 jobs:
     build:
         runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                include:
-                    - goarch: amd64
-                      goos: linux
-                    - goarch: amd64
-                      goos: windows
-                    - goarch: amd64
-                      goos: darwin
-                    - goarch: arm64
-                      goos: linux
-                    - goarch: arm64
-                      goos: windows
-                    - goarch: arm64
-                      goos: darwin
+
         steps:
             - uses: actions/checkout@v3
 
@@ -33,10 +19,10 @@ jobs:
                   go-version: 1.18
 
             - name: Build
-              run: make kubectl-karmada
-              env:
-                  GOOS: ${{ matrix.goos }}
-                  GOARCH: ${{ matrix.goarch }}
+              run: |
+                  CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o MCSM-Bot_windows_amd64.exe
+                  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o MCSM-Bot_linux_amd64
+                  CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o nMCSM-Bot_darwin_amd64
 
             - name: Upload a Build Artifact
               uses: actions/upload-artifact@v3.1.0
