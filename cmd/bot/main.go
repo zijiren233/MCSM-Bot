@@ -18,7 +18,7 @@ func Main() {
 		logger.DisableLogPrint()
 	}
 	log.SetLogLevle(base.LogLevle)
-	fmt.Printf("%s[%s] 当前日志级别:%s\n", time.Now().Format("[2006-01-02 15:04:05] "), "DEBUG", logger.IntToLevle(base.LogLevle))
+	fmt.Printf("%s|\033[97;44m %s \033[0m| 当前日志级别:%s\n", time.Now().Format("[2006-01-02 15:04:05] "), "DEBUG", logger.IntToLevle(base.LogLevle))
 	// 检查配置文件内是否存在重复ID
 	if utils.IsListDuplicated(rwmessage.AllId) {
 		log.Error("配置文件中存在重复 id")

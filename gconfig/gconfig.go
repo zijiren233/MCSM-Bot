@@ -29,7 +29,6 @@ type mConfig struct {
 type qConfig struct {
 	Cqhttp struct {
 		Url string `json:"url"`
-		Qq  int    `json:"qq"`
 		Op  int    `json:"op"`
 	} `json:"cqhttp"`
 }
@@ -118,7 +117,6 @@ const config = `{
 	],
 	"cqhttp": {
 		"url": "ws://q-api.pyhdxy.com:8080",
-		"qq": 3426898431,
 		"op": 1670605849
 	}
 }`
@@ -154,7 +152,6 @@ const confit_sample = `{ // 真正的配置文件为标准的json格式，里面
 	],
 	"cqhttp": {
 		"url": "ws://127.0.0.1:8080", // cqhttp 请求地址，末尾不带斜杠！只能使用Ws(s)协议
-		"qq": 3426898431, // 机器人QQ号
 		"op": 1670605849 // op里的qq可以在私聊机器人以访问所有实例，填服务器所有者的QQ号，用于管理所有实例
 	}
 }`

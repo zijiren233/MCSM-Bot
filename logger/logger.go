@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mattn/go-colorable"
 	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
@@ -20,6 +21,17 @@ const (
 	Error
 	Fatal
 	None
+)
+
+const (
+	green   = "\033[97;42m"
+	white   = "\033[90;47m"
+	yellow  = "\033[90;43m"
+	red     = "\033[97;41m"
+	blue    = "\033[97;44m"
+	magenta = "\033[97;45m"
+	cyan    = "\033[97;46m"
+	reset   = "\033[0m"
 )
 
 type Logger struct {
@@ -37,6 +49,23 @@ type logmsg struct {
 	funcName string
 	filename string
 	line     int
+}
+
+func levleColor(levle uint) string {
+	switch levle {
+	case Debug:
+		return blue
+	case Info:
+		return green
+	case Warning:
+		return yellow
+	case Error:
+		return red
+	case Fatal:
+		return magenta
+	default:
+		return red
+	}
 }
 
 func LevleToInt(s string) uint {
@@ -159,12 +188,13 @@ func (l *Logger) SetLogLevle(levle uint) {
 
 func (l *Logger) backWriteLog() {
 	var msgtmp *logmsg
+	stdout := colorable.NewColorableStdout
 	for {
 		msgtmp = <-l.message
 		l.backupLog()
 		fmt.Fprintf(l.fileOBJ, "%s[%s] [%s|%s|%d] %s\n", msgtmp.now, IntToLevle(msgtmp.levle), msgtmp.filename, msgtmp.funcName, msgtmp.line, msgtmp.message)
 		if !l.disableprint {
-			fmt.Printf("%s[%s] %s\n", msgtmp.now, IntToLevle(msgtmp.levle), msgtmp.message)
+			fmt.Fprintf(stdout(), "%s|%s %s %s| %s\n", msgtmp.now, levleColor(msgtmp.levle), IntToLevle(msgtmp.levle), reset, msgtmp.message)
 		}
 		if msgtmp.levle >= Error {
 			l.backupErrLog()
