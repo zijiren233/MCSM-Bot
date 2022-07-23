@@ -32,14 +32,11 @@ jobs:
               with:
                   strip_v: true
 
-            - name: Use tag
-              run: echo ${{steps.tag.outputs.tag}}
-
             - uses: "marvinpinto/action-automatic-releases@latest"
               with:
                   repo_token: "${{ secrets.GITHUB_TOKEN }}"
-                  automatic_release_tag: ${{ steps.get_version.outputs.VERSION }}
-                  title: ${{ steps.get_version.outputs.VERSION }}
+                  automatic_release_tag: v${{steps.tag.outputs.tag}}
+                  title: Version ${{steps.tag.outputs.tag}}
                   prerelease: false
                   files: |
                       MCSM-Bot_windows_amd64.exe
