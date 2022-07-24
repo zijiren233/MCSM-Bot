@@ -107,7 +107,7 @@ func (u *HdGroup) hdChMessage() {
 	for {
 		msg = <-u.ChGroupMsg
 		if msg.Group_id == u.Group_id {
-			// 当一个群有两个实例监听,且没有指定ID,则由第一个监听的实例执行
+			// 当一个群有多个实例监听,且没有指定ID,则由第一个监听的实例执行
 			if len(GroupToId[u.Group_id]) >= 2 && msg.Params[1] == "" {
 				// 只保留一个goroutine执行
 				if GroupToId[u.Group_id][0] != u.Id {
@@ -115,10 +115,11 @@ func (u *HdGroup) hdChMessage() {
 				}
 				if utils.InInt(msg.User_id, u.Adminlist) || utils.InString(msg.Params[2], u.UserCmd) {
 					u.checkCMD2(msg)
+					continue
 				}
 				log.Warring("权限不足:群组:%d,用户:%d,命令:%#v", msg.Group_id, msg.User_id, msg.Params[0])
 				continue
-				// 当一个群有两个实例监听,且指定ID,则由指定ID的实例执行
+				// 当一个群有多个实例监听,且指定ID,则由指定ID的实例执行
 			} else if len(GroupToId[u.Group_id]) >= 2 && msg.Params[1] != "" {
 				// 检测id是否监听此群
 				id, _ := strconv.Atoi(msg.Params[1])
@@ -189,7 +190,7 @@ func (u *HdGroup) checkCMD1(msg *MsgData) {
 	if err != nil {
 		return
 	}
-	u.Send_group_msg("[CQ:reply,id=%d]%s", msg.Message_id, sendmsg)
+	u.Send_group_msg("[CQ:reply,id=%d] %s", msg.Message_id, sendmsg)
 }
 
 // 不指定ID
@@ -223,7 +224,7 @@ func (u *HdGroup) checkCMD2(msgdata *MsgData) {
 		}
 		msg += fmt.Sprintf("查询具体服务器请输入 run id %s", msgdata.Params[2])
 	}
-	u.Send_group_msg("[CQ:reply,id=%d]%s", msgdata.Message_id, msg)
+	u.Send_group_msg("[CQ:reply,id=%d] %s", msgdata.Message_id, msg)
 }
 
 func (u *HdGroup) reportStatus() {
