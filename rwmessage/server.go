@@ -175,8 +175,15 @@ func (s *Server) broadCast(msg *MsgData) {
 			return
 		}
 		log.Info("获取到群组信息:Group_id:%d,User_id:%d,Nickname:%s,Message:%s", msg.Group_id, msg.User_id, msg.Sender.Nickname, msg.Message)
-		if msg.Params[1] == "" {
+		if msg.Params[1] == "" && len(GroupToId[msg.Group_id]) >= 2 {
 			s.send_group_msg(msg.Group_id, help(msg))
+			return
+		} else if msg.Params[1] == "" && len(GroupToId[msg.Group_id]) == 1 {
+			if msg.Params[2] == "" {
+				log.Warring("[CQ:reply,id=%d]命令为空!\n请输入run %d help查看帮助!", msg.User_id, GroupToId[msg.Group_id][0])
+				return
+			}
+			GOnlineMap[GroupToId[msg.Group_id][0]].ChGroupMsg <- msg
 			return
 		}
 		id, err := strconv.Atoi(msg.Params[1])
