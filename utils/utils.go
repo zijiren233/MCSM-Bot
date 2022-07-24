@@ -2,10 +2,18 @@ package utils
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 )
+
+type gitApiJson struct {
+	Html_url string `json:"html_url"`
+	Tag_name string `json:"tag_name"`
+}
 
 func InInt(target int, str_array []int) bool {
 	for _, element := range str_array {
@@ -100,4 +108,20 @@ func FileExists(path string) bool {
 		return os.IsExist(err)
 	}
 	return true
+}
+
+func UpdateVersion(version string) (gitApiJson, error) {
+	var gitapi gitApiJson
+	client := &http.Client{}
+	r, err := client.Get("https://api.github.com/repos/zijiren233/MCSM-Bot/releases/latest")
+	if err != nil {
+		return gitapi, err
+	}
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return gitapi, err
+	}
+	json.Unmarshal(body, &gitapi)
+	return gitapi, nil
 }
