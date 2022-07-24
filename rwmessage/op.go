@@ -77,7 +77,7 @@ func (p *Op) handleMessage(msg *MsgData) {
 		return
 	}
 	if utils.InInt(id, AllId) {
-		p.checkCMD(id, msg.Params[2])
+		p.runCMD(id, msg.Params[2])
 	} else {
 		p.Send_private_msg("请输入正确的ID!")
 		log.Warring("OP 输入: %d 请输入正确的ID!", p.Op, msg.Params[1])
@@ -125,7 +125,7 @@ func (p *Op) help(params string) {
 	}
 }
 
-func (p *Op) checkCMD(id int, params string) {
+func (p *Op) runCMD(id int, params string) {
 	var msg string
 	var err error
 	switch params {
