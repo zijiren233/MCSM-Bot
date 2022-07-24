@@ -25,8 +25,9 @@ func Main() {
 	go base.Update(version)
 	fmt.Printf("%s|\033[97;44m %s \033[0m| 当前日志级别:%s\n", time.Now().Format("[2006-01-02 15:04:05] "), "DEBUG", logger.IntToLevle(base.LogLevle))
 	// 检查配置文件内是否存在重复ID
-	if utils.IsListDuplicated(rwmessage.AllId) {
-		log.Fatal("配置文件中存在重复 id")
+	if dou, existdou := utils.IsListDuplicated(rwmessage.AllId); existdou {
+		log.Fatal("配置文件中存在重复id: %s", dou)
+		fmt.Printf("%s|\033[97;45m %s \033[0m| 配置文件中存在重复id: %s\n", time.Now().Format("[2006-01-02 15:04:05] "), "FATAL", dou)
 		os.Exit(-1)
 	}
 	serve := rwmessage.NewServer(gconfig.Qconfig.Cqhttp.Url)

@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -75,17 +76,17 @@ func Handle_End_Newline(msg *string) *string {
 	return msg
 }
 
-func IsListDuplicated(list []int) bool {
+func IsListDuplicated(list []int) (string, bool) {
 	tmpMap := make(map[int]int)
 	for _, value := range list {
 		tmpMap[value] += 1
 	}
-	for _, v := range tmpMap {
+	for k, v := range tmpMap {
 		if v > 1 {
-			return true
+			return strconv.Itoa(k), true
 		}
 	}
-	return false
+	return "", false
 }
 
 func WaitExit() {
