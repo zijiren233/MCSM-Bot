@@ -87,6 +87,7 @@ func (s *Server) Run() {
 	go s.sendMsg()
 	var data []byte
 	var err error
+	re, _ := regexp.Compile(`^run *([0-9]*) *(.*)`)
 	for {
 		s.lock.RLock()
 		_, data, err = s.ws.ReadMessage()
@@ -98,7 +99,14 @@ func (s *Server) Run() {
 		var msgdata MsgData
 		json.Unmarshal(data, &msgdata)
 		if msgdata.Post_type == "message" {
-			s.broadCast(&msgdata)
+			params := re.FindStringSubmatch(msgdata.Message)
+			if len(params) == 0 {
+				continue
+			}
+			params[2] = strings.ReplaceAll(params[2], "\n", "")
+			params[2] = strings.ReplaceAll(params[2], "\r", "")
+			msgdata.Params = params
+			go s.broadCast(&msgdata)
 		}
 	}
 }
@@ -121,14 +129,6 @@ func (s *Server) retrydial() {
 }
 
 func (s *Server) broadCast(msg *MsgData) {
-	re, _ := regexp.Compile(`^run *([0-9]*) *(.*)`)
-	params := re.FindStringSubmatch(msg.Message)
-	if len(params) == 0 {
-		return
-	}
-	params[2] = strings.ReplaceAll(params[2], "\n", "")
-	params[2] = strings.ReplaceAll(params[2], "\r", "")
-	msg.Params = params
 	if msg.Message_type == "group" {
 		log.Info("获取到群组信息:Group_id:%d,User_id:%d,Nickname:%s,Message:%s", msg.Group_id, msg.User_id, msg.Sender.Nickname, msg.Message)
 		for _, v := range GOnlineMap {
