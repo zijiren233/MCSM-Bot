@@ -106,6 +106,10 @@ func (u *HdGroup) hdChMessage() {
 	for {
 		msg = <-u.ChGroupMsg
 		if u.Group_id == msg.Group_id {
+			if msg.Params[2] == "" {
+				log.Warring("[CQ:reply,id=%d]命令为空!\n请输入run %d help查看帮助!", msg.User_id, GroupToId[msg.Group_id][0])
+				continue
+			}
 			if utils.InInt(msg.User_id, u.Adminlist) || utils.InString(msg.Params[2], u.UserCmd) {
 				go u.runCMD(msg)
 			} else {

@@ -84,12 +84,12 @@ func (u *HdGroup) RunCmd(commd string) (string, error) {
 		log.Error("运行命令 %s 失败！%v", commd, err)
 		return fmt.Sprintf("运行命令 %s 失败！", commd), err
 	}
-	time.Sleep(400 * time.Millisecond)
+	time.Sleep(450 * time.Millisecond)
 	return u.returnResult(commd, 2)
 }
 
-func (u *HdGroup) returnResult(command string, retry uint8) (string, error) {
-	if retry == 0 {
+func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
+	if try == 0 {
 		return "执行控制台命令成功! 可能由于 {网络延迟,控制台乱码} 导致运行结果返回失败", nil
 	}
 	client := &http.Client{}
@@ -104,7 +104,7 @@ func (u *HdGroup) returnResult(command string, retry uint8) (string, error) {
 	r, err := client.Do(r2)
 	if err != nil {
 		log.Error("获取服务器 %s 命令 %s 运行结果失败！", u.Name, command)
-		return u.returnResult(command, retry-1)
+		return u.returnResult(command, try-1)
 	}
 	b, _ := ioutil.ReadAll(r.Body)
 	var data Data
@@ -116,7 +116,7 @@ func (u *HdGroup) returnResult(command string, retry uint8) (string, error) {
 		return fmt.Sprintf("[%s] %s", u.Name, (*utils.Handle_End_Newline(&b2))[i[len(i)-1][0]:]), nil
 	}
 	log.Debug("终端信息: %#v\n", b2)
-	return u.returnResult(command, retry-1)
+	return u.returnResult(command, try-1)
 }
 
 func (u *HdGroup) Restart() (string, error) {

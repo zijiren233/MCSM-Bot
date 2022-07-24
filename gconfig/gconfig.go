@@ -86,6 +86,30 @@ func creatConfig() {
 	log.Fatal("已创建配置文件config.json 和 config.sample.json,请根据注释填写配置")
 }
 
+func GetAllDaemon() *map[string]string {
+	var tmplist = make(map[string]string)
+	for i := 0; i < len(Mconfig.McsmData); i++ {
+		tmplist[Mconfig.McsmData[i].Url] = Mconfig.McsmData[i].Apikey
+	}
+	return &tmplist
+}
+
+func GetAllId() []int {
+	tmp := make([]int, 0, len(Mconfig.McsmData))
+	for i := 0; i < len(Mconfig.McsmData); i++ {
+		tmp = append(tmp, Mconfig.McsmData[i].Id)
+	}
+	return tmp
+}
+
+func GetAllGroup() []int {
+	tmp := make([]int, 0, len(Mconfig.McsmData))
+	for i := 0; i < len(Mconfig.McsmData); i++ {
+		tmp = append(tmp, Mconfig.McsmData[i].Group_id)
+	}
+	return tmp
+}
+
 const config = `{
 	"mcsmdata": [
 		{

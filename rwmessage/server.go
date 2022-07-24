@@ -29,8 +29,8 @@ var IdToOd = make(map[int]int)
 var log = logger.GetLog()
 var Mconfig = gconfig.Mconfig
 var Qconfig = gconfig.Qconfig
-var AllId = GetAllId()
-var AllGroup = GetAllGroup()
+var AllId = gconfig.GetAllId()
+var AllGroup = gconfig.GetAllGroup()
 
 // var AllDaemon = make(map[string]([]string))
 
@@ -179,10 +179,6 @@ func (s *Server) broadCast(msg *MsgData) {
 			s.send_group_msg(msg.Group_id, help(msg))
 			return
 		} else if msg.Params[1] == "" && len(GroupToId[msg.Group_id]) == 1 {
-			if msg.Params[2] == "" {
-				log.Warring("[CQ:reply,id=%d]命令为空!\n请输入run %d help查看帮助!", msg.User_id, GroupToId[msg.Group_id][0])
-				return
-			}
 			GOnlineMap[GroupToId[msg.Group_id][0]].ChGroupMsg <- msg
 			return
 		}
@@ -194,31 +190,13 @@ func (s *Server) broadCast(msg *MsgData) {
 			log.Warring("接收的 id: %d 不存在!", id)
 			return
 		}
-		if msg.Params[2] == "" {
-			log.Warring("[CQ:reply,id=%d]命令为空!\n请输入run %d help查看帮助!", msg.User_id, id)
-			return
-		}
 		GOnlineMap[id].ChGroupMsg <- msg
-		// for _, v := range GOnlineMap {
-		// 	select {
-		// 	case v.ChGroupMsg <- msg:
-		// 	default:
-		// 		log.Warring("ChGroupMsg 堵塞!会造成消息丢失!")
-		// 	}
-		// }
 	} else if msg.Message_type == "private" {
 		if POnlineMap[0].Op != msg.User_id {
 			return
 		}
 		log.Info("获取到私聊信息:User_id:%d,Nickname:%s,Message:%s", msg.User_id, msg.Sender.Nickname, msg.Message)
 		POnlineMap[0].ChCqOpMsg <- msg
-		// for _, v := range POnlineMap {
-		// 	select {
-		// 	case v.ChCqOpMsg <- msg:
-		// 	default:
-		// 		log.Warring("ChPrivatemsg 堵塞!会造成消息丢失!")
-		// 	}
-		// }
 	}
 }
 
@@ -272,28 +250,4 @@ func (s *Server) fragmentSend(data *SendData) {
 		time.Sleep(time.Second)
 		s.SendMessage <- data
 	}
-}
-
-func GetAllDaemon() *map[string]string {
-	var tmplist = make(map[string]string)
-	for i := 0; i < len(Mconfig.McsmData); i++ {
-		tmplist[Mconfig.McsmData[i].Url] = Mconfig.McsmData[i].Apikey
-	}
-	return &tmplist
-}
-
-func GetAllId() []int {
-	tmp := make([]int, 0, len(Mconfig.McsmData))
-	for i := 0; i < len(Mconfig.McsmData); i++ {
-		tmp = append(tmp, Mconfig.McsmData[i].Id)
-	}
-	return tmp
-}
-
-func GetAllGroup() []int {
-	tmp := make([]int, 0, len(Mconfig.McsmData))
-	for i := 0; i < len(Mconfig.McsmData); i++ {
-		tmp = append(tmp, Mconfig.McsmData[i].Group_id)
-	}
-	return tmp
 }

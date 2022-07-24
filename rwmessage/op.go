@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/zijiren233/MCSM-Bot/gconfig"
 	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
@@ -149,7 +150,7 @@ func (p *Op) runCMD(id int, params string) {
 }
 
 func (p *Op) getDaemonStatus() {
-	UrlAndKey := GetAllDaemon()
+	UrlAndKey := gconfig.GetAllDaemon()
 	client := &http.Client{}
 	var data RemoteStatus
 	for url, key := range *UrlAndKey {
