@@ -184,6 +184,7 @@ func (u *HdGroup) getStatusInfo() error {
 	u.PingIp = status.Data.Config.PingConfig.PingIp
 	u.CurrentPlayers = status.Data.Info.CurrentPlayers
 	u.MaxPlayers = status.Data.Info.MaxPlayers
+	u.Version = status.Data.Info.Version
 	return nil
 }
 
