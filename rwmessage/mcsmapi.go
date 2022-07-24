@@ -84,7 +84,7 @@ func (u *HdGroup) RunCmd(commd string) (string, error) {
 		log.Error("运行命令 %s 失败！%v", commd, err)
 		return fmt.Sprintf("运行命令 %s 失败！", commd), err
 	}
-	time.Sleep(350 * time.Millisecond)
+	time.Sleep(380 * time.Millisecond)
 	return u.returnResult(commd)
 }
 
@@ -113,7 +113,7 @@ func (u *HdGroup) returnResult(command string) (string, error) {
 		return fmt.Sprintf("[%s] %s", u.Name, (*utils.Handle_End_Newline(&b2))[i[len(i)-1][0]:]), nil
 	}
 	log.Debug("终端信息: %#v\n", b2)
-	return "运行命令成功! 可能由于 {网络延迟,控制台乱码} 导致", nil
+	return "执行控制台命令成功! 可能由于 {网络延迟,控制台乱码} 导致运行结果返回失败", nil
 }
 
 func (u *HdGroup) Restart() (string, error) {

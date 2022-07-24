@@ -2,6 +2,7 @@ package bot
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/zijiren233/MCSM-Bot/base"
@@ -25,8 +26,8 @@ func Main() {
 	base.Update(version)
 	// 检查配置文件内是否存在重复ID
 	if utils.IsListDuplicated(rwmessage.AllId) {
-		log.Error("配置文件中存在重复 id")
-		return
+		log.Fatal("配置文件中存在重复 id")
+		os.Exit(-1)
 	}
 	serve := rwmessage.NewServer(gconfig.Qconfig.Cqhttp.Url)
 	go serve.Run()

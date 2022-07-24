@@ -121,7 +121,7 @@ func (s *Server) retrydial() {
 }
 
 func (s *Server) broadCast(msg *MsgData) {
-	re, _ := regexp.Compile(`^run ([0-9]*) *(.*)`)
+	re, _ := regexp.Compile(`^run *([0-9]*) *(.*)`)
 	params := re.FindStringSubmatch(msg.Message)
 	if len(params) == 0 {
 		return
