@@ -20,12 +20,12 @@ jobs:
 
             - name: Build
               run: |
-                  CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o MCSM-Bot_windows_amd64.exe
-                  CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -o MCSM-Bot_windows_arm64.exe
-                  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o MCSM-Bot_linux_amd64
-                  CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o MCSM-Bot_linux_arm64
-                  CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o MCSM-Bot_darwin_amd64
-                  CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o MCSM-Bot_darwin_arm64
+                  CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-w -s" -o MCSM-Bot_windows_amd64.exe
+                  CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -ldflags="-w -s" -o MCSM-Bot_windows_arm64.exe
+                  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o MCSM-Bot_linux_amd64
+                  CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-w -s" -o MCSM-Bot_linux_arm64
+                  CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-w -s" -o MCSM-Bot_darwin_amd64
+                  CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-w -s" -o MCSM-Bot_darwin_arm64
 
             - name: Upload a Build Artifact
               uses: actions/upload-artifact@v3.1.0
