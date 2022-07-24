@@ -167,7 +167,7 @@ func (u *HdGroup) checkCMD1(msg *MsgData) {
 		for _, v := range u.UserCmd {
 			sendmsg += "run " + v + "\n"
 		}
-		sendmsg += "要在控制台内运行 help 命令请输入 run terminal help"
+		sendmsg += "要在控制台内运行 help 命令请输入 run id terminal help"
 		sendmsg = *utils.Handle_End_Newline(&sendmsg)
 	case "terminal help":
 		sendmsg, err = u.RunCmd("help")

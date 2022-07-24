@@ -153,8 +153,15 @@ func (s *Server) broadCast(msg *MsgData) {
 func (s *Server) sendMsg() {
 	var tmp []byte
 	var err error
+	var data *SendData
 	for {
-		tmp, err = json.Marshal(*<-s.SendMessage)
+		data = <-s.SendMessage
+		if len(data.Params.Message) >= 4000 {
+			log.Warring("消息过长,将采用分段发送...")
+			s.fragmentSend(data)
+			continue
+		}
+		tmp, err = json.Marshal(*data)
 		if err != nil {
 			log.Error("解析待发送的消息失败:%v", err)
 			continue
@@ -166,7 +173,28 @@ func (s *Server) sendMsg() {
 			log.Error("发送消息: %s 失败:%v", string(tmp), err)
 			continue
 		}
-		log.Info("发送消息成功:%s", string(tmp))
+		log.Info("发送消息:%s ...", string(tmp)[:180])
+	}
+}
+
+func (s *Server) fragmentSend(data *SendData) {
+	new := strings.LastIndex(data.Params.Message[:2000], "\n")
+	if new != -1 {
+		newdata := *data
+		newdata.Params.Message = data.Params.Message[:new]
+		time.Sleep(time.Second)
+		s.SendMessage <- &newdata
+		data.Params.Message = data.Params.Message[new:]
+		time.Sleep(time.Second)
+		s.SendMessage <- data
+	} else {
+		newdata := *data
+		newdata.Params.Message = data.Params.Message[:2000]
+		time.Sleep(time.Second)
+		s.SendMessage <- &newdata
+		data.Params.Message = data.Params.Message[2000:]
+		time.Sleep(time.Second)
+		s.SendMessage <- data
 	}
 }
 
