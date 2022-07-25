@@ -131,7 +131,7 @@ run (id/*) weather clear
 ```
 括号内的 id 可省略
 
-run (id/*) help 查看帮助
+run (id) help 查看帮助
 
 run (id/*) status 查看服务器运行状态
 

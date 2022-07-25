@@ -104,16 +104,23 @@ func (s *Server) Run() {
 		json.Unmarshal(data, &msgdata)
 		if msgdata.Post_type == "message" {
 			params := re.FindStringSubmatch(msgdata.Message)
+			if len(params) == 0 {
+				continue
+			}
+			if msgdata.Message_type == "group" {
+				log.Info("获取到群组信息:Group_id:%d,User_id:%d,Nickname:%s,Message:%s", msgdata.Group_id, msgdata.User_id, msgdata.Sender.Nickname, msgdata.Message)
+			} else if msgdata.Message_type == "private" {
+				log.Info("获取到私聊信息:User_id:%d,Nickname:%s,Message:%s", msgdata.User_id, msgdata.Sender.Nickname, msgdata.Message)
+			}
 			params[2] = strings.ReplaceAll(params[2], "\n", "")
 			params[2] = strings.ReplaceAll(params[2], "\r", "")
 			msgdata.Params = params
 			if params[1] == "*" {
-				for _, id := range GroupToId[msgdata.Group_id] {
-					GOnlineMap[id].ChGroupMsg <- &msgdata
+				if params[2] != "help" {
+					for _, id := range GroupToId[msgdata.Group_id] {
+						GOnlineMap[id].ChGroupMsg <- &msgdata
+					}
 				}
-				continue
-			}
-			if len(params) == 0 {
 				continue
 			}
 			go s.broadCast(&msgdata)
@@ -182,7 +189,6 @@ func (s *Server) broadCast(msg *MsgData) {
 		if !utils.InInt(msg.Group_id, AllGroup) {
 			return
 		}
-		log.Info("获取到群组信息:Group_id:%d,User_id:%d,Nickname:%s,Message:%s", msg.Group_id, msg.User_id, msg.Sender.Nickname, msg.Message)
 		if msg.Params[1] == "" && len(GroupToId[msg.Group_id]) >= 2 {
 			s.send_group_msg(msg.Group_id, help(msg))
 			return
@@ -203,7 +209,6 @@ func (s *Server) broadCast(msg *MsgData) {
 		if POnlineMap[0].Op != msg.User_id {
 			return
 		}
-		log.Info("获取到私聊信息:User_id:%d,Nickname:%s,Message:%s", msg.User_id, msg.Sender.Nickname, msg.Message)
 		POnlineMap[0].ChCqOpMsg <- msg
 	}
 }

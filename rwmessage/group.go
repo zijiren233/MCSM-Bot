@@ -83,7 +83,7 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 	log.Debug("ID: %d ,NAME: %s ,TYPE:%s ,PTY: %v", u.Id, u.Name, u.ProcessType, u.Pty)
 	if u.ProcessType != "docker" && !u.Pty {
 		log.Error("实例:%s 未开启 仿真终端 或 未使用 docker 启动！", u.Name)
-		log.Fatal("实例:%s 监听失败", u.Name)
+		log.Fatal("Id: %d, 实例:%s 监听失败", u.Id, u.Name)
 		return nil
 	}
 	GroupToId[u.Group_id] = append(GroupToId[u.Group_id], u.Id)
@@ -106,18 +106,17 @@ func (u *HdGroup) hdChMessage() {
 	for {
 		msg = <-u.ChGroupMsg
 		if u.Group_id == msg.Group_id {
-			if msg.Params[2] == "" {
-				log.Warring("[CQ:reply,id=%d]命令为空!\n请输入run %d help查看帮助!", msg.User_id, GroupToId[msg.Group_id][0])
-				continue
-			}
+			u.lock.RLock()
 			if utils.InInt(msg.User_id, u.Adminlist) || utils.InString(msg.Params[2], u.UserCmd) {
 				go u.runCMD(msg)
+			} else if msg.Params[1] == "*" {
+				log.Warring("权限不足:群组: %d,用户: %d,命令: %#v, 实例: %s", msg.Group_id, msg.User_id, msg.Params[0], u.Name)
 			} else {
-				log.Warring("权限不足:群组: %d,用户: %d,命令: %#v", msg.Group_id, msg.User_id, msg.Params[0])
+				log.Warring("权限不足:群组: %d,用户: %d,命令: %#v, 实例: %s", msg.Group_id, msg.User_id, msg.Params[0], u.Name)
 				u.Send_group_msg("[CQ:reply,id=%d]权限不足!", msg.Message_id)
 			}
+			u.lock.RUnlock()
 		}
-
 	}
 }
 

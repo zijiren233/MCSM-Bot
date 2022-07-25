@@ -69,6 +69,9 @@ func (u *HdGroup) RunCmd(commd string) (string, error) {
 	if u.Status != 2 && u.Status != 3 {
 		return fmt.Sprintf("服务器: %s 未运行!", u.Name), nil
 	}
+	if commd == "" {
+		return "运行命令为空!", nil
+	}
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", u.Url+"/api/protected_instance/command", nil)
 	r2.Close = true
