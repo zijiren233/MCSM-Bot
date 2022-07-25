@@ -2,6 +2,7 @@ package rwmessage
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -105,13 +106,14 @@ func (u *HdGroup) hdChMessage() {
 	var msg *MsgData
 	for {
 		msg = <-u.ChGroupMsg
+		var isadmin = utils.InInt(msg.User_id, u.Adminlist)
 		if u.Group_id == msg.Group_id {
 			u.lock.RLock()
-			if msg.Params[1] == "*" && utils.InInt(msg.User_id, u.Adminlist) {
+			if msg.Params[1] == "*" && isadmin {
 				go u.runCMD(msg)
-			} else if msg.Params[1] == "*" && !utils.InInt(msg.User_id, u.Adminlist) {
+			} else if msg.Params[1] == "*" && !isadmin {
 				continue
-			} else if utils.InInt(msg.User_id, u.Adminlist) || utils.InString(msg.Params[2], u.UserCmd) {
+			} else if isadmin || utils.InString(strings.Split(msg.Params[2], " ")[0], u.UserCmd) {
 				go u.runCMD(msg)
 			} else {
 				log.Warring("权限不足:群组: %d,用户: %d,命令: %#v, 实例: %s", msg.Group_id, msg.User_id, msg.Params[0], u.Name)
