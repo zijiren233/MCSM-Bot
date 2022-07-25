@@ -91,7 +91,7 @@ func (s *Server) Run() {
 	go s.sendMsg()
 	var data []byte
 	var err error
-	re, _ := regexp.Compile(`^run *([0-9]*) *(.*)`)
+	re, _ := regexp.Compile(`^run *([0-9\*]*) *(.*)`)
 	for {
 		s.lock.RLock()
 		_, data, err = s.ws.ReadMessage()
@@ -104,12 +104,18 @@ func (s *Server) Run() {
 		json.Unmarshal(data, &msgdata)
 		if msgdata.Post_type == "message" {
 			params := re.FindStringSubmatch(msgdata.Message)
-			if len(params) == 0 {
-				continue
-			}
 			params[2] = strings.ReplaceAll(params[2], "\n", "")
 			params[2] = strings.ReplaceAll(params[2], "\r", "")
 			msgdata.Params = params
+			if params[1] == "*" {
+				for _, id := range GroupToId[msgdata.Group_id] {
+					GOnlineMap[id].ChGroupMsg <- &msgdata
+				}
+				continue
+			}
+			if len(params) == 0 {
+				continue
+			}
 			go s.broadCast(&msgdata)
 		}
 	}
@@ -155,15 +161,17 @@ func help(msgdata *MsgData) string {
 func (s *Server) retrydial() {
 	var err error
 	log.Error("cqhttp 连接失败!")
+	var ws *websocket.Conn
 	for i := 0; ; i++ {
 		log.Error("cqhttp 第 %d 次重连", i)
 		s.lock.Lock()
-		s.ws, _, err = websocket.DefaultDialer.Dial(s.Url, nil)
+		ws, _, err = websocket.DefaultDialer.Dial(s.Url, nil)
 		s.lock.Unlock()
 		if err != nil {
 			time.Sleep(5 * time.Second)
 			continue
 		}
+		s.ws = ws
 		log.Info("cqhttp 重连成功!")
 		return
 	}
