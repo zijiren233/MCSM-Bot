@@ -107,10 +107,12 @@ func (u *HdGroup) hdChMessage() {
 		msg = <-u.ChGroupMsg
 		if u.Group_id == msg.Group_id {
 			u.lock.RLock()
-			if utils.InInt(msg.User_id, u.Adminlist) || utils.InString(msg.Params[2], u.UserCmd) {
+			if msg.Params[1] == "*" && utils.InInt(msg.User_id, u.Adminlist) {
 				go u.runCMD(msg)
-			} else if msg.Params[1] == "*" {
-				log.Warring("权限不足:群组: %d,用户: %d,命令: %#v, 实例: %s", msg.Group_id, msg.User_id, msg.Params[0], u.Name)
+			} else if msg.Params[1] == "*" && !utils.InInt(msg.User_id, u.Adminlist) {
+				continue
+			} else if utils.InInt(msg.User_id, u.Adminlist) || utils.InString(msg.Params[2], u.UserCmd) {
+				go u.runCMD(msg)
 			} else {
 				log.Warring("权限不足:群组: %d,用户: %d,命令: %#v, 实例: %s", msg.Group_id, msg.User_id, msg.Params[0], u.Name)
 				u.Send_group_msg("[CQ:reply,id=%d]权限不足!", msg.Message_id)
