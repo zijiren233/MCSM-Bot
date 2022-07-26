@@ -69,9 +69,16 @@ loop:
 }
 
 func Handle_End_Newline(msg *string) *string {
-	last := strings.LastIndex(*msg, "\n")
+	var last int
+	last = strings.LastIndex(*msg, "\n")
 	if last == len(*msg)-2 {
 		*msg = (*msg)[:last]
+		return Handle_End_Newline(msg)
+	}
+	last = strings.LastIndex(*msg, "\r")
+	if last == len(*msg)-2 {
+		*msg = (*msg)[:last]
+		return Handle_End_Newline(msg)
 	}
 	return msg
 }

@@ -231,7 +231,7 @@ func (s *Server) sendMsg() {
 	var data *SendData
 	for {
 		data = <-s.SendMessage
-		if len(data.Params.Message) >= 4000 {
+		if len(data.Params.Message) >= 5000 {
 			log.Warring("消息过长,将采用分段发送...")
 			s.fragmentSend(data)
 			continue
@@ -257,7 +257,7 @@ func (s *Server) sendMsg() {
 }
 
 func (s *Server) fragmentSend(data *SendData) {
-	new := strings.LastIndex(data.Params.Message[:4500], "\n")
+	new := strings.LastIndex(data.Params.Message[:4000], "\n")
 	if new != -1 {
 		newdata := *data
 		newdata.Params.Message = data.Params.Message[:new]
@@ -268,10 +268,10 @@ func (s *Server) fragmentSend(data *SendData) {
 		s.SendMessage <- data
 	} else {
 		newdata := *data
-		newdata.Params.Message = data.Params.Message[:3000]
+		newdata.Params.Message = data.Params.Message[:4000]
 		time.Sleep(time.Second)
 		s.SendMessage <- &newdata
-		data.Params.Message = data.Params.Message[3000:]
+		data.Params.Message = data.Params.Message[4000:]
 		time.Sleep(time.Second)
 		s.SendMessage <- data
 	}

@@ -99,7 +99,7 @@ account里面的：
   -dlp
         Disable Log Print
   -log uint
-        记录命令日志的级别 0:Debug 1:Info 2:Warning 3:Error 4:Fatal 5:None (default 1) | 格式: -log=3
+        记录命令日志的级别 0:Debug 1:Info 2:Warning 3:Error 4:Fatal 5:None (default 1)
 ```
 
 -----
