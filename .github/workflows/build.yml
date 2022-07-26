@@ -1,7 +1,8 @@
-name: Go
+name: Build
 
 on:
     push:
+        tags-ignore:
     pull_request:
 
 jobs:

@@ -91,13 +91,14 @@ func (s *Server) Run() {
 	go s.sendMsg()
 	var data []byte
 	var err error
-	re, _ := regexp.Compile(`^run *([0-9\*]*) *(.*)`)
+	re, _ := regexp.Compile(`^run ?([0-9\*]*) ?(.*)`)
 	for {
 		s.lock.RLock()
 		_, data, err = s.ws.ReadMessage()
 		s.lock.RUnlock()
 		if err != nil {
 			s.retrydial()
+			log.Info("Cqhttp 连接成功!")
 			continue
 		}
 		var msgdata MsgData
@@ -115,14 +116,6 @@ func (s *Server) Run() {
 			params[2] = strings.ReplaceAll(params[2], "\n", "")
 			params[2] = strings.ReplaceAll(params[2], "\r", "")
 			msgdata.Params = params
-			if params[1] == "*" {
-				if params[2] != "help" {
-					for _, id := range GroupToId[msgdata.Group_id] {
-						GOnlineMap[id].ChGroupMsg <- &msgdata
-					}
-				}
-				continue
-			}
 			go s.broadCast(&msgdata)
 		}
 	}
@@ -136,13 +129,13 @@ func (s *Server) send_group_msg(group_id int, msg string, a ...interface{}) {
 	s.SendMessage <- &tmp
 }
 
-// func (s *Server) send_private_msg(user_id int, msg string, a ...interface{}) {
-// 	var tmp SendData
-// 	tmp.Action = "send_private_msg"
-// 	tmp.Params.User_id = user_id
-// 	tmp.Params.Message = fmt.Sprintf(msg, a...)
-// 	s.SendMessage <- &tmp
-// }
+func (s *Server) send_private_msg(user_id int, msg string, a ...interface{}) {
+	var tmp SendData
+	tmp.Action = "send_private_msg"
+	tmp.Params.User_id = user_id
+	tmp.Params.Message = fmt.Sprintf(msg, a...)
+	s.SendMessage <- &tmp
+}
 
 func help(msgdata *MsgData) string {
 	var msg string
@@ -179,13 +172,24 @@ func (s *Server) retrydial() {
 			continue
 		}
 		s.ws = ws
-		log.Info("cqhttp 重连成功!")
 		return
 	}
 }
 
 func (s *Server) broadCast(msg *MsgData) {
 	if msg.Message_type == "group" {
+		if msg.Params[1] == "*" && msg.Params[2] == "help" {
+			return
+		} else if msg.Params[1] == "*" && msg.Params[2] != "help" {
+			for _, id := range GroupToId[msg.Group_id] {
+				if GOnlineMap[id].isAdmin(msg) {
+					s.send_group_msg(msg.Group_id, GOnlineMap[id].runCMD(msg))
+				} else {
+					continue
+				}
+			}
+			return
+		}
 		if !utils.InInt(msg.Group_id, AllGroup) {
 			return
 		}
@@ -207,6 +211,14 @@ func (s *Server) broadCast(msg *MsgData) {
 		GOnlineMap[id].ChGroupMsg <- msg
 	} else if msg.Message_type == "private" {
 		if POnlineMap[0].Op != msg.User_id {
+			return
+		}
+		if msg.Params[1] == "*" && msg.Params[2] == "help" {
+			return
+		} else if msg.Params[1] == "*" && msg.Params[2] != "help" {
+			for _, id := range AllId {
+				s.send_private_msg(msg.User_id, GOnlineMap[id].runCMD(msg))
+			}
 			return
 		}
 		POnlineMap[0].ChCqOpMsg <- msg
@@ -245,7 +257,7 @@ func (s *Server) sendMsg() {
 }
 
 func (s *Server) fragmentSend(data *SendData) {
-	new := strings.LastIndex(data.Params.Message[:2000], "\n")
+	new := strings.LastIndex(data.Params.Message[:4500], "\n")
 	if new != -1 {
 		newdata := *data
 		newdata.Params.Message = data.Params.Message[:new]
@@ -256,10 +268,10 @@ func (s *Server) fragmentSend(data *SendData) {
 		s.SendMessage <- data
 	} else {
 		newdata := *data
-		newdata.Params.Message = data.Params.Message[:2000]
+		newdata.Params.Message = data.Params.Message[:3000]
 		time.Sleep(time.Second)
 		s.SendMessage <- &newdata
-		data.Params.Message = data.Params.Message[2000:]
+		data.Params.Message = data.Params.Message[3000:]
 		time.Sleep(time.Second)
 		s.SendMessage <- data
 	}

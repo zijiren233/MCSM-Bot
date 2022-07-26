@@ -106,15 +106,12 @@ func (u *HdGroup) hdChMessage() {
 	var msg *MsgData
 	for {
 		msg = <-u.ChGroupMsg
-		var isadmin = utils.InInt(msg.User_id, u.Adminlist)
 		if u.Group_id == msg.Group_id {
 			u.lock.RLock()
-			if msg.Params[1] == "*" && isadmin {
-				go u.runCMD(msg)
-			} else if msg.Params[1] == "*" && !isadmin {
-				continue
-			} else if isadmin || utils.InString(strings.Split(msg.Params[2], " ")[0], u.UserCmd) {
-				go u.runCMD(msg)
+			if u.isAdmin(msg) || utils.InString(strings.Split(msg.Params[2], " ")[0], u.UserCmd) {
+				go func(msg *MsgData) {
+					u.Send_group_msg(u.runCMD(msg))
+				}(msg)
 			} else {
 				log.Warring("权限不足:群组: %d,用户: %d,命令: %#v, 实例: %s", msg.Group_id, msg.User_id, msg.Params[0], u.Name)
 				u.Send_group_msg("[CQ:reply,id=%d]权限不足!", msg.Message_id)
@@ -124,14 +121,17 @@ func (u *HdGroup) hdChMessage() {
 	}
 }
 
-func (u *HdGroup) runCMD(msg *MsgData) {
+func (u *HdGroup) isAdmin(msg *MsgData) bool {
+	return utils.InInt(msg.User_id, u.Adminlist)
+}
+
+func (u *HdGroup) runCMD(msg *MsgData) string {
 	var sendmsg string
 	var err error
 	u.lock.RLock()
 	defer u.lock.RUnlock()
 	if u.Status != 3 && u.Status != 2 && (msg.Params[2] != "help" && msg.Params[2] != "server" && msg.Params[2] != "start") {
-		u.Send_group_msg("服务器: %s 未启动!\n请先启动服务器:\nrun %d start", u.Name, u.Id)
-		return
+		return fmt.Sprintf("服务器: %s 未启动!\n请先启动服务器:\nrun %d start", u.Name, u.Id)
 	}
 	switch msg.Params[2] {
 	case "help":
@@ -163,9 +163,9 @@ func (u *HdGroup) runCMD(msg *MsgData) {
 		sendmsg, err = u.RunCmd(msg.Params[2])
 	}
 	if err != nil {
-		return
+		return ""
 	}
-	u.Send_group_msg("[CQ:reply,id=%d]%s", msg.Message_id, sendmsg)
+	return fmt.Sprintf("[CQ:reply,id=%d]%s", msg.Message_id, sendmsg)
 }
 
 func (u *HdGroup) reportStatus() {
