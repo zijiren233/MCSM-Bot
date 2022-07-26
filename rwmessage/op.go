@@ -58,7 +58,7 @@ func (p *Op) Run() {
 		msg = <-p.ChCqOpMsg
 		if msg.User_id == p.Op {
 			if msg.Params[2] == "" {
-				p.Send_private_msg("命令为空!")
+				p.Send_private_msg(p.Op, "命令为空!")
 				p.help("help")
 				continue
 			} else if msg.Params[1] == "" {
@@ -74,13 +74,13 @@ func (p *Op) handleMessage(msg *MsgData) {
 	id, err := strconv.Atoi(msg.Params[1])
 	if err != nil {
 		log.Error("strconv.Atoi error:%v", err)
-		p.Send_private_msg("命令格式错误!\n请输入run help查看帮助!")
+		p.Send_private_msg(p.Op, "命令格式错误!\n请输入run help查看帮助!")
 		return
 	}
 	if utils.InInt(id, AllId) {
-		p.runCMD(id, msg.Params[2])
+		p.Send_private_msg(p.Op, GOnlineMap[id].runCMD(msg))
 	} else {
-		p.Send_private_msg("请输入正确的ID!")
+		p.Send_private_msg(p.Op, "请输入正确的ID!")
 		log.Warring("OP 输入: %d 请输入正确的ID!", p.Op, msg.Params[1])
 	}
 }
@@ -88,7 +88,7 @@ func (p *Op) handleMessage(msg *MsgData) {
 func (p *Op) help(params string) {
 	switch params {
 	case "help":
-		p.Send_private_msg("run list : 查看服务器列表\nrun status : 查看服务器状态\nrun daemon status : 查看MCSM后端状态\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 服务器命令 : 运行服务器命令")
+		p.Send_private_msg(p.Op, "run list : 查看服务器列表\nrun status : 查看服务器状态\nrun daemon status : 查看MCSM后端状态\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 服务器命令 : 运行服务器命令")
 	case "list":
 		var serverlist string
 		serverlist += "服务器列表:\n"
@@ -98,7 +98,7 @@ func (p *Op) help(params string) {
 			}
 		}
 		serverlist += "运行具体服务器命令请输入 run id list"
-		p.Send_private_msg(serverlist)
+		p.Send_private_msg(p.Op, serverlist)
 	case "status":
 		var serverstatus string
 		serverstatus += "服务器状态:\n"
@@ -110,7 +110,7 @@ func (p *Op) help(params string) {
 			}
 		}
 		serverstatus += "查询具体服务器请输入 run id status"
-		p.Send_private_msg(serverstatus)
+		p.Send_private_msg(p.Op, serverstatus)
 	case "daemon status":
 		p.getDaemonStatus()
 	default:
@@ -122,32 +122,32 @@ func (p *Op) help(params string) {
 			}
 		}
 		serverlist += "请添加 Id 参数"
-		p.Send_private_msg(serverlist)
+		p.Send_private_msg(p.Op, serverlist)
 	}
 }
 
-func (p *Op) runCMD(id int, params string) {
-	var msg string
-	var err error
-	switch params {
-	case "status":
-		msg = GOnlineMap[id].GetStatus()
-	case "start":
-		msg, err = GOnlineMap[id].Start()
-	case "stop":
-		msg, err = GOnlineMap[id].Stop()
-	case "restart":
-		msg, err = GOnlineMap[id].Restart()
-	case "kill":
-		msg, err = GOnlineMap[id].Kill()
-	default:
-		msg, err = GOnlineMap[id].RunCmd(params)
-	}
-	if err != nil {
-		return
-	}
-	p.Send_private_msg(msg)
-}
+// func (p *Op) runCMD(id int, params string) {
+// 	var msg string
+// 	var err error
+// 	switch params {
+// 	case "status":
+// 		msg = GOnlineMap[id].GetStatus()
+// 	case "start":
+// 		msg, err = GOnlineMap[id].Start()
+// 	case "stop":
+// 		msg, err = GOnlineMap[id].Stop()
+// 	case "restart":
+// 		msg, err = GOnlineMap[id].Restart()
+// 	case "kill":
+// 		msg, err = GOnlineMap[id].Kill()
+// 	default:
+// 		msg, err = GOnlineMap[id].RunCmd(params)
+// 	}
+// 	if err != nil {
+// 		return
+// 	}
+// 	p.Send_private_msg(msg)
+// }
 
 func (p *Op) getDaemonStatus() {
 	UrlAndKey := gconfig.GetAllDaemon()
@@ -168,7 +168,7 @@ func (p *Op) getDaemonStatus() {
 		json.Unmarshal(b, &data)
 		var sendmsg string
 		sendmsg += fmt.Sprintf("前端面板地址: %s\n后端总数量: %d\n后端在线数量: %d", url, data.Data.RemoteCount.Total, data.Data.RemoteCount.Available)
-		p.Send_private_msg(sendmsg)
+		p.Send_private_msg(p.Op, sendmsg)
 		time.Sleep(time.Second)
 		for _, tmpdata := range data.Data.Remote {
 			sendmsg = ""
@@ -177,16 +177,16 @@ func (p *Op) getDaemonStatus() {
 			sendmsg += fmt.Sprintf("Mem: %.2f", tmpdata.System.MemUsage*100)
 			sendmsg += "%%\n"
 			sendmsg += fmt.Sprintf("实例总个数: %d\n运行中实例个数: %d", tmpdata.Instance.Total, tmpdata.Instance.Running)
-			p.Send_private_msg(sendmsg)
+			p.Send_private_msg(p.Op, sendmsg)
 			time.Sleep(time.Second)
 		}
 	}
 }
 
-func (p *Op) Send_private_msg(msg string, a ...interface{}) {
+func (p *Op) Send_private_msg(user_id int, msg string, a ...interface{}) {
 	var tmp SendData
 	tmp.Action = "send_private_msg"
-	tmp.Params.User_id = p.Op
+	tmp.Params.User_id = user_id
 	tmp.Params.Message = fmt.Sprintf(msg, a...)
 	p.SendChan <- &tmp
 }
