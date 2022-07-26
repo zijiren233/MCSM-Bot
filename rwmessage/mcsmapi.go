@@ -87,7 +87,7 @@ func (u *HdGroup) RunCmd(commd string) (string, error) {
 		log.Error("运行命令 %s 失败！%v", commd, err)
 		return fmt.Sprintf("运行命令 %s 失败！", commd), err
 	}
-	time.Sleep(450 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 	return u.returnResult(commd, 2)
 }
 

@@ -12,8 +12,8 @@ import (
 	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
-type Op struct {
-	Op        int
+type admin struct {
+	adminList []int
 	ChCqOpMsg chan *MsgData
 	SendChan  chan *SendData
 }
@@ -42,27 +42,27 @@ type RemoteStatus struct {
 	} `json:"data"`
 }
 
-func NewHdOp(send chan *SendData) *Op {
-	p := Op{
-		Op:        Qconfig.Cqhttp.Op,
+func NewHdOp(send chan *SendData) *admin {
+	p := admin{
+		adminList: Qconfig.Cqhttp.AdminList,
 		ChCqOpMsg: make(chan *MsgData, 25),
 		SendChan:  send,
+	}
+	if len(p.adminList) == 0 {
+		log.Warring("配置文件中 cqhttp.adminList未设置!")
 	}
 	return &p
 }
 
-func (p *Op) Run() {
+func (p *admin) Run() {
 	POnlineMap[0] = p
 	var msg *MsgData
 	for {
 		msg = <-p.ChCqOpMsg
-		if msg.User_id == p.Op {
-			if msg.Params[2] == "" {
-				p.Send_private_msg(p.Op, "命令为空!")
-				p.help("help")
-				continue
-			} else if msg.Params[1] == "" {
-				p.help(msg.Params[2])
+		if utils.InInt(msg.User_id, p.adminList) {
+			if msg.Params[2] == "" || msg.Params[1] == "" {
+				msg.Params[2] = "help"
+				p.Send_private_msg(msg.User_id, p.help(msg))
 				continue
 			}
 			go p.handleMessage(msg)
@@ -70,63 +70,60 @@ func (p *Op) Run() {
 	}
 }
 
-func (p *Op) handleMessage(msg *MsgData) {
+func (p *admin) handleMessage(msg *MsgData) {
 	id, err := strconv.Atoi(msg.Params[1])
 	if err != nil {
 		log.Error("strconv.Atoi error:%v", err)
-		p.Send_private_msg(p.Op, "命令格式错误!\n请输入run help查看帮助!")
+		p.Send_private_msg(msg.User_id, "命令格式错误!\n请输入run help查看帮助!")
 		return
 	}
 	if utils.InInt(id, AllId) {
-		p.Send_private_msg(p.Op, GOnlineMap[id].runCMD(msg))
+		p.Send_private_msg(msg.User_id, GOnlineMap[id].runCMD(msg))
 	} else {
-		p.Send_private_msg(p.Op, "请输入正确的ID!")
-		log.Warring("OP 输入: %d 请输入正确的ID!", p.Op, msg.Params[1])
+		p.Send_private_msg(msg.User_id, "请输入正确的ID!")
+		log.Warring("OP 输入: %d 请输入正确的ID!", msg.User_id, msg.Params[1])
 	}
 }
 
-func (p *Op) help(params string) {
-	switch params {
+func (p *admin) help(msgdata *MsgData) string {
+	var msg string
+	switch msgdata.Params[2] {
 	case "help":
-		p.Send_private_msg(p.Op, "run list : 查看服务器列表\nrun status : 查看服务器状态\nrun daemon status : 查看MCSM后端状态\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 服务器命令 : 运行服务器命令")
+		return "run list : 查看服务器列表\nrun status : 查看服务器状态\nrun daemon status : 查看MCSM后端状态\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 服务器命令 : 运行服务器命令"
 	case "list":
-		var serverlist string
-		serverlist += "服务器列表:\n"
+		msg += "服务器列表:\n"
 		for _, v := range AllId {
 			if i, ok := GOnlineMap[v]; ok {
-				serverlist += fmt.Sprintf("Id: %-5dGroup: %-13dName: %s\n", i.Id, i.Group_id, i.Name)
+				msg += fmt.Sprintf("Id: %-5dGroup: %-13dName: %s\n", i.Id, i.Group_id, i.Name)
 			}
 		}
-		serverlist += "运行具体服务器命令请输入 run id list"
-		p.Send_private_msg(p.Op, serverlist)
+		msg += "运行具体服务器命令请输入 run id list"
 	case "status":
-		var serverstatus string
-		serverstatus += "服务器状态:\n"
+		msg += "服务器状态:\n"
 		for k, v := range GOnlineMap {
 			if v.Status == 2 || v.Status == 3 {
-				serverstatus += fmt.Sprintf("Id: %-5dStatus: RUNNING  Name: %s\n", k, v.Name)
+				msg += fmt.Sprintf("Id: %-5dStatus: RUNNING  Name: %s\n", k, v.Name)
 			} else {
-				serverstatus += fmt.Sprintf("Id: %-5dStatus: STOPPED  Name: %s\n", k, v.Name)
+				msg += fmt.Sprintf("Id: %-5dStatus: STOPPED  Name: %s\n", k, v.Name)
 			}
 		}
-		serverstatus += "查询具体服务器请输入 run id status"
-		p.Send_private_msg(p.Op, serverstatus)
+		msg += "查询具体服务器请输入 run id status"
 	case "daemon status":
-		p.getDaemonStatus()
+		p.getDaemonStatus(msgdata.User_id)
+		return ""
 	default:
-		var serverlist string
-		serverlist += "服务器列表:\n"
+		msg += "服务器列表:\n"
 		for _, v := range AllId {
 			if i, ok := GOnlineMap[v]; ok {
-				serverlist += fmt.Sprintf("Id: %-5d Name: %s\n", i.Id, i.Name)
+				msg += fmt.Sprintf("Id: %-5d Name: %s\n", i.Id, i.Name)
 			}
 		}
-		serverlist += "请添加 Id 参数"
-		p.Send_private_msg(p.Op, serverlist)
+		msg += "请添加 Id 参数"
 	}
+	return msg
 }
 
-// func (p *Op) runCMD(id int, params string) {
+// func (p *admin) runCMD(id int, params string) {
 // 	var msg string
 // 	var err error
 // 	switch params {
@@ -149,7 +146,7 @@ func (p *Op) help(params string) {
 // 	p.Send_private_msg(msg)
 // }
 
-func (p *Op) getDaemonStatus() {
+func (p *admin) getDaemonStatus(user_id int) {
 	UrlAndKey := gconfig.GetAllDaemon()
 	client := &http.Client{}
 	var data RemoteStatus
@@ -168,7 +165,7 @@ func (p *Op) getDaemonStatus() {
 		json.Unmarshal(b, &data)
 		var sendmsg string
 		sendmsg += fmt.Sprintf("前端面板地址: %s\n后端总数量: %d\n后端在线数量: %d", url, data.Data.RemoteCount.Total, data.Data.RemoteCount.Available)
-		p.Send_private_msg(p.Op, sendmsg)
+		p.Send_private_msg(user_id, sendmsg)
 		time.Sleep(time.Second)
 		for _, tmpdata := range data.Data.Remote {
 			sendmsg = ""
@@ -177,13 +174,13 @@ func (p *Op) getDaemonStatus() {
 			sendmsg += fmt.Sprintf("Mem: %.2f", tmpdata.System.MemUsage*100)
 			sendmsg += "%%\n"
 			sendmsg += fmt.Sprintf("实例总个数: %d\n运行中实例个数: %d", tmpdata.Instance.Total, tmpdata.Instance.Running)
-			p.Send_private_msg(p.Op, sendmsg)
+			p.Send_private_msg(user_id, sendmsg)
 			time.Sleep(time.Second)
 		}
 	}
 }
 
-func (p *Op) Send_private_msg(user_id int, msg string, a ...interface{}) {
+func (p *admin) Send_private_msg(user_id int, msg string, a ...interface{}) {
 	var tmp SendData
 	tmp.Action = "send_private_msg"
 	tmp.Params.User_id = user_id
