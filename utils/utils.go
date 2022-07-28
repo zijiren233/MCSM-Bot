@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 )
 
 type gitApiJson struct {
@@ -69,18 +68,20 @@ loop:
 }
 
 func Handle_End_Newline(msg *string) *string {
-	var last int
-	last = strings.LastIndex(*msg, "\n")
-	if last == len(*msg)-2 {
-		*msg = (*msg)[:last]
-		return Handle_End_Newline(msg)
-	}
-	last = strings.LastIndex(*msg, "\r")
-	if last == len(*msg)-2 {
-		*msg = (*msg)[:last]
-		return Handle_End_Newline(msg)
-	}
+	*msg = (*msg)[:handle_End_Newline(msg)]
 	return msg
+}
+
+func handle_End_Newline(msg *string) int {
+	lens := len(*msg)
+	var i int
+	for i = 0; i < lens; i++ {
+		if (*msg)[lens-i-1:lens-i] == "\n" || (*msg)[lens-i-1:lens-i] == "\r" {
+			continue
+		}
+		break
+	}
+	return lens - i
 }
 
 func IsListDuplicated(list []int) (string, bool) {

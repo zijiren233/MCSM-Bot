@@ -123,29 +123,6 @@ func (p *admin) help(msgdata *MsgData) string {
 	return msg
 }
 
-// func (p *admin) runCMD(id int, params string) {
-// 	var msg string
-// 	var err error
-// 	switch params {
-// 	case "status":
-// 		msg = GOnlineMap[id].GetStatus()
-// 	case "start":
-// 		msg, err = GOnlineMap[id].Start()
-// 	case "stop":
-// 		msg, err = GOnlineMap[id].Stop()
-// 	case "restart":
-// 		msg, err = GOnlineMap[id].Restart()
-// 	case "kill":
-// 		msg, err = GOnlineMap[id].Kill()
-// 	default:
-// 		msg, err = GOnlineMap[id].RunCmd(params)
-// 	}
-// 	if err != nil {
-// 		return
-// 	}
-// 	p.Send_private_msg(msg)
-// }
-
 func (p *admin) getDaemonStatus(user_id int) {
 	UrlAndKey := gconfig.GetAllDaemon()
 	client := &http.Client{}

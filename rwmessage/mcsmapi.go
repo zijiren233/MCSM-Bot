@@ -114,9 +114,10 @@ func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
 	json.Unmarshal(b, &data)
 	b2 := utils.NoColorable(&data.Data).String()
 	r3, _ := regexp.Compile(`(?m)(` + command + `(\r)+?)$`)
-	i := r3.FindAllStringIndex(b2, -1)
-	if len(i) != 0 {
-		return fmt.Sprintf("[%s] %s", u.Name, (*utils.Handle_End_Newline(&b2))[i[len(i)-1][0]:]), nil
+	index := r3.FindAllStringIndex(b2, -1)
+	if len(index) != 0 {
+		b2 = b2[index[len(index)-1][0]:]
+		return fmt.Sprintf("[%s] %s", u.Name, *utils.Handle_End_Newline(&b2)), nil
 	}
 	log.Debug("终端信息: %#v\n", b2)
 	return u.returnResult(command, try-1)

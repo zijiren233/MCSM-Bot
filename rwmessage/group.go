@@ -146,7 +146,7 @@ func (u *HdGroup) runCMD(msg *MsgData) string {
 		for _, v := range u.UserCmd {
 			sendmsg += fmt.Sprintf("run %d %s\n", u.Id, v)
 		}
-		sendmsg += "要在控制台内运行 help 命令请输入 run id terminal help"
+		sendmsg += fmt.Sprintf("要在控制台内运行 help 命令请输入 run %d terminal help", u.Id)
 	case "terminal help":
 		sendmsg, err = u.RunCmd("help")
 	case "status":
