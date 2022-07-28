@@ -229,6 +229,7 @@ func (s *Server) sendMsg() {
 	var tmp []byte
 	var err error
 	var data *SendData
+	var index int
 	for {
 		data = <-s.SendMessage
 		if len(data.Params.Message) >= 5000 {
@@ -251,7 +252,12 @@ func (s *Server) sendMsg() {
 		if len(string(tmp)) <= 200 {
 			log.Info("发送消息:%s ...", string(tmp))
 		} else {
-			log.Info("发送消息:%s ...", string(tmp)[:200])
+			index = strings.LastIndex(string(tmp)[:200], "\n")
+			if index > 0 {
+				log.Info("发送消息:%s ...", string(tmp)[:strings.LastIndex(string(tmp)[:200], "\n")])
+			} else {
+				log.Info("发送消息:%s ...", string(tmp)[:200])
+			}
 		}
 	}
 }
