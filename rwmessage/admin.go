@@ -59,14 +59,16 @@ func (p *admin) Run() {
 	var msg *MsgData
 	for {
 		msg = <-p.ChCqOpMsg
-		if utils.InInt(msg.User_id, p.adminList) {
-			if msg.Params[2] == "" || msg.Params[1] == "" {
-				msg.Params[2] = "help"
-				p.Send_private_msg(msg.User_id, p.help(msg))
-				continue
-			}
-			go p.handleMessage(msg)
+		if msg.Params[2] == "" {
+			msg.Params[2] = "help"
+			p.Send_private_msg(msg.User_id, p.help(msg))
+			continue
+		} else if msg.Params[1] == "" {
+			p.Send_private_msg(msg.User_id, p.help(msg))
+			continue
 		}
+		go p.handleMessage(msg)
+
 	}
 }
 
@@ -89,7 +91,7 @@ func (p *admin) help(msgdata *MsgData) string {
 	var msg string
 	switch msgdata.Params[2] {
 	case "help":
-		return "run list : 查看服务器列表\nrun status : 查看服务器状态\nrun daemon status : 查看MCSM后端状态\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 服务器命令 : 运行服务器命令"
+		return "run list : 查看服务器列表\nrun stopped list : 查看未运行的服务器列表\nrun status : 查看服务器状态\nrun daemon status : 查看MCSM后端状态\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 服务器命令 : 运行服务器命令"
 	case "list":
 		msg += "服务器列表:\n"
 		for _, v := range AllId {
@@ -98,19 +100,12 @@ func (p *admin) help(msgdata *MsgData) string {
 			}
 		}
 		msg += "运行具体服务器命令请输入 run id list"
+	case "stopped list":
+		msg = p.getStoppedList()
 	case "status":
-		msg += "服务器状态:\n"
-		for k, v := range GOnlineMap {
-			if v.Status == 2 || v.Status == 3 {
-				msg += fmt.Sprintf("Id: %-5dStatus: RUNNING  Name: %s\n", k, v.Name)
-			} else {
-				msg += fmt.Sprintf("Id: %-5dStatus: STOPPED  Name: %s\n", k, v.Name)
-			}
-		}
-		msg += "查询具体服务器请输入 run id status"
+		msg = p.getStatus()
 	case "daemon status":
 		p.getDaemonStatus(msgdata.User_id)
-		return ""
 	default:
 		msg += "服务器列表:\n"
 		for _, v := range AllId {
@@ -119,6 +114,31 @@ func (p *admin) help(msgdata *MsgData) string {
 			}
 		}
 		msg += "请添加 Id 参数"
+	}
+	return msg
+}
+
+func (p *admin) getStatus() string {
+	var msg string
+	msg += "服务器状态:\n"
+	for k, v := range GOnlineMap {
+		if v.Status == 2 || v.Status == 3 {
+			msg += fmt.Sprintf("Id: %-5dStatus: RUNNING  Name: %s\n", k, v.Name)
+		} else {
+			msg += fmt.Sprintf("Id: %-5dStatus: STOPPED  Name: %s\n", k, v.Name)
+		}
+	}
+	msg += "查询具体服务器请输入 run id status"
+	return msg
+}
+
+func (p *admin) getStoppedList() string {
+	var msg string
+	msg += "未运行服务器列表:\n"
+	for k, v := range GOnlineMap {
+		if v.Status != 2 && v.Status != 3 {
+			msg += fmt.Sprintf("Id: %-5dStatus: STOPPED  Name: %s\n", k, v.Name)
+		}
 	}
 	return msg
 }
