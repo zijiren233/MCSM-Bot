@@ -2,8 +2,10 @@ package logger
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -12,7 +14,14 @@ import (
 	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
-var log Logger
+var (
+	log       Logger
+	backre, _ = regexp.Compile(`^(\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2})_(.*?).log`)
+)
+
+const (
+	maxBackLog = 3
+)
 
 const (
 	Debug uint = iota
@@ -135,7 +144,7 @@ func (l *Logger) fileInit() {
 		fmt.Println("打开日志错误!")
 		panic(err)
 	}
-	ef, err2 := os.OpenFile("./logs/errlog.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
+	ef, err2 := os.OpenFile("./logs/err.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
 	if err != nil {
 		fmt.Println("打开Err日志错误!")
 		panic(err2)
@@ -149,7 +158,7 @@ func (l *Logger) backupLog() {
 	// 2M
 	if file.Size() >= 2097152 {
 		l.fileOBJ.Close()
-		os.Rename(`./logs/log.log`, fmt.Sprint(`./logs/`, time.Now().Format("2006_01_02_15_04_05_bak_log.log")))
+		os.Rename(`./logs/log.log`, fmt.Sprint(`./logs/`, time.Now().Format("2006_01_02_15_04_05_log.log")))
 		f, _ := os.OpenFile("./logs/log.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
 		l.fileOBJ = f
 	}
@@ -159,24 +168,34 @@ func (l *Logger) backupErrLog() {
 	file, _ := l.errFileOBJ.Stat()
 	if file.Size() >= 2097152 {
 		l.errFileOBJ.Close()
-		os.Rename(`./logs/errlog.log`, fmt.Sprint(`./logs/`, time.Now().Format("2006_01_02_15_04_05_bak_errlog.log")))
-		f, _ := os.OpenFile("./logs/errlog.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
+		os.Rename(`./logs/err.log`, fmt.Sprint(`./logs/`, time.Now().Format("2006_01_02_15_04_05_err.log")))
+		f, _ := os.OpenFile("./logs/err.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
 		l.errFileOBJ = f
 	}
 }
 
 func (l *Logger) log(levle uint, format string, a ...interface{}) {
-	filename, funcName, line := getInfo()
+	var log logmsg
 	if l.levle <= levle {
+		if l.levle == Debug {
+			filename, funcName, line := getInfo()
+			log = logmsg{
+				levle:    levle,
+				message:  fmt.Sprintf(format, a...),
+				now:      time.Now().Format("[2006-01-02 15:04:05]"),
+				funcName: funcName,
+				filename: filename,
+				line:     line,
+			}
+		} else {
+			log = logmsg{
+				levle:   levle,
+				message: fmt.Sprintf(format, a...),
+				now:     time.Now().Format("[2006-01-02 15:04:05]"),
+			}
+		}
 		select {
-		case l.message <- &logmsg{
-			levle:    levle,
-			message:  fmt.Sprintf(format, a...),
-			now:      time.Now().Format("[2006-01-02 15:04:05] "),
-			funcName: funcName,
-			filename: filename,
-			line:     line,
-		}:
+		case l.message <- &log:
 		default:
 		}
 	}
@@ -190,16 +209,73 @@ func (l *Logger) backWriteLog() {
 	var msgtmp *logmsg
 	stdout := colorable.NewColorableStdout
 	for {
+		deleteBacLog()
 		msgtmp = <-l.message
 		l.backupLog()
-		fmt.Fprintf(l.fileOBJ, "%s[%s] [%s|%s|%d] %s\n", msgtmp.now, IntToLevle(msgtmp.levle), msgtmp.filename, msgtmp.funcName, msgtmp.line, msgtmp.message)
+		if l.levle == Debug {
+			fmt.Fprintf(l.fileOBJ, "%s [%s] [%s|%s|%d] %s\n", msgtmp.now, IntToLevle(msgtmp.levle), msgtmp.filename, msgtmp.funcName, msgtmp.line, msgtmp.message)
+		} else {
+			fmt.Fprintf(l.fileOBJ, "%s [%s] %s\n", msgtmp.now, IntToLevle(msgtmp.levle), msgtmp.message)
+		}
 		if !l.disableprint {
-			fmt.Fprintf(stdout(), "%s|%s %s %s| %s\n", msgtmp.now, levleColor(msgtmp.levle), IntToLevle(msgtmp.levle), reset, msgtmp.message)
+			fmt.Fprintf(stdout(), "%s |%s %s %s| %s\n", msgtmp.now, levleColor(msgtmp.levle), IntToLevle(msgtmp.levle), reset, msgtmp.message)
 		}
 		if msgtmp.levle >= Error {
 			l.backupErrLog()
-			fmt.Fprintf(l.errFileOBJ, "%s[%s] [%s|%s|%d] %s\n", msgtmp.now, "ERROR", msgtmp.filename, msgtmp.funcName, msgtmp.line, msgtmp.message)
+			if l.levle == Debug {
+				fmt.Fprintf(l.errFileOBJ, "%s [%s] [%s|%s|%d] %s\n", msgtmp.now, levleColor(msgtmp.levle), msgtmp.filename, msgtmp.funcName, msgtmp.line, msgtmp.message)
+			} else {
+				fmt.Fprintf(l.errFileOBJ, "%s [%s] %s\n", msgtmp.now, levleColor(msgtmp.levle), msgtmp.message)
+			}
 		}
+	}
+}
+
+func deleteBacLog() {
+	files, err := os.ReadDir("./logs")
+	if err != nil {
+		log.Error("索引 logs 文件失败!")
+		return
+	}
+	var (
+		logCount    int
+		errCount    int
+		logTime     = make(map[time.Time]fs.DirEntry)
+		errTime     = make(map[time.Time]fs.DirEntry)
+		earliestLog = time.Now()
+		earliestErr = time.Now()
+	)
+	for _, file := range files {
+		s := backre.FindStringSubmatch(file.Name())
+		if len(s) != 3 {
+			continue
+		}
+		switch s[2] {
+		case "log":
+			logCount++
+			t, _ := time.Parse("2006_01_02_15_04_05", s[1])
+			logTime[t] = file
+		case "err":
+			errCount++
+			t, _ := time.Parse("2006_01_02_15_04_05", s[1])
+			errTime[t] = file
+		default:
+		}
+	}
+	if logCount > maxBackLog {
+		for k := range logTime {
+			if k.After(earliestLog) {
+				earliestLog = k
+			}
+		}
+		os.Remove("./logs/" + logTime[earliestLog].Name())
+	} else if errCount > maxBackLog {
+		for k := range logTime {
+			if k.After(earliestErr) {
+				earliestErr = k
+			}
+		}
+		os.Remove("./logs/" + logTime[earliestErr].Name())
 	}
 }
 

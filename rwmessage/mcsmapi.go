@@ -3,7 +3,7 @@ package rwmessage
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"regexp"
 	"time"
@@ -109,7 +109,7 @@ func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
 		log.Error("获取服务器 %s 命令 %s 运行结果失败！", u.Name, command)
 		return u.returnResult(command, try-1)
 	}
-	b, _ := ioutil.ReadAll(r.Body)
+	b, _ := io.ReadAll(r.Body)
 	var data Data
 	json.Unmarshal(b, &data)
 	b2 := utils.NoColorable(&data.Data).String()
@@ -175,7 +175,7 @@ func (u *HdGroup) getStatusInfo() error {
 		log.Error("获取服务器Id: %d 信息失败! err: %v", u.Id, err)
 		return err
 	}
-	b, _ := ioutil.ReadAll(r.Body)
+	b, _ := io.ReadAll(r.Body)
 	var status InstanceConfig
 	json.Unmarshal(b, &status)
 	u.lock.Lock()

@@ -3,7 +3,7 @@ package rwmessage
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -158,7 +158,7 @@ func (p *admin) getDaemonStatus(user_id int) {
 		if err != nil {
 			return
 		}
-		b, _ := ioutil.ReadAll(r.Body)
+		b, _ := io.ReadAll(r.Body)
 		json.Unmarshal(b, &data)
 		var sendmsg string
 		sendmsg += fmt.Sprintf("前端面板地址: %s\n后端总数量: %d\n后端在线数量: %d", url, data.Data.RemoteCount.Total, data.Data.RemoteCount.Available)
