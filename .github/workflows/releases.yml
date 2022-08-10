@@ -1,9 +1,7 @@
-name: Releases
+name: prBuild
 
 on:
-    push:
-        tags:
-            - v*
+    pull_request:
 
 jobs:
     release:
@@ -26,19 +24,11 @@ jobs:
                   CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags '-s -w --extldflags "-static -fpic"' -o MCSM-Bot_darwin_amd64
                   CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags '-s -w --extldflags "-static -fpic"' -o MCSM-Bot_darwin_arm64
 
-            - name: Get tag
-              id: tag
-              uses: dawidd6/action-get-tag@v1
+            - name: Upload a Build Artifact
+              uses: actions/upload-artifact@v3.1.0
               with:
-                  strip_v: true
-
-            - uses: "marvinpinto/action-automatic-releases@latest"
-              with:
-                  repo_token: "${{ secrets.GITHUB_TOKEN }}"
-                  automatic_release_tag: v${{steps.tag.outputs.tag}}
-                  title: Version ${{steps.tag.outputs.tag}}
-                  prerelease: false
-                  files: |
+                  name: MCSM-Bot
+                  path: |
                       MCSM-Bot_windows_amd64.exe
                       MCSM-Bot_windows_arm64.exe
                       MCSM-Bot_linux_amd64
