@@ -2,7 +2,7 @@ package gconfig
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 
@@ -56,7 +56,7 @@ func getMConfig() (mConfig, error) {
 	if err != nil {
 		return config, err
 	}
-	b, _ := ioutil.ReadAll(f)
+	b, _ := io.ReadAll(f)
 	err = json.Unmarshal(b, &config)
 	if err != nil {
 		return config, err
@@ -70,7 +70,7 @@ func getQConfig() (qConfig, error) {
 	if err != nil {
 		return config, err
 	}
-	b, _ := ioutil.ReadAll(f)
+	b, _ := io.ReadAll(f)
 	err = json.Unmarshal(b, &config)
 	if err != nil {
 		return config, err
