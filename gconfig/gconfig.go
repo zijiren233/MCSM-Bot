@@ -40,11 +40,13 @@ func init() {
 	var err error
 	Mconfig, err = getMConfig()
 	if err != nil {
-		Log.Fatalf("读取配置配置文件失败! err: %v", err)
+		Log.Fatalf("读取配置文件 mcsmdata 失败!请按照config.sample.json格式填写: %v", err)
+		os.Exit(-1)
 	}
 	Qconfig, err = getQConfig()
 	if err != nil {
-		Log.Fatalf("读取配置配置文件失败! err: %v", err)
+		Log.Fatalf("读取配置文件 cqhttp 失败!请按照config.sample.json格式填写: %v", err)
+		os.Exit(-1)
 	}
 }
 
