@@ -78,16 +78,16 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 	}
 	err := u.getStatusInfo()
 	if err != nil {
-		log.Fatal("服务器Id: %d 监听失败!可能是 mcsm-web 端地址错误\n", u.Id)
+		log.Fatal("服务器Id: %d 监听失败!可能是 mcsm-web 端地址错误\n", id)
 		return nil
 	}
-	log.Debug("ID: %d ,NAME: %s ,TYPE:%s ,PTY: %v", u.Id, u.Name, u.ProcessType, u.Pty)
+	log.Debug("ID: %d ,NAME: %s ,TYPE:%s ,PTY: %v", id, u.Name, u.ProcessType, u.Pty)
 	if u.ProcessType != "docker" && !u.Pty {
 		log.Error("实例:%s 未开启 仿真终端 或 未使用 docker 启动！", u.Name)
-		log.Fatal("Id: %d, 实例:%s 监听失败", u.Id, u.Name)
+		log.Fatal("Id: %d, 实例:%s 监听失败", id, u.Name)
 		return nil
 	}
-	GroupToId[u.Group_id] = append(GroupToId[u.Group_id], u.Id)
+	GroupToId[u.Group_id] = append(GroupToId[u.Group_id], id)
 	u.ChGroupMsg = make(chan *MsgData, 25)
 	return &u
 }
@@ -180,9 +180,9 @@ func (u *HdGroup) reportStatus() {
 		u.lock.RLock()
 		if status != u.Status {
 			if (u.Status == 2 && status != 3) || (u.Status == 3 && status != 2) {
-				u.Send_group_msg("服务器ID: %-4d NAME: %s 已运行!", u.Id, u.Name)
+				u.Send_group_msg("服务器 %s 已运行!\nID: %d", u.Name, u.Id)
 			} else if u.Status == 0 && status != 1 {
-				u.Send_group_msg("服务器ID: %-4d NAME: %s 已停止!", u.Id, u.Name)
+				u.Send_group_msg("服务器 %s 已停止!\nID: %d", u.Name, u.Id)
 			}
 			status = u.Status
 		}
