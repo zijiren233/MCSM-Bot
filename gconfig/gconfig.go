@@ -41,12 +41,10 @@ func init() {
 	Mconfig, err = getMConfig()
 	if err != nil {
 		Log.Fatalf("读取配置配置文件失败! err: %v", err)
-		panic(err)
 	}
 	Qconfig, err = getQConfig()
 	if err != nil {
 		Log.Fatalf("读取配置配置文件失败! err: %v", err)
-		panic(err)
 	}
 }
 
@@ -56,9 +54,11 @@ func getMConfig() (mConfig, error) {
 	if err != nil {
 		return config, err
 	}
+	defer f.Close()
 	b, _ := io.ReadAll(f)
 	err = json.Unmarshal(b, &config)
 	if err != nil {
+		reCreatSampleConfig()
 		return config, err
 	}
 	return config, nil
@@ -70,9 +70,11 @@ func getQConfig() (qConfig, error) {
 	if err != nil {
 		return config, err
 	}
+	defer f.Close()
 	b, _ := io.ReadAll(f)
 	err = json.Unmarshal(b, &config)
 	if err != nil {
+		reCreatSampleConfig()
 		return config, err
 	}
 	return config, nil
@@ -84,6 +86,28 @@ func creatConfig() {
 	f2, _ := os.OpenFile("config.sample.json", os.O_CREATE|os.O_WRONLY, 0755)
 	f2.WriteString(confit_sample)
 	log.Fatal("已创建配置文件config.json 和 config.sample.json,请根据注释填写配置")
+}
+
+func reCreatSampleConfig() {
+	if !utils.FileExists("config.sample.json") {
+		f, err := os.OpenFile("config.sample.json", os.O_CREATE|os.O_WRONLY, 0755)
+		if err != nil {
+			return
+		}
+		defer f.Close()
+		f.WriteString(confit_sample)
+	} else {
+		err := os.Remove("config.sample.json")
+		if err != nil {
+			return
+		}
+		f, err := os.OpenFile("config.sample.json", os.O_CREATE|os.O_WRONLY, 0755)
+		if err != nil {
+			return
+		}
+		defer f.Close()
+		f.WriteString(confit_sample)
+	}
 }
 
 func GetAllDaemon() *map[string]string {
