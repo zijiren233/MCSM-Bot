@@ -181,13 +181,13 @@ func (u *HdGroup) reportStatus() {
 		if status != u.Status {
 			if (u.Status == 2 && status != 3) || (u.Status == 3 && status != 2) {
 				u.Send_group_msg("服务器ID: %-4d NAME: %s 已运行!", u.Id, u.Name)
-			} else if u.Status == 0 {
+			} else if u.Status == 0 && status != 1 {
 				u.Send_group_msg("服务器ID: %-4d NAME: %s 已停止!", u.Id, u.Name)
 			}
 			status = u.Status
 		}
 		u.lock.RUnlock()
-		time.Sleep(2000 * time.Millisecond)
+		time.Sleep(3000 * time.Millisecond)
 	}
 }
 
