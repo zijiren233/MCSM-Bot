@@ -30,7 +30,6 @@ var log = logger.GetLog()
 var Mconfig = gconfig.Mconfig
 var Qconfig = gconfig.Qconfig
 var AllId = gconfig.GetAllId()
-var AllGroup = gconfig.GetAllGroup()
 
 // var AllDaemon = make(map[string]([]string))
 
@@ -162,7 +161,7 @@ func (s *Server) retrydial() {
 	var err error
 	log.Error("cqhttp 连接失败!")
 	var ws *websocket.Conn
-	for i := 0; ; i++ {
+	for i := 1; ; i++ {
 		log.Error("cqhttp 第 %d 次重连", i)
 		s.lock.Lock()
 		ws, _, err = websocket.DefaultDialer.Dial(s.Url, nil)
@@ -182,15 +181,12 @@ func (s *Server) broadCast(msg *MsgData) {
 			return
 		} else if msg.Params[1] == "*" && msg.Params[2] != "help" {
 			for _, id := range GroupToId[msg.Group_id] {
-				if GOnlineMap[id].isAdmin(msg) {
+				if GOnlineMap[id].isAdmin(msg.User_id) {
 					s.send_group_msg(msg.Group_id, GOnlineMap[id].runCMD(msg))
 				} else {
 					continue
 				}
 			}
-			return
-		}
-		if !utils.InInt(msg.Group_id, AllGroup) {
 			return
 		}
 		if msg.Params[1] == "" && len(GroupToId[msg.Group_id]) >= 2 {

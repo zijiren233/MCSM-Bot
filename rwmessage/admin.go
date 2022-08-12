@@ -96,7 +96,7 @@ func (p *admin) help(msgdata *MsgData) string {
 		msg += "服务器列表:\n"
 		for _, v := range AllId {
 			if i, ok := GOnlineMap[v]; ok {
-				msg += fmt.Sprintf("Id: %-5dGroup: %-13dName: %s\n", i.Id, i.Group_id, i.Name)
+				msg += fmt.Sprintf("Name: %s Id: %-5d Group_list: %v\n", i.Name, i.Id, i.Group_list)
 			}
 		}
 		msg += "运行具体服务器命令请输入 run id list"

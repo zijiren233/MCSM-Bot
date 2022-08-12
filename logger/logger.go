@@ -223,9 +223,9 @@ func (l *Logger) backWriteLog() {
 		if msgtmp.levle >= Error {
 			l.backupErrLog()
 			if l.levle == Debug {
-				fmt.Fprintf(l.errFileOBJ, "%s [%s] [%s|%s|%d] %s\n", msgtmp.now, levleColor(msgtmp.levle), msgtmp.filename, msgtmp.funcName, msgtmp.line, msgtmp.message)
+				fmt.Fprintf(l.errFileOBJ, "%s [%s] [%s|%s|%d] %s\n", msgtmp.now, IntToLevle(msgtmp.levle), msgtmp.filename, msgtmp.funcName, msgtmp.line, msgtmp.message)
 			} else {
-				fmt.Fprintf(l.errFileOBJ, "%s [%s] %s\n", msgtmp.now, levleColor(msgtmp.levle), msgtmp.message)
+				fmt.Fprintf(l.errFileOBJ, "%s [%s] %s\n", msgtmp.now, IntToLevle(msgtmp.levle), msgtmp.message)
 			}
 		}
 	}

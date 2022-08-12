@@ -24,7 +24,7 @@ type config struct {
 	Remote_uuid string
 	Uuid        string
 	Apikey      string
-	Group_id    int
+	Group_list  []int
 	UserCmd     []string
 	Adminlist   []int
 }
@@ -71,7 +71,7 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 			Remote_uuid: Mconfig.McsmData[IdToOd[id]].Remote_uuid,
 			Uuid:        Mconfig.McsmData[IdToOd[id]].Uuid,
 			Apikey:      Mconfig.McsmData[IdToOd[id]].Apikey,
-			Group_id:    Mconfig.McsmData[IdToOd[id]].Group_id,
+			Group_list:  Mconfig.McsmData[IdToOd[id]].Group_list,
 			UserCmd:     Mconfig.McsmData[IdToOd[id]].User_allows_commands,
 			Adminlist:   Mconfig.McsmData[IdToOd[id]].Adminlist},
 		SendChan: serveSend,
@@ -87,7 +87,12 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 		log.Fatal("Id: %d, 实例:%s 监听失败", id, u.Name)
 		return nil
 	}
-	GroupToId[u.Group_id] = append(GroupToId[u.Group_id], id)
+	for _, v := range u.Group_list {
+		if !utils.InInt(id, GroupToId[v]) {
+			GroupToId[v] = append(GroupToId[v], id)
+		}
+	}
+	log.Debug("GroupToId: %v", GroupToId)
 	u.ChGroupMsg = make(chan *MsgData, 25)
 	return &u
 }
@@ -106,23 +111,23 @@ func (u *HdGroup) hdChMessage() {
 	var msg *MsgData
 	for {
 		msg = <-u.ChGroupMsg
-		if u.Group_id == msg.Group_id {
+		if utils.InInt(msg.Group_id, u.Group_list) {
 			u.lock.RLock()
-			if u.isAdmin(msg) || utils.InString(strings.Split(msg.Params[2], " ")[0], u.UserCmd) {
+			if u.isAdmin(msg.User_id) || utils.InString(strings.Split(msg.Params[2], " ")[0], u.UserCmd) {
 				go func(msg *MsgData) {
-					u.Send_group_msg(u.runCMD(msg))
+					u.Send_group_msg(msg.Group_id, u.runCMD(msg))
 				}(msg)
 			} else {
 				log.Warring("权限不足:群组: %d,用户: %d,命令: %#v, 实例: %s", msg.Group_id, msg.User_id, msg.Params[0], u.Name)
-				u.Send_group_msg("[CQ:reply,id=%d]权限不足!", msg.Message_id)
+				u.Send_group_msg(msg.Group_id, "[CQ:reply,id=%d]权限不足!", msg.Message_id)
 			}
 			u.lock.RUnlock()
 		}
 	}
 }
 
-func (u *HdGroup) isAdmin(msg *MsgData) bool {
-	return utils.InInt(msg.User_id, u.Adminlist)
+func (u *HdGroup) isAdmin(user_id int) bool {
+	return utils.InInt(user_id, u.Adminlist)
 }
 
 func (u *HdGroup) runCMD(msg *MsgData) string {
@@ -180,9 +185,9 @@ func (u *HdGroup) reportStatus() {
 		u.lock.RLock()
 		if status != u.Status {
 			if (u.Status == 2 && status != 3) || (u.Status == 3 && status != 2) {
-				u.Send_group_msg("服务器 %s 已运行!\nID: %d", u.Name, u.Id)
+				u.Send_all_group_msg("服务器 %s 已运行!\nID: %d", u.Name, u.Id)
 			} else if u.Status == 0 && status != 1 {
-				u.Send_group_msg("服务器 %s 已停止!\nID: %d", u.Name, u.Id)
+				u.Send_all_group_msg("服务器 %s 已停止!\nID: %d", u.Name, u.Id)
 			}
 			status = u.Status
 		}
@@ -191,10 +196,20 @@ func (u *HdGroup) reportStatus() {
 	}
 }
 
-func (u *HdGroup) Send_group_msg(msg string, a ...interface{}) {
+func (u *HdGroup) Send_group_msg(group int, msg string, a ...interface{}) {
 	var tmp SendData
 	tmp.Action = "send_group_msg"
-	tmp.Params.Group_id = u.Group_id
+	tmp.Params.Group_id = group
 	tmp.Params.Message = fmt.Sprintf(msg, a...)
 	u.SendChan <- &tmp
+}
+
+func (u *HdGroup) Send_all_group_msg(msg string, a ...interface{}) {
+	for _, v := range u.Group_list {
+		var tmp SendData
+		tmp.Action = "send_group_msg"
+		tmp.Params.Group_id = v
+		tmp.Params.Message = fmt.Sprintf(msg, a...)
+		u.SendChan <- &tmp
+	}
 }

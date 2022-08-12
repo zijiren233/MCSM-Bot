@@ -20,7 +20,7 @@ type mConfig struct {
 		Remote_uuid          string   `json:"remote_uuid"`
 		Uuid                 string   `json:"uuid"`
 		Apikey               string   `json:"apikey"`
-		Group_id             int      `json:"group_id"`
+		Group_list           []int    `json:"group_id"`
 		User_allows_commands []string `json:"user_allows_commands"`
 		Adminlist            []int    `json:"adminlist"`
 	} `json:"mcsmdata"`
@@ -98,14 +98,6 @@ func GetAllId() []int {
 	tmp := make([]int, 0, len(Mconfig.McsmData))
 	for i := 0; i < len(Mconfig.McsmData); i++ {
 		tmp = append(tmp, Mconfig.McsmData[i].Id)
-	}
-	return tmp
-}
-
-func GetAllGroup() []int {
-	tmp := make([]int, 0, len(Mconfig.McsmData))
-	for i := 0; i < len(Mconfig.McsmData); i++ {
-		tmp = append(tmp, Mconfig.McsmData[i].Group_id)
 	}
 	return tmp
 }
