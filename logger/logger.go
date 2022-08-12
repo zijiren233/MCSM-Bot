@@ -175,8 +175,8 @@ func (l *Logger) backupErrLog() {
 }
 
 func (l *Logger) log(levle uint, format string, a ...interface{}) {
-	var log logmsg
 	if l.levle <= levle {
+		var log logmsg
 		if l.levle == Debug {
 			filename, funcName, line := getInfo()
 			log = logmsg{

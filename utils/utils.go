@@ -67,12 +67,11 @@ loop:
 	return &plaintext
 }
 
-func Handle_End_Newline(msg *string) *string {
-	*msg = (*msg)[:handle_End_Newline(msg)]
-	return msg
+func Handle_End_Newline(msg *string) {
+	*msg = (*msg)[:find_End_Newline(msg)]
 }
 
-func handle_End_Newline(msg *string) int {
+func find_End_Newline(msg *string) int {
 	lens := len(*msg)
 	var i int
 	for i = 0; i < lens; i++ {

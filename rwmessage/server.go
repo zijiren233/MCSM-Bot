@@ -143,7 +143,7 @@ func help(msgdata *MsgData) string {
 	case "help":
 		msg = "run list : 查看服务器列表\nrun status : 查看服务器状态\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 控制台命令 : 运行服务器命令"
 		msg += "\n\n普通用户可用命令:\n请输入 run id help 查询"
-		msg = *utils.Handle_End_Newline(&msg)
+		utils.Handle_End_Newline(&msg)
 	default:
 		msg += "服务器列表:\n"
 		for _, v := range GroupToId[msgdata.Group_id] {
