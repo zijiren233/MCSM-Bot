@@ -1,6 +1,7 @@
 package base
 
 import (
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,23 +15,24 @@ func Update(version string) {
 		gaj, err := utils.UpdateVersion(version)
 		if err != nil {
 			log.Warring("获取最新版失败! err: %v", err)
-			time.Sleep(time.Hour * 12)
-			continue
-		}
-		if chackVersion(version[1:], gaj.Tag_name[1:]) {
+		} else if chackVersion(version[1:], gaj.Tag_name[1:]) {
 			log.Info("当前版本: %s 获取到最新版: %s 下载地址: %s", version, gaj.Tag_name, gaj.Html_url)
-			time.Sleep(time.Hour * 12)
-			continue
 		}
-		time.Sleep(time.Hour * 12)
+		time.Sleep(time.Hour * 6)
 	}
 }
 
 func chackVersion(version, gitTag string) bool {
 	var shuldUpdate = false
-	ver := strings.Split(version, ".")
-	tag := strings.Split(gitTag, ".")
-	if len(ver) > len(tag) {
+	ver := stringListToIntList(strings.Split(version, "."))
+	tag := stringListToIntList(strings.Split(gitTag, "."))
+	if len(ver) == len(tag) {
+		for k, v := range tag {
+			if v > ver[k] {
+				shuldUpdate = true
+			}
+		}
+	} else if len(ver) > len(tag) {
 		for k, v := range tag {
 			if v > ver[k] {
 				shuldUpdate = true
@@ -38,10 +40,22 @@ func chackVersion(version, gitTag string) bool {
 		}
 	} else {
 		for k, v := range ver {
-			if v < ver[k] {
+			if v < tag[k] {
 				shuldUpdate = true
 			}
 		}
+		if !shuldUpdate && gitTag[:len(version)] == version {
+			shuldUpdate = true
+		}
 	}
 	return shuldUpdate
+}
+
+func stringListToIntList(data []string) []int {
+	var ret []int
+	for _, v := range data {
+		i, _ := strconv.Atoi(v)
+		ret = append(ret, i)
+	}
+	return ret
 }
