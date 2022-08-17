@@ -181,19 +181,24 @@ func (u *HdGroup) getStatusInfo() error {
 		return err
 	}
 	b, _ := io.ReadAll(r.Body)
+	if b == nil {
+		return nil
+	}
 	var status InstanceConfig
 	json.Unmarshal(b, &status)
-	u.lock.Lock()
-	defer u.lock.Unlock()
-	u.Status = status.Data.Status
-	u.Name = status.Data.Config.Nickname
-	u.EndTime = status.Data.Config.EndTime
-	u.ProcessType = status.Data.Config.ProcessType
-	u.Pty = status.Data.Config.TerminalOption.Pty
-	u.PingIp = status.Data.Config.PingConfig.PingIp
-	u.CurrentPlayers = status.Data.Info.CurrentPlayers
-	u.MaxPlayers = status.Data.Info.MaxPlayers
-	u.Version = status.Data.Info.Version
+	if status.Data.Config.Nickname != "" {
+		u.lock.Lock()
+		u.Status = status.Data.Status
+		u.Name = status.Data.Config.Nickname
+		u.EndTime = status.Data.Config.EndTime
+		u.ProcessType = status.Data.Config.ProcessType
+		u.Pty = status.Data.Config.TerminalOption.Pty
+		u.PingIp = status.Data.Config.PingConfig.PingIp
+		u.CurrentPlayers = status.Data.Info.CurrentPlayers
+		u.MaxPlayers = status.Data.Info.MaxPlayers
+		u.Version = status.Data.Info.Version
+		u.lock.Unlock()
+	}
 	return nil
 }
 
