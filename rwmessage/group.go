@@ -77,8 +77,7 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 			Adminlist:   Mconfig.McsmData[IdToOd[id]].Adminlist},
 		SendChan: serveSend,
 	}
-	var err error
-	u.performance, err = u.getStatusInfo()
+	err := u.getStatusInfo()
 	if err != nil {
 		log.Fatal("服务器Id: %d 监听失败!可能是 mcsm-web 端地址错误\n", id)
 		return nil
@@ -177,16 +176,21 @@ func (u *HdGroup) runCMD(msg *MsgData) string {
 
 func (u *HdGroup) reportStatus() {
 	go func() {
+		var performance int64
 		for {
 			u.getStatusInfo()
-			if u.performance <= 200 {
-				time.Sleep(1000 * time.Millisecond)
+			u.lock.RLock()
+			performance = u.performance
+			u.lock.RUnlock()
+			if performance <= 200 {
+				time.Sleep(time.Second)
 			} else {
-				time.Sleep(3000 * time.Millisecond)
+				time.Sleep(3 * time.Second)
 			}
 		}
 	}()
 	var status = u.Status
+	var performance int64
 	for {
 		u.lock.RLock()
 		if status != u.Status {
@@ -197,11 +201,12 @@ func (u *HdGroup) reportStatus() {
 			}
 			status = u.Status
 		}
+		performance = u.performance
 		u.lock.RUnlock()
-		if u.performance <= 200 {
-			time.Sleep(1000 * time.Millisecond)
+		if performance <= 200 {
+			time.Sleep(time.Second)
 		} else {
-			time.Sleep(3000 * time.Millisecond)
+			time.Sleep(3 * time.Second)
 		}
 	}
 }

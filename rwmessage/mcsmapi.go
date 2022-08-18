@@ -164,7 +164,7 @@ func (u *HdGroup) Kill() (string, error) {
 	return fmt.Sprintf("服务器: %s 已经终止!", u.Name), nil
 }
 
-func (u *HdGroup) getStatusInfo() (int64, error) {
+func (u *HdGroup) getStatusInfo() error {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", u.Url+"/api/instance", nil)
 	r2.Close = true
@@ -180,16 +180,17 @@ func (u *HdGroup) getStatusInfo() (int64, error) {
 	sub := time.Since(t).Milliseconds()
 	if err != nil {
 		log.Error("获取服务器Id: %d 信息失败! err: %v", u.Id, err)
-		return sub, err
+		return err
 	}
 	b, _ := io.ReadAll(r.Body)
 	if b == nil {
-		return sub, nil
+		return nil
 	}
 	var status InstanceConfig
 	json.Unmarshal(b, &status)
 	if status.Data.Config.Nickname != "" {
 		u.lock.Lock()
+		u.performance = (u.performance + sub) / 2
 		u.Status = status.Data.Status
 		u.Name = status.Data.Config.Nickname
 		u.EndTime = status.Data.Config.EndTime
@@ -201,7 +202,7 @@ func (u *HdGroup) getStatusInfo() (int64, error) {
 		u.Version = status.Data.Info.Version
 		u.lock.Unlock()
 	}
-	return sub, nil
+	return nil
 }
 
 func (u *HdGroup) GetStatus() string {
