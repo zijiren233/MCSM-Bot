@@ -12,8 +12,9 @@ import (
 type HdGroup struct {
 	config
 	instanceConfig
-	ChGroupMsg chan *MsgData
-	SendChan   chan *SendData
+	ChGroupMsg  chan *MsgData
+	SendChan    chan *SendData
+	performance int64
 
 	lock sync.RWMutex
 }
@@ -76,7 +77,8 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 			Adminlist:   Mconfig.McsmData[IdToOd[id]].Adminlist},
 		SendChan: serveSend,
 	}
-	err := u.getStatusInfo()
+	var err error
+	u.performance, err = u.getStatusInfo()
 	if err != nil {
 		log.Fatal("服务器Id: %d 监听失败!可能是 mcsm-web 端地址错误\n", id)
 		return nil
@@ -177,7 +179,11 @@ func (u *HdGroup) reportStatus() {
 	go func() {
 		for {
 			u.getStatusInfo()
-			time.Sleep(3000 * time.Millisecond)
+			if u.performance <= 200 {
+				time.Sleep(1000 * time.Millisecond)
+			} else {
+				time.Sleep(3000 * time.Millisecond)
+			}
 		}
 	}()
 	var status = u.Status
@@ -186,13 +192,17 @@ func (u *HdGroup) reportStatus() {
 		if status != u.Status {
 			if (u.Status == 2 && status != 3) || (u.Status == 3 && status != 2) {
 				u.Send_all_group_msg("服务器 %s 已运行!\nID: %d", u.Name, u.Id)
-			} else if u.Status == 0 && status != 1 {
+			} else if (u.Status == 0 && status != 1) || (u.Status == 1 && status != 0) {
 				u.Send_all_group_msg("服务器 %s 已停止!\nID: %d", u.Name, u.Id)
 			}
 			status = u.Status
 		}
 		u.lock.RUnlock()
-		time.Sleep(3000 * time.Millisecond)
+		if u.performance <= 200 {
+			time.Sleep(1000 * time.Millisecond)
+		} else {
+			time.Sleep(3000 * time.Millisecond)
+		}
 	}
 }
 

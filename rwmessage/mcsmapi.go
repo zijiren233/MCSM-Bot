@@ -164,7 +164,7 @@ func (u *HdGroup) Kill() (string, error) {
 	return fmt.Sprintf("服务器: %s 已经终止!", u.Name), nil
 }
 
-func (u *HdGroup) getStatusInfo() error {
+func (u *HdGroup) getStatusInfo() (int64, error) {
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", u.Url+"/api/instance", nil)
 	r2.Close = true
@@ -175,14 +175,16 @@ func (u *HdGroup) getStatusInfo() error {
 	r2.URL.RawQuery = q.Encode()
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
+	t := time.Now()
 	r, err := client.Do(r2)
+	sub := time.Since(t).Milliseconds()
 	if err != nil {
 		log.Error("获取服务器Id: %d 信息失败! err: %v", u.Id, err)
-		return err
+		return sub, err
 	}
 	b, _ := io.ReadAll(r.Body)
 	if b == nil {
-		return nil
+		return sub, nil
 	}
 	var status InstanceConfig
 	json.Unmarshal(b, &status)
@@ -199,7 +201,7 @@ func (u *HdGroup) getStatusInfo() error {
 		u.Version = status.Data.Info.Version
 		u.lock.Unlock()
 	}
-	return nil
+	return sub, nil
 }
 
 func (u *HdGroup) GetStatus() string {
