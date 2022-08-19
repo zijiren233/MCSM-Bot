@@ -2,6 +2,7 @@ package rwmessage
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -184,7 +185,7 @@ func (u *HdGroup) getStatusInfo() error {
 	}
 	b, _ := io.ReadAll(r.Body)
 	if b == nil {
-		return nil
+		return errors.New("get instance info error: body is nil")
 	}
 	var status InstanceConfig
 	json.Unmarshal(b, &status)
@@ -201,6 +202,8 @@ func (u *HdGroup) getStatusInfo() error {
 		u.MaxPlayers = status.Data.Info.MaxPlayers
 		u.Version = status.Data.Info.Version
 		u.lock.Unlock()
+	} else {
+		return errors.New("get instance info error: instance name is nil")
 	}
 	return nil
 }
