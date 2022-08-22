@@ -46,7 +46,7 @@ account里面的：
 
 <br>
 
-- config.sample.json :
+- config.example.json :
 
     ```
     { // 真正的配置文件为标准的json格式，里面不要有注释！！！

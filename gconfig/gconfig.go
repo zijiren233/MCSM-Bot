@@ -40,12 +40,12 @@ func init() {
 	var err error
 	Mconfig, err = getMConfig()
 	if err != nil {
-		Log.Fatalf("读取配置文件 mcsmdata 失败!请按照config.sample.json格式填写: %v", err)
+		Log.Fatalf("读取配置文件 mcsmdata 失败!请按照config.example.json格式填写: %v", err)
 		os.Exit(-1)
 	}
 	Qconfig, err = getQConfig()
 	if err != nil {
-		Log.Fatalf("读取配置文件 cqhttp 失败!请按照config.sample.json格式填写: %v", err)
+		Log.Fatalf("读取配置文件 cqhttp 失败!请按照config.example.json格式填写: %v", err)
 		os.Exit(-1)
 	}
 }
@@ -60,7 +60,7 @@ func getMConfig() (mConfig, error) {
 	b, _ := io.ReadAll(f)
 	err = json.Unmarshal(b, &config)
 	if err != nil {
-		reCreatSampleConfig()
+		reCreatexampleConfig()
 		return config, err
 	}
 	return config, nil
@@ -76,7 +76,7 @@ func getQConfig() (qConfig, error) {
 	b, _ := io.ReadAll(f)
 	err = json.Unmarshal(b, &config)
 	if err != nil {
-		reCreatSampleConfig()
+		reCreatexampleConfig()
 		return config, err
 	}
 	return config, nil
@@ -85,30 +85,30 @@ func getQConfig() (qConfig, error) {
 func creatConfig() {
 	f, _ := os.OpenFile("config.json", os.O_CREATE|os.O_WRONLY, 0755)
 	f.WriteString(config)
-	f2, _ := os.OpenFile("config.sample.json", os.O_CREATE|os.O_WRONLY, 0755)
-	f2.WriteString(confit_sample)
-	log.Fatal("已创建配置文件config.json 和 config.sample.json,请根据注释填写配置")
+	f2, _ := os.OpenFile("config.example.json", os.O_CREATE|os.O_WRONLY, 0755)
+	f2.WriteString(confit_example)
+	log.Fatal("已创建配置文件config.json 和 config.example.json,请根据注释填写配置")
 }
 
-func reCreatSampleConfig() {
-	if !utils.FileExists("config.sample.json") {
-		f, err := os.OpenFile("config.sample.json", os.O_CREATE|os.O_WRONLY, 0755)
+func reCreatexampleConfig() {
+	if !utils.FileExists("config.example.json") {
+		f, err := os.OpenFile("config.example.json", os.O_CREATE|os.O_WRONLY, 0755)
 		if err != nil {
 			return
 		}
 		defer f.Close()
-		f.WriteString(confit_sample)
+		f.WriteString(confit_example)
 	} else {
-		err := os.Remove("config.sample.json")
+		err := os.Remove("config.example.json")
 		if err != nil {
 			return
 		}
-		f, err := os.OpenFile("config.sample.json", os.O_CREATE|os.O_WRONLY, 0755)
+		f, err := os.OpenFile("config.example.json", os.O_CREATE|os.O_WRONLY, 0755)
 		if err != nil {
 			return
 		}
 		defer f.Close()
-		f.WriteString(confit_sample)
+		f.WriteString(confit_example)
 	}
 }
 
@@ -163,7 +163,7 @@ const config = `{
 	}
 }`
 
-const confit_sample = `{ // 真正的配置文件为标准的json格式，里面不要有注释！！！
+const confit_example = `{ // 真正的配置文件为标准的json格式，里面不要有注释！！！
 	"mcsmdata": [
 		{
 			"id": 2, // Id 为任意小于256的数，但不可重复！
