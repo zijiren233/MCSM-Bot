@@ -18,8 +18,8 @@ import (
 // 已监听群组 map[id](*HdGroup)
 var GOnlineMap = make(map[int]*HdGroup)
 
-// 已监听OP qq map[0](*HdGroup)
-var POnlineMap = make(map[int]*admin)
+// 已监听admin *admin
+var PAdmin *admin
 
 // map[群号](id)
 var GroupToId = make(map[int]([]int))
@@ -206,7 +206,7 @@ func (s *Server) broadCast(msg *MsgData) {
 		}
 		GOnlineMap[id].ChGroupMsg <- msg
 	} else if msg.Message_type == "private" {
-		if !utils.InInt(msg.User_id, POnlineMap[0].adminList) {
+		if !utils.InInt(msg.User_id, PAdmin.adminList) {
 			return
 		}
 		if msg.Params[1] == "*" && msg.Params[2] == "help" {
@@ -217,7 +217,7 @@ func (s *Server) broadCast(msg *MsgData) {
 			}
 			return
 		}
-		POnlineMap[0].ChCqOpMsg <- msg
+		PAdmin.ChCqOpMsg <- msg
 	}
 }
 

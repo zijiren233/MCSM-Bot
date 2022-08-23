@@ -195,9 +195,9 @@ func (u *HdGroup) reportStatus() {
 		u.lock.RLock()
 		if status != u.Status {
 			if (u.Status == 2 && status != 3) || (u.Status == 3 && status != 2) {
-				u.Send_all_group_msg("服务器 %s 已运行!\nID: %d", u.Name, u.Id)
+				u.Send_all_group_msg("服务器 %s (ID:%d) 已运行!", u.Name, u.Id)
 			} else if (u.Status == 0 && status != 1) || (u.Status == 1 && status != 0) {
-				u.Send_all_group_msg("服务器 %s 已停止!\nID: %d", u.Name, u.Id)
+				u.Send_all_group_msg("服务器 %s (ID:%d) 已停止!", u.Name, u.Id)
 			}
 			status = u.Status
 		}

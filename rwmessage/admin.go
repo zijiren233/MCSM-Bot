@@ -48,14 +48,11 @@ func NewHdOp(send chan *SendData) *admin {
 		ChCqOpMsg: make(chan *MsgData, 25),
 		SendChan:  send,
 	}
-	if len(p.adminList) == 0 {
-		log.Warring("配置文件中 cqhttp.adminList未设置!")
-	}
 	return &p
 }
 
 func (p *admin) Run() {
-	POnlineMap[0] = p
+	PAdmin = p
 	var msg *MsgData
 	for {
 		msg = <-p.ChCqOpMsg
