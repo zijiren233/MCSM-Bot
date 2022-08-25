@@ -43,16 +43,15 @@ type RemoteStatus struct {
 }
 
 func NewHdOp(send chan *SendData) *admin {
-	p := admin{
+	PAdmin := admin{
 		adminList: Qconfig.Cqhttp.AdminList,
 		ChCqOpMsg: make(chan *MsgData, 25),
 		SendChan:  send,
 	}
-	return &p
+	return &PAdmin
 }
 
 func (p *admin) Run() {
-	PAdmin = p
 	var msg *MsgData
 	for {
 		msg = <-p.ChCqOpMsg
