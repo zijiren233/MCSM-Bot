@@ -213,9 +213,9 @@ func (u *HdGroup) GetStatus() string {
 	defer u.lock.RUnlock()
 	if u.Status == 2 || u.Status == 3 {
 		if u.CurrentPlayers == "" {
-			return fmt.Sprintf("实例: %s 状态查询 功能未开启!请前往实例中开启状态查询功能", u.Name)
+			return fmt.Sprintf("实例: %s 状态查询 功能未开启!请前往面板实例中开启状态查询功能", u.Name)
 		} else {
-			return fmt.Sprintf("实例: %s 正在运行!\n实例人数: %s\n实例最大人数: %s\n实例版本: %s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
+			return fmt.Sprintf("实例: %s 正在运行!\n人数: %s\n最大人数: %s\n版本: %s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
 		}
 	} else {
 		return fmt.Sprintf("实例: %s 未运行!", u.Name)
