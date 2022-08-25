@@ -1,8 +1,8 @@
 # MCSM-Bot
 
-- 一个 **[MCSM](https://github.com/MCSManager/MCSManager)** 与 **[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)** 的附属产物，实现我的世界服务器群组机器人!
+- 一个 **[MCSM](https://github.com/MCSManager/MCSManager)** 与 **[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)** 的附属产物，实现 `MCSManager 管理` 机器人!
 
-- 版本要求：`mcsm-web:9.5.0 & mcsm-daemon:1.6.0` 及更高，并开启实例设置中的 `虚拟终端`
+- 版本要求：`mcsm-web:9.5.0 & mcsm-daemon:1.6.0` 及更高，并开启实例设置中的 `仿真终端`
 
 - 采用高并发模式，快速高效处理多群组消息 (多群组同时处理建议有较高的网络性能)
 
