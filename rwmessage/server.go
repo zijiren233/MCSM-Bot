@@ -19,7 +19,7 @@ import (
 var GOnlineMap = make(map[int]*HdGroup)
 
 // 已监听admin *admin
-var PAdmin *admin
+var pAdmin *admin
 
 // map[群号](id)
 var GroupToId = make(map[int]([]int))
@@ -147,9 +147,9 @@ func help(msgdata *MsgData) string {
 		msg += "服务器列表:\n"
 		for _, v := range GroupToId[msgdata.Group_id] {
 			if GOnlineMap[v].Status == 2 || GOnlineMap[v].Status == 3 {
-				msg += fmt.Sprintf("Id: %-5dName: %s    Status: 运行中\n", GOnlineMap[v].Id, GOnlineMap[v].Name)
+				msg += fmt.Sprintf("%s (id:%d) | 运行中\n", GOnlineMap[v].Name, GOnlineMap[v].Id)
 			} else {
-				msg += fmt.Sprintf("Id: %-5dName: %s    Status: 已停止\n", GOnlineMap[v].Id, GOnlineMap[v].Name)
+				msg += fmt.Sprintf("%s (id:%d) | 已停止\n", GOnlineMap[v].Name, GOnlineMap[v].Id)
 			}
 		}
 		msg += fmt.Sprintf("查询具体服务器请输入 run id %s", msgdata.Params[2])
@@ -177,47 +177,40 @@ func (s *Server) retrydial() {
 
 func (s *Server) broadCast(msg *MsgData) {
 	if msg.Message_type == "group" {
-		if msg.Params[1] == "*" && msg.Params[2] == "help" {
-			return
-		} else if msg.Params[1] == "*" && msg.Params[2] != "help" {
-			for _, id := range GroupToId[msg.Group_id] {
-				if GOnlineMap[id].isAdmin(msg.User_id) {
-					s.send_group_msg(msg.Group_id, GOnlineMap[id].runCMD(msg))
-				} else {
-					continue
+		if idList, ok := GroupToId[msg.Group_id]; ok {
+			if msg.Params[1] == "*" && msg.Params[2] == "help" {
+				return
+			} else if msg.Params[1] == "*" && msg.Params[2] != "help" {
+				for _, id := range idList {
+					if GOnlineMap[id].isAdmin(msg.User_id) {
+						s.send_group_msg(msg.Group_id, GOnlineMap[id].runCMD(msg))
+					} else {
+						continue
+					}
 				}
+				return
+			} else if msg.Params[1] == "" && len(idList) >= 2 {
+				s.send_group_msg(msg.Group_id, help(msg))
+				return
+			} else if msg.Params[1] == "" && len(idList) == 1 {
+				GOnlineMap[idList[0]].ChGroupMsg <- msg
+				return
+			} else {
+				id, err := strconv.Atoi(msg.Params[1])
+				if err != nil {
+					log.Error("接收 id 失败: %v", err)
+					return
+				}
+				if !utils.InInt(id, AllId) {
+					log.Warring("接收的 id: %d 不存在!", id)
+					return
+				}
+				GOnlineMap[id].ChGroupMsg <- msg
 			}
-			return
 		}
-		if msg.Params[1] == "" && len(GroupToId[msg.Group_id]) >= 2 {
-			s.send_group_msg(msg.Group_id, help(msg))
-			return
-		} else if msg.Params[1] == "" && len(GroupToId[msg.Group_id]) == 1 {
-			GOnlineMap[GroupToId[msg.Group_id][0]].ChGroupMsg <- msg
-			return
-		}
-		id, err := strconv.Atoi(msg.Params[1])
-		if err != nil {
-			log.Error("接收 id 失败: %v", err)
-		}
-		if !utils.InInt(id, AllId) {
-			log.Warring("接收的 id: %d 不存在!", id)
-			return
-		}
-		GOnlineMap[id].ChGroupMsg <- msg
-	} else if msg.Message_type == "private" {
-		if !utils.InInt(msg.User_id, PAdmin.adminList) {
-			return
-		}
-		if msg.Params[1] == "*" && msg.Params[2] == "help" {
-			return
-		} else if msg.Params[1] == "*" && msg.Params[2] != "help" {
-			for _, id := range AllId {
-				s.send_private_msg(msg.User_id, GOnlineMap[id].runCMD(msg))
-			}
-			return
-		}
-		PAdmin.ChCqOpMsg <- msg
+		return
+	} else if msg.Message_type == "private" && pAdmin != nil {
+		pAdmin.ChCqOpMsg <- msg
 	}
 }
 

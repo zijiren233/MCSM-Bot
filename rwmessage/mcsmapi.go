@@ -18,13 +18,13 @@ type Data struct {
 
 func (u *HdGroup) Start() (string, error) {
 	if u.Status == 2 || u.Status == 3 {
-		return fmt.Sprintf("服务器: %s 已经运行!", u.Name), nil
+		return fmt.Sprintf("实例: %s 已经运行!", u.Name), nil
 	}
 	if u.EndTime != "" {
 		t, _ := time.Parse("2006/1/2", u.EndTime)
 		if t.Before(time.Now()) {
-			log.Warring("服务器ID: %d ,NAME: %s 已到期,启动失败!", u.Id, u.Name)
-			return fmt.Sprintf("服务器ID: %d ,NAME: %s 已到期,启动失败!", u.Id, u.Name), nil
+			log.Warring("实例ID: %d ,NAME: %s 已到期,启动失败!", u.Id, u.Name)
+			return fmt.Sprintf("实例ID: %d ,NAME: %s 已到期,启动失败!", u.Id, u.Name), nil
 		}
 	}
 	client := &http.Client{}
@@ -38,15 +38,15 @@ func (u *HdGroup) Start() (string, error) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		log.Warring("服务器: %s 运行启动命令失败,可能是网络问题!", u.Name)
+		log.Warring("实例: %s 运行启动命令失败,可能是网络问题!", u.Name)
 		return "", err
 	}
-	return fmt.Sprintf("服务器: %s 正在启动!", u.Name), nil
+	return fmt.Sprintf("实例: %s 正在启动!", u.Name), nil
 }
 
 func (u *HdGroup) Stop() (string, error) {
 	if u.Status != 2 && u.Status != 3 {
-		return fmt.Sprintf("服务器: %s 未运行!", u.Name), nil
+		return fmt.Sprintf("实例: %s 未运行!", u.Name), nil
 	}
 	client := &http.Client{}
 	r2, _ := http.NewRequest("GET", u.Url+"/api/protected_instance/stop", nil)
@@ -59,16 +59,16 @@ func (u *HdGroup) Stop() (string, error) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		log.Warring("服务器: %s 运行关闭命令失败,可能是网络问题!", u.Name)
+		log.Warring("实例: %s 运行关闭命令失败,可能是网络问题!", u.Name)
 		return "", err
 	}
-	return fmt.Sprintf("服务器: %s 正在关闭!", u.Name), nil
+	return fmt.Sprintf("实例: %s 正在关闭!", u.Name), nil
 }
 
 // 返回控制台结果，如果未查询到则返回 "运行成功"
 func (u *HdGroup) RunCmd(commd string) (string, error) {
 	if u.Status != 2 && u.Status != 3 {
-		return fmt.Sprintf("服务器: %s 未运行!", u.Name), nil
+		return fmt.Sprintf("实例: %s 未运行!", u.Name), nil
 	}
 	if commd == "" {
 		return "运行命令为空!", nil
@@ -107,7 +107,7 @@ func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
 	r2.URL.RawQuery = q.Encode()
 	r, err := client.Do(r2)
 	if err != nil {
-		log.Error("获取服务器 %s 命令 %s 运行结果失败！", u.Name, command)
+		log.Error("获取实例 %s 命令 %s 运行结果失败！", u.Name, command)
 		return u.returnResult(command, try-1)
 	}
 	b, _ := io.ReadAll(r.Body)
@@ -141,10 +141,10 @@ func (u *HdGroup) Restart() (string, error) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		log.Warring("服务器: %s 运行重启命令失败,可能是网络问题!", u.Name)
-		return fmt.Sprintf("服务器: %s 运行重启命令失败,可能是网络问题!", u.Name), err
+		log.Warring("实例: %s 运行重启命令失败,可能是网络问题!", u.Name)
+		return fmt.Sprintf("实例: %s 运行重启命令失败,可能是网络问题!", u.Name), err
 	}
-	return fmt.Sprintf("服务器: %s 重启中!", u.Name), nil
+	return fmt.Sprintf("实例: %s 重启中!", u.Name), nil
 }
 
 func (u *HdGroup) Kill() (string, error) {
@@ -159,10 +159,10 @@ func (u *HdGroup) Kill() (string, error) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		log.Warring("服务器: %s 运行终止命令失败,可能是网络问题!", u.Name)
-		return fmt.Sprintf("服务器: %s 运行终止命令失败,可能是网络问题!", u.Name), err
+		log.Warring("实例: %s 运行终止命令失败,可能是网络问题!", u.Name)
+		return fmt.Sprintf("实例: %s 运行终止命令失败,可能是网络问题!", u.Name), err
 	}
-	return fmt.Sprintf("服务器: %s 已经终止!", u.Name), nil
+	return fmt.Sprintf("实例: %s 已经终止!", u.Name), nil
 }
 
 func (u *HdGroup) getStatusInfo() error {
@@ -180,7 +180,7 @@ func (u *HdGroup) getStatusInfo() error {
 	r, err := client.Do(r2)
 	sub := time.Since(t).Milliseconds()
 	if err != nil {
-		log.Error("获取服务器Id: %d 信息失败! err: %v", u.Id, err)
+		log.Error("获取实例Id: %d 信息失败! err: %v", u.Id, err)
 		return err
 	}
 	b, _ := io.ReadAll(r.Body)
@@ -213,11 +213,11 @@ func (u *HdGroup) GetStatus() string {
 	defer u.lock.RUnlock()
 	if u.Status == 2 || u.Status == 3 {
 		if u.CurrentPlayers == "" {
-			return fmt.Sprintf("服务器: %s 状态查询 功能未开启!请前往实例中开启状态查询功能", u.Name)
+			return fmt.Sprintf("实例: %s 状态查询 功能未开启!请前往实例中开启状态查询功能", u.Name)
 		} else {
-			return fmt.Sprintf("服务器: %s 正在运行!\n服务器人数: %s\n服务器最大人数: %s\n服务器版本: %s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
+			return fmt.Sprintf("实例: %s 正在运行!\n实例人数: %s\n实例最大人数: %s\n实例版本: %s", u.Name, u.CurrentPlayers, u.MaxPlayers, u.Version)
 		}
 	} else {
-		return fmt.Sprintf("服务器: %s 未运行!", u.Name)
+		return fmt.Sprintf("实例: %s 未运行!", u.Name)
 	}
 }

@@ -43,28 +43,38 @@ type RemoteStatus struct {
 }
 
 func NewHdOp(send chan *SendData) *admin {
-	PAdmin := admin{
+	pAdmin = &admin{
 		adminList: Qconfig.Cqhttp.AdminList,
 		ChCqOpMsg: make(chan *MsgData, 25),
 		SendChan:  send,
 	}
-	return &PAdmin
+	return pAdmin
 }
 
 func (p *admin) Run() {
 	var msg *MsgData
 	for {
 		msg = <-p.ChCqOpMsg
-		if msg.Params[2] == "" {
+		if !utils.InInt(msg.User_id, pAdmin.adminList) {
+			continue
+		}
+		if msg.Params[1] == "*" && msg.Params[2] == "help" {
+			continue
+		} else if msg.Params[1] == "*" && msg.Params[2] != "help" {
+			for _, id := range AllId {
+				p.Send_private_msg(msg.User_id, GOnlineMap[id].runCMD(msg))
+			}
+			continue
+		} else if msg.Params[2] == "" {
 			msg.Params[2] = "help"
 			p.Send_private_msg(msg.User_id, p.help(msg))
 			continue
 		} else if msg.Params[1] == "" {
 			p.Send_private_msg(msg.User_id, p.help(msg))
 			continue
+		} else {
+			go p.handleMessage(msg)
 		}
-		go p.handleMessage(msg)
-
 	}
 }
 
@@ -87,26 +97,18 @@ func (p *admin) help(msgdata *MsgData) string {
 	var msg string
 	switch msgdata.Params[2] {
 	case "help":
-		return "run list : 查看服务器列表\nrun stopped list : 查看未运行的服务器列表\nrun status : 查看服务器状态\nrun daemon status : 查看MCSM后端状态\nrun id start : 启动服务器\nrun id stop : 关闭服务器\nrun id restart : 重启服务器\nrun id kill : 终止服务器\nrun id 服务器命令 : 运行服务器命令"
+		msg = "run list : 查看实例列表\nrun status : 查看实例状态\nrun daemon status : 查看MCSM后端状态\nrun id start : 启动实例\nrun id stop : 关闭实例\nrun id restart : 重启实例\nrun id kill : 终止实例\nrun id 控制台命令 : 运行控制台命令"
 	case "list":
-		msg += "服务器列表:\n"
-		for _, v := range AllId {
-			if i, ok := GOnlineMap[v]; ok {
-				msg += fmt.Sprintf("Name: %s Id: %-5d Group_list: %v\n", i.Name, i.Id, i.Group_list)
-			}
-		}
-		msg += "运行具体服务器命令请输入 run id list"
-	case "stopped list":
-		msg = p.getStoppedList()
+		msg = p.getList()
 	case "status":
 		msg = p.getStatus()
 	case "daemon status":
 		p.getDaemonStatus(msgdata.User_id)
 	default:
-		msg += "服务器列表:\n"
+		msg += "实例列表:\n"
 		for _, v := range AllId {
 			if i, ok := GOnlineMap[v]; ok {
-				msg += fmt.Sprintf("Id: %-5d Name: %s\n", i.Id, i.Name)
+				msg += fmt.Sprintf("%s (id:%d)\n", i.Name, i.Id)
 			}
 		}
 		msg += "请添加 Id 参数"
@@ -114,28 +116,31 @@ func (p *admin) help(msgdata *MsgData) string {
 	return msg
 }
 
-func (p *admin) getStatus() string {
+func (p *admin) getList() string {
 	var msg string
-	msg += "服务器状态:\n"
+	msg += "实例列表:\n"
 	for k, v := range GOnlineMap {
 		if v.Status == 2 || v.Status == 3 {
-			msg += fmt.Sprintf("Id: %-5dStatus: RUNNING  Name: %s\n", k, v.Name)
+			msg += fmt.Sprintf("%s (id:%d) | 运行中\n", v.Name, k)
 		} else {
-			msg += fmt.Sprintf("Id: %-5dStatus: STOPPED  Name: %s\n", k, v.Name)
+			msg += fmt.Sprintf("%s (id:%d) | 已停止\n", v.Name, k)
 		}
 	}
-	msg += "查询具体服务器请输入 run id status"
+	msg += "查询实例请输入 run id list"
 	return msg
 }
 
-func (p *admin) getStoppedList() string {
+func (p *admin) getStatus() string {
 	var msg string
-	msg += "未运行服务器列表:\n"
+	msg += "实例状态:\n"
 	for k, v := range GOnlineMap {
-		if v.Status != 2 && v.Status != 3 {
-			msg += fmt.Sprintf("Id: %-5dStatus: STOPPED  Name: %s\n", k, v.Name)
+		if v.Status == 2 || v.Status == 3 {
+			msg += fmt.Sprintf("%s (id:%d) | 运行中\n", v.Name, k)
+		} else {
+			msg += fmt.Sprintf("%s (id:%d) | 已停止\n", v.Name, k)
 		}
 	}
+	msg += "查询实例请输入 run id status"
 	return msg
 }
 

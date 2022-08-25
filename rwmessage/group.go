@@ -79,7 +79,7 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 	}
 	err := u.getStatusInfo()
 	if err != nil {
-		log.Fatal("服务器Id: %d 监听失败!可能是 mcsm-web 端地址错误\n", id)
+		log.Fatal("实例Id: %d 监听失败!可能是 mcsm-web 端地址错误\n", id)
 		return nil
 	}
 	log.Debug("ID: %d ,NAME: %s ,TYPE:%s ,PTY: %v", id, u.Name, u.ProcessType, u.Pty)
@@ -137,11 +137,11 @@ func (u *HdGroup) runCMD(msg *MsgData) string {
 	u.lock.RLock()
 	defer u.lock.RUnlock()
 	if u.Status != 3 && u.Status != 2 && (msg.Params[2] != "help" && msg.Params[2] != "server" && msg.Params[2] != "start") {
-		return fmt.Sprintf("服务器: %s 未启动!\n请先启动服务器:\nrun %d start", u.Name, u.Id)
+		return fmt.Sprintf("实例: %s 未启动!\n请先启动实例:\nrun %d start", u.Name, u.Id)
 	}
 	switch msg.Params[2] {
 	case "help":
-		sendmsg = fmt.Sprintf("run %d status : 查看服务器状态\nrun %d start : 启动服务器\nrun %d stop : 关闭服务器\nrun %d restart : 重启服务器\nrun %d kill : 终止服务器\nrun %d 服务器命令 : 运行服务器命令\n\n普通用户可用命令:\n",
+		sendmsg = fmt.Sprintf("run %d status : 查看实例状态\nrun %d start : 启动实例\nrun %d stop : 关闭实例\nrun %d restart : 重启实例\nrun %d kill : 终止实例\nrun %d 实例命令 : 运行实例命令\n\n普通用户可用命令:\n",
 			u.Id,
 			u.Id,
 			u.Id,
@@ -195,9 +195,9 @@ func (u *HdGroup) reportStatus() {
 		u.lock.RLock()
 		if status != u.Status {
 			if (u.Status == 2 && status != 3) || (u.Status == 3 && status != 2) {
-				u.Send_all_group_msg("服务器 %s (ID:%d) 已运行!", u.Name, u.Id)
+				u.Send_all_group_msg("%s (ID:%d) 已运行!", u.Name, u.Id)
 			} else if (u.Status == 0 && status != 1) || (u.Status == 1 && status != 0) {
-				u.Send_all_group_msg("服务器 %s (ID:%d) 已停止!", u.Name, u.Id)
+				u.Send_all_group_msg("%s (ID:%d) 已停止!", u.Name, u.Id)
 			}
 			status = u.Status
 		}
