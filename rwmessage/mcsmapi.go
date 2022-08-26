@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/zijiren233/MCSM-Bot/logger"
 	"github.com/zijiren233/MCSM-Bot/utils"
+	"github.com/zijiren233/go-colorlog"
 )
 
 type Data struct {
@@ -24,7 +24,7 @@ func (u *HdGroup) Start() (string, error) {
 	if u.EndTime != "" {
 		t, _ := time.Parse("2006/1/2", u.EndTime)
 		if t.Before(time.Now()) {
-			logger.Warringf("实例ID: %d ,NAME: %s 已到期,启动失败!", u.Id, u.Name)
+			colorlog.Warringf("实例ID: %d ,NAME: %s 已到期,启动失败!", u.Id, u.Name)
 			return fmt.Sprintf("实例ID: %d ,NAME: %s 已到期,启动失败!", u.Id, u.Name), nil
 		}
 	}
@@ -39,7 +39,7 @@ func (u *HdGroup) Start() (string, error) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		logger.Warringf("实例: %s 运行启动命令失败,可能是网络问题!", u.Name)
+		colorlog.Warringf("实例: %s 运行启动命令失败,可能是网络问题!", u.Name)
 		return "", err
 	}
 	return fmt.Sprintf("实例: %s 正在启动!", u.Name), nil
@@ -60,7 +60,7 @@ func (u *HdGroup) Stop() (string, error) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		logger.Warringf("实例: %s 运行关闭命令失败,可能是网络问题!", u.Name)
+		colorlog.Warringf("实例: %s 运行关闭命令失败,可能是网络问题!", u.Name)
 		return "", err
 	}
 	return fmt.Sprintf("实例: %s 正在关闭!", u.Name), nil
@@ -86,7 +86,7 @@ func (u *HdGroup) RunCmd(commd string) (string, error) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		logger.Errorf("运行命令 %s 失败！%v", commd, err)
+		colorlog.Errorf("运行命令 %s 失败！%v", commd, err)
 		return fmt.Sprintf("运行命令 %s 失败！", commd), err
 	}
 	time.Sleep(500 * time.Millisecond)
@@ -98,7 +98,7 @@ func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
 		return "执行控制台命令成功! 可能由于 {网络延迟,控制台乱码} 导致运行结果返回失败", nil
 	}
 	client := &http.Client{}
-	r2, _ := http.NewRequest("GET", u.Url+"/api/protected_instance/outputlogger", nil)
+	r2, _ := http.NewRequest("GET", u.Url+"/api/protected_instance/outputcolorlog", nil)
 	r2.Close = true
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	q := r2.URL.Query()
@@ -108,7 +108,7 @@ func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
 	r2.URL.RawQuery = q.Encode()
 	r, err := client.Do(r2)
 	if err != nil {
-		logger.Errorf("获取实例 %s 命令 %s 运行结果失败！", u.Name, command)
+		colorlog.Errorf("获取实例 %s 命令 %s 运行结果失败！", u.Name, command)
 		return u.returnResult(command, try-1)
 	}
 	b, _ := io.ReadAll(r.Body)
@@ -126,7 +126,7 @@ func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
 			return fmt.Sprintf("[%s] %s", u.Name, b2), nil
 		}
 	}
-	logger.Debugf("终端信息: %#v\n", b2)
+	colorlog.Debugf("终端信息: %#v\n", b2)
 	return u.returnResult(command, try-1)
 }
 
@@ -142,7 +142,7 @@ func (u *HdGroup) Restart() (string, error) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		logger.Warringf("实例: %s 运行重启命令失败,可能是网络问题!", u.Name)
+		colorlog.Warringf("实例: %s 运行重启命令失败,可能是网络问题!", u.Name)
 		return fmt.Sprintf("实例: %s 运行重启命令失败,可能是网络问题!", u.Name), err
 	}
 	return fmt.Sprintf("实例: %s 重启中!", u.Name), nil
@@ -160,7 +160,7 @@ func (u *HdGroup) Kill() (string, error) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		logger.Warringf("实例: %s 运行终止命令失败,可能是网络问题!", u.Name)
+		colorlog.Warringf("实例: %s 运行终止命令失败,可能是网络问题!", u.Name)
 		return fmt.Sprintf("实例: %s 运行终止命令失败,可能是网络问题!", u.Name), err
 	}
 	return fmt.Sprintf("实例: %s 已经终止!", u.Name), nil
@@ -181,7 +181,7 @@ func (u *HdGroup) getStatusInfo() error {
 	r, err := client.Do(r2)
 	sub := time.Since(t).Milliseconds()
 	if err != nil {
-		logger.Errorf("获取实例Id: %d 信息失败! err: %v", u.Id, err)
+		colorlog.Errorf("获取实例Id: %d 信息失败! err: %v", u.Id, err)
 		return err
 	}
 	b, _ := io.ReadAll(r.Body)

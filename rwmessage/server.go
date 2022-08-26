@@ -11,8 +11,8 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/zijiren233/MCSM-Bot/gconfig"
-	"github.com/zijiren233/MCSM-Bot/logger"
 	"github.com/zijiren233/MCSM-Bot/utils"
+	"github.com/zijiren233/go-colorlog"
 )
 
 var (
@@ -72,10 +72,10 @@ func NewServer(url string) *Server {
 	var err error
 	w.ws, _, err = websocket.DefaultDialer.Dial(w.Url, nil)
 	if err != nil {
-		logger.Warringf("Cqhttp 连接失败,正在重连...")
+		colorlog.Warringf("Cqhttp 连接失败,正在重连...")
 		w.retrydial()
 	}
-	logger.Infof("Cqhttp 连接成功!")
+	colorlog.Infof("Cqhttp 连接成功!")
 	return &w
 }
 
@@ -96,7 +96,7 @@ func (s *Server) Run() {
 		s.lock.RUnlock()
 		if err != nil {
 			s.retrydial()
-			logger.Infof("Cqhttp 连接成功!")
+			colorlog.Infof("Cqhttp 连接成功!")
 			continue
 		}
 		var msgdata MsgData
@@ -107,9 +107,9 @@ func (s *Server) Run() {
 				continue
 			}
 			if msgdata.Message_type == "group" {
-				logger.Infof("获取到群组信息:Group_id:%d,User_id:%d,Nickname:%s,Message:%s", msgdata.Group_id, msgdata.User_id, msgdata.Sender.Nickname, msgdata.Message)
+				colorlog.Infof("获取到群组信息:Group_id:%d,User_id:%d,Nickname:%s,Message:%s", msgdata.Group_id, msgdata.User_id, msgdata.Sender.Nickname, msgdata.Message)
 			} else if msgdata.Message_type == "private" {
-				logger.Infof("获取到私聊信息:User_id:%d,Nickname:%s,Message:%s", msgdata.User_id, msgdata.Sender.Nickname, msgdata.Message)
+				colorlog.Infof("获取到私聊信息:User_id:%d,Nickname:%s,Message:%s", msgdata.User_id, msgdata.Sender.Nickname, msgdata.Message)
 			}
 			params[2] = strings.ReplaceAll(params[2], "\n", "")
 			params[2] = strings.ReplaceAll(params[2], "\r", "")
@@ -158,10 +158,10 @@ func help(msgdata *MsgData) string {
 
 func (s *Server) retrydial() {
 	var err error
-	logger.Errorf("cqhttp 连接失败!")
+	colorlog.Errorf("cqhttp 连接失败!")
 	var ws *websocket.Conn
 	for i := 1; ; i++ {
-		logger.Errorf("cqhttp 第 %d 次重连", i)
+		colorlog.Errorf("cqhttp 第 %d 次重连", i)
 		s.lock.Lock()
 		ws, _, err = websocket.DefaultDialer.Dial(s.Url, nil)
 		s.lock.Unlock()
@@ -197,11 +197,11 @@ func (s *Server) broadCast(msg *MsgData) {
 			} else {
 				id, err := strconv.Atoi(msg.Params[1])
 				if err != nil {
-					logger.Errorf("接收 id 失败: %v", err)
+					colorlog.Errorf("接收 id 失败: %v", err)
 					return
 				}
 				if !utils.InInt(id, AllId) {
-					logger.Warringf("接收的 id: %d 不存在!", id)
+					colorlog.Warringf("接收的 id: %d 不存在!", id)
 					return
 				}
 				GOnlineMap[id].ChGroupMsg <- msg
@@ -221,30 +221,30 @@ func (s *Server) sendMsg() {
 	for {
 		data = <-s.SendMessage
 		if len(data.Params.Message) >= 5000 {
-			logger.Warringf("消息过长,将采用分段发送...")
+			colorlog.Warringf("消息过长,将采用分段发送...")
 			s.fragmentSend(data)
 			continue
 		}
 		tmp, err = json.Marshal(*data)
 		if err != nil {
-			logger.Errorf("解析待发送的消息失败:%v", err)
+			colorlog.Errorf("解析待发送的消息失败:%v", err)
 			continue
 		}
 		s.lock.RLock()
 		err = s.ws.WriteMessage(websocket.TextMessage, tmp)
 		s.lock.RUnlock()
 		if err != nil {
-			logger.Errorf("发送消息: %s 失败:%v", string(tmp), err)
+			colorlog.Errorf("发送消息: %s 失败:%v", string(tmp), err)
 			continue
 		}
 		if len(string(tmp)) <= 200 {
-			logger.Infof("发送消息:%s ...", string(tmp))
+			colorlog.Infof("发送消息:%s ...", string(tmp))
 		} else {
 			index = strings.LastIndex(string(tmp)[:200], "\n")
 			if index > 0 {
-				logger.Infof("发送消息:%s ...", string(tmp)[:strings.LastIndex(string(tmp)[:200], "\n")])
+				colorlog.Infof("发送消息:%s ...", string(tmp)[:strings.LastIndex(string(tmp)[:200], "\n")])
 			} else {
-				logger.Infof("发送消息:%s ...", string(tmp)[:200])
+				colorlog.Infof("发送消息:%s ...", string(tmp)[:200])
 			}
 		}
 	}
