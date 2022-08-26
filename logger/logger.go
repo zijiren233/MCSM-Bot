@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	log       Logger
+	log       logger
 	backre, _ = regexp.Compile(`^(\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2})_(.*?).log`)
 )
 
@@ -43,7 +43,7 @@ const (
 	reset   = "\033[0m"
 )
 
-type Logger struct {
+type logger struct {
 	levle        uint
 	disableprint bool
 	fileOBJ      *os.File
@@ -117,14 +117,10 @@ func IntToLevle(i uint) string {
 }
 
 func init() {
-	log = Logger{levle: Info, disableprint: false}
+	log = logger{levle: Info, disableprint: false}
 	log.fileInit()
 	log.message = make(chan *logmsg, 500)
 	go log.backWriteLog()
-}
-
-func GetLog() *Logger {
-	return &log
 }
 
 func DisableLogPrint() {
@@ -135,7 +131,7 @@ func EnableLogPrint() {
 	log.disableprint = false
 }
 
-func (l *Logger) fileInit() {
+func (l *logger) fileInit() {
 	if !utils.FileExists("./logs") {
 		os.Mkdir("./logs", os.ModePerm)
 	}
@@ -153,7 +149,7 @@ func (l *Logger) fileInit() {
 	l.errFileOBJ = ef
 }
 
-func (l *Logger) backupLog() {
+func (l *logger) backupLog() {
 	file, _ := l.fileOBJ.Stat()
 	// 2M
 	if file.Size() >= 2097152 {
@@ -164,7 +160,7 @@ func (l *Logger) backupLog() {
 	}
 }
 
-func (l *Logger) backupErrLog() {
+func (l *logger) backupErrLog() {
 	file, _ := l.errFileOBJ.Stat()
 	if file.Size() >= 2097152 {
 		l.errFileOBJ.Close()
@@ -174,7 +170,7 @@ func (l *Logger) backupErrLog() {
 	}
 }
 
-func (l *Logger) log(levle uint, format string, a ...interface{}) {
+func (l *logger) log(levle uint, format string, a ...interface{}) {
 	if l.levle <= levle {
 		var log logmsg
 		if l.levle == Debug {
@@ -201,13 +197,13 @@ func (l *Logger) log(levle uint, format string, a ...interface{}) {
 	}
 }
 
-func (l *Logger) SetLogLevle(levle uint) {
-	l.levle = levle
+func SetLogLevle(levle uint) {
+	log.levle = levle
 }
 
-func (l *Logger) backWriteLog() {
+func (l *logger) backWriteLog() {
 	var msgtmp *logmsg
-	stdout := colorable.NewColorableStdout
+	stdout := colorable.NewColorableStdout()
 	for {
 		deleteBacLog()
 		msgtmp = <-l.message
@@ -218,7 +214,7 @@ func (l *Logger) backWriteLog() {
 			fmt.Fprintf(l.fileOBJ, "%s [%s] %s\n", msgtmp.now, IntToLevle(msgtmp.levle), msgtmp.message)
 		}
 		if !l.disableprint {
-			fmt.Fprintf(stdout(), "%s |%s %s %s| %s\n", msgtmp.now, levleColor(msgtmp.levle), IntToLevle(msgtmp.levle), reset, msgtmp.message)
+			fmt.Fprintf(stdout, "%s |%s %s %s| %s\n", msgtmp.now, levleColor(msgtmp.levle), IntToLevle(msgtmp.levle), reset, msgtmp.message)
 		}
 		if msgtmp.levle >= Error {
 			l.backupErrLog()
@@ -234,7 +230,7 @@ func (l *Logger) backWriteLog() {
 func deleteBacLog() {
 	files, err := os.ReadDir("./logs")
 	if err != nil {
-		log.Error("索引 logs 文件失败!")
+		Errorf("索引 logs 文件失败!")
 		return
 	}
 	var (
@@ -287,22 +283,22 @@ func getInfo() (string, string, int) {
 	return path.Base(file), path.Base(runtime.FuncForPC(pc).Name()), line
 }
 
-func (l *Logger) Debug(format string, a ...interface{}) {
-	l.log(Debug, format, a...)
+func Debugf(format string, a ...interface{}) {
+	log.log(Debug, format, a...)
 }
 
-func (l *Logger) Info(format string, a ...interface{}) {
-	l.log(Info, format, a...)
+func Infof(format string, a ...interface{}) {
+	log.log(Info, format, a...)
 }
 
-func (l *Logger) Warring(format string, a ...interface{}) {
-	l.log(Warning, format, a...)
+func Warringf(format string, a ...interface{}) {
+	log.log(Warning, format, a...)
 }
 
-func (l *Logger) Error(format string, a ...interface{}) {
-	l.log(Error, format, a...)
+func Errorf(format string, a ...interface{}) {
+	log.log(Error, format, a...)
 }
 
-func (l *Logger) Fatal(format string, a ...interface{}) {
-	l.log(Fatal, format, a...)
+func Fatalf(format string, a ...interface{}) {
+	log.log(Fatal, format, a...)
 }

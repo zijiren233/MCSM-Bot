@@ -15,23 +15,22 @@ import (
 	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
-// 已监听群组 map[id](*HdGroup)
-var GOnlineMap = make(map[int]*HdGroup)
+var (
+	// 已监听群组 map[id](*HdGroup)
+	GOnlineMap = make(map[int]*HdGroup)
 
-// 已监听admin *admin
-var pAdmin *admin
+	// 已监听admin *admin
+	pAdmin *admin
 
-// map[群号](id)
-var GroupToId = make(map[int]([]int))
+	// map[群号](id)
+	GroupToId = make(map[int]([]int))
 
-// map[id](config index)
-var IdToOd = make(map[int]int)
-var log = logger.GetLog()
-var Mconfig = gconfig.Mconfig
-var Qconfig = gconfig.Qconfig
-var AllId = gconfig.GetAllId()
-
-// var AllDaemon = make(map[string]([]string))
+	// map[id](config index)
+	IdToOd  = make(map[int]int)
+	Mconfig = gconfig.Mconfig
+	Qconfig = gconfig.Qconfig
+	AllId   = gconfig.GetAllId()
+)
 
 type SendData struct {
 	Action string `json:"action"`
@@ -73,10 +72,10 @@ func NewServer(url string) *Server {
 	var err error
 	w.ws, _, err = websocket.DefaultDialer.Dial(w.Url, nil)
 	if err != nil {
-		log.Warring("Cqhttp 连接失败,正在重连...")
+		logger.Warringf("Cqhttp 连接失败,正在重连...")
 		w.retrydial()
 	}
-	log.Info("Cqhttp 连接成功!")
+	logger.Infof("Cqhttp 连接成功!")
 	return &w
 }
 
@@ -97,7 +96,7 @@ func (s *Server) Run() {
 		s.lock.RUnlock()
 		if err != nil {
 			s.retrydial()
-			log.Info("Cqhttp 连接成功!")
+			logger.Infof("Cqhttp 连接成功!")
 			continue
 		}
 		var msgdata MsgData
@@ -108,9 +107,9 @@ func (s *Server) Run() {
 				continue
 			}
 			if msgdata.Message_type == "group" {
-				log.Info("获取到群组信息:Group_id:%d,User_id:%d,Nickname:%s,Message:%s", msgdata.Group_id, msgdata.User_id, msgdata.Sender.Nickname, msgdata.Message)
+				logger.Infof("获取到群组信息:Group_id:%d,User_id:%d,Nickname:%s,Message:%s", msgdata.Group_id, msgdata.User_id, msgdata.Sender.Nickname, msgdata.Message)
 			} else if msgdata.Message_type == "private" {
-				log.Info("获取到私聊信息:User_id:%d,Nickname:%s,Message:%s", msgdata.User_id, msgdata.Sender.Nickname, msgdata.Message)
+				logger.Infof("获取到私聊信息:User_id:%d,Nickname:%s,Message:%s", msgdata.User_id, msgdata.Sender.Nickname, msgdata.Message)
 			}
 			params[2] = strings.ReplaceAll(params[2], "\n", "")
 			params[2] = strings.ReplaceAll(params[2], "\r", "")
@@ -159,10 +158,10 @@ func help(msgdata *MsgData) string {
 
 func (s *Server) retrydial() {
 	var err error
-	log.Error("cqhttp 连接失败!")
+	logger.Errorf("cqhttp 连接失败!")
 	var ws *websocket.Conn
 	for i := 1; ; i++ {
-		log.Error("cqhttp 第 %d 次重连", i)
+		logger.Errorf("cqhttp 第 %d 次重连", i)
 		s.lock.Lock()
 		ws, _, err = websocket.DefaultDialer.Dial(s.Url, nil)
 		s.lock.Unlock()
@@ -198,11 +197,11 @@ func (s *Server) broadCast(msg *MsgData) {
 			} else {
 				id, err := strconv.Atoi(msg.Params[1])
 				if err != nil {
-					log.Error("接收 id 失败: %v", err)
+					logger.Errorf("接收 id 失败: %v", err)
 					return
 				}
 				if !utils.InInt(id, AllId) {
-					log.Warring("接收的 id: %d 不存在!", id)
+					logger.Warringf("接收的 id: %d 不存在!", id)
 					return
 				}
 				GOnlineMap[id].ChGroupMsg <- msg
@@ -222,30 +221,30 @@ func (s *Server) sendMsg() {
 	for {
 		data = <-s.SendMessage
 		if len(data.Params.Message) >= 5000 {
-			log.Warring("消息过长,将采用分段发送...")
+			logger.Warringf("消息过长,将采用分段发送...")
 			s.fragmentSend(data)
 			continue
 		}
 		tmp, err = json.Marshal(*data)
 		if err != nil {
-			log.Error("解析待发送的消息失败:%v", err)
+			logger.Errorf("解析待发送的消息失败:%v", err)
 			continue
 		}
 		s.lock.RLock()
 		err = s.ws.WriteMessage(websocket.TextMessage, tmp)
 		s.lock.RUnlock()
 		if err != nil {
-			log.Error("发送消息: %s 失败:%v", string(tmp), err)
+			logger.Errorf("发送消息: %s 失败:%v", string(tmp), err)
 			continue
 		}
 		if len(string(tmp)) <= 200 {
-			log.Info("发送消息:%s ...", string(tmp))
+			logger.Infof("发送消息:%s ...", string(tmp))
 		} else {
 			index = strings.LastIndex(string(tmp)[:200], "\n")
 			if index > 0 {
-				log.Info("发送消息:%s ...", string(tmp)[:strings.LastIndex(string(tmp)[:200], "\n")])
+				logger.Infof("发送消息:%s ...", string(tmp)[:strings.LastIndex(string(tmp)[:200], "\n")])
 			} else {
-				log.Info("发送消息:%s ...", string(tmp)[:200])
+				logger.Infof("发送消息:%s ...", string(tmp)[:200])
 			}
 		}
 	}

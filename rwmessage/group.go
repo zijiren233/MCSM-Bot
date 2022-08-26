@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/zijiren233/MCSM-Bot/logger"
 	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
@@ -79,13 +80,13 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 	}
 	err := u.getStatusInfo()
 	if err != nil {
-		log.Fatal("实例Id: %d 监听失败!可能是 mcsm-web 端地址错误\n", id)
+		logger.Fatalf("实例Id: %d 监听失败!可能是 mcsm-web 端地址错误\n", id)
 		return nil
 	}
-	log.Debug("ID: %d ,NAME: %s ,TYPE:%s ,PTY: %v", id, u.Name, u.ProcessType, u.Pty)
+	logger.Debugf("ID: %d ,NAME: %s ,TYPE:%s ,PTY: %v", id, u.Name, u.ProcessType, u.Pty)
 	if u.ProcessType != "docker" && !u.Pty {
-		log.Error("实例:%s 未开启 仿真终端 或 未使用 docker 启动！", u.Name)
-		log.Fatal("Id: %d, 实例:%s 监听失败", id, u.Name)
+		logger.Errorf("实例:%s 未开启 仿真终端 或 未使用 docker 启动！", u.Name)
+		logger.Fatalf("Id: %d, 实例:%s 监听失败", id, u.Name)
 		return nil
 	}
 	for _, v := range u.Group_list {
@@ -93,16 +94,16 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 			GroupToId[v] = append(GroupToId[v], id)
 		}
 	}
-	log.Debug("GroupToId: %v", GroupToId)
+	logger.Debugf("GroupToId: %v", GroupToId)
 	u.ChGroupMsg = make(chan *MsgData, 25)
 	return &u
 }
 
 func (u *HdGroup) Run() {
 	GOnlineMap[u.Id] = u
-	log.Info("监听实例 %s 成功", u.Name)
+	logger.Infof("监听实例 %s 成功", u.Name)
 	if u.PingIp == "" {
-		log.Warring("ID: %d ,NAME: %s 未开启 状态查询,请开启 状态查询 以获得完整体验", u.Id, u.Name)
+		logger.Warringf("ID: %d ,NAME: %s 未开启 状态查询,请开启 状态查询 以获得完整体验", u.Id, u.Name)
 	}
 	go u.reportStatus()
 	go u.hdChMessage()
@@ -119,7 +120,7 @@ func (u *HdGroup) hdChMessage() {
 					u.Send_group_msg(msg.Group_id, u.runCMD(msg))
 				}(msg)
 			} else {
-				log.Warring("权限不足:群组: %d,用户: %d,命令: %#v, 实例: %s", msg.Group_id, msg.User_id, msg.Params[0], u.Name)
+				logger.Warringf("权限不足:群组: %d,用户: %d,命令: %#v, 实例: %s", msg.Group_id, msg.User_id, msg.Params[0], u.Name)
 				u.Send_group_msg(msg.Group_id, "[CQ:reply,id=%d]权限不足!", msg.Message_id)
 			}
 			u.lock.RUnlock()

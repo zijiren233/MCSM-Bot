@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/zijiren233/MCSM-Bot/gconfig"
+	"github.com/zijiren233/MCSM-Bot/logger"
 	"github.com/zijiren233/MCSM-Bot/utils"
 )
 
@@ -81,7 +82,7 @@ func (p *admin) Run() {
 func (p *admin) handleMessage(msg *MsgData) {
 	id, err := strconv.Atoi(msg.Params[1])
 	if err != nil {
-		log.Error("strconv.Atoi error:%v", err)
+		logger.Errorf("strconv.Atoi error:%v", err)
 		p.Send_private_msg(msg.User_id, "命令格式错误!\n请输入run help查看帮助!")
 		return
 	}
@@ -89,7 +90,7 @@ func (p *admin) handleMessage(msg *MsgData) {
 		p.Send_private_msg(msg.User_id, GOnlineMap[id].runCMD(msg))
 	} else {
 		p.Send_private_msg(msg.User_id, "请输入正确的ID!")
-		log.Warring("OP 输入: %d 请输入正确的ID!", msg.User_id, msg.Params[1])
+		logger.Warringf("OP 输入: %d 请输入正确的ID!", msg.User_id, msg.Params[1])
 	}
 }
 
