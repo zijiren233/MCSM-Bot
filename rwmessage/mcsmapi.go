@@ -98,7 +98,7 @@ func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
 		return "执行控制台命令成功! 可能由于 {网络延迟,控制台乱码} 导致运行结果返回失败", nil
 	}
 	client := &http.Client{}
-	r2, _ := http.NewRequest("GET", u.Url+"/api/protected_instance/outputcolorlog", nil)
+	r2, _ := http.NewRequest("GET", u.Url+"/api/protected_instance/outputlog", nil)
 	r2.Close = true
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	q := r2.URL.Query()
@@ -115,7 +115,7 @@ func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
 	var data Data
 	json.Unmarshal(b, &data)
 	b2 := utils.NoColorable(&data.Data).String()
-	r3, _ := regexp.Compile(`(?m)(` + command + `(\r)+?)$`)
+	r3, _ := regexp.Compile(`(?m)(` + command + `(\r)+)$`)
 	index := r3.FindAllStringIndex(b2, -1)
 	if len(index) != 0 {
 		b2 = b2[index[len(index)-1][0]:]
