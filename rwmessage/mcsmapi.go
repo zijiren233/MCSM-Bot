@@ -119,12 +119,11 @@ func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
 	r3, _ := regexp.Compile(`(?m)(` + command + `(\r)+)$`)
 	index := r3.FindAllStringIndex(b2, -1)
 	if len(index) != 0 {
-		b2 = b2[index[len(index)-1][0]:]
-		utils.Handle_End_Newline(&b2)
-		if len(b2) == len(command) {
+		if len(b) == index[len(index)-1][1] {
 			return u.returnResult(command, try-1)
 		} else {
-			return fmt.Sprintf("[%s] %s", u.Name, b2), nil
+			utils.Handle_End_Newline(&b2)
+			return fmt.Sprintf("[%s] %s", u.Name, b2[index[len(index)-1][0]:]), nil
 		}
 	}
 	return u.returnResult(command, try-1)
