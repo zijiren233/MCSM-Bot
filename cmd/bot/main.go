@@ -2,7 +2,6 @@ package bot
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/zijiren233/MCSM-Bot/base"
@@ -24,7 +23,7 @@ func Main() {
 	if dou, existdou := utils.IsListDuplicated(rwmessage.AllId); existdou {
 		colorlog.Fatalf("配置文件中存在重复id: %s", dou)
 		fmt.Printf("%s|\033[97;45m %s \033[0m| 配置文件中存在重复id: %s\n", time.Now().Format("[2006-01-02 15:04:05] "), "FATAL", dou)
-		os.Exit(-1)
+		return
 	}
 	serve := rwmessage.NewServer(gconfig.Qconfig.Cqhttp.Url)
 	go serve.Run()

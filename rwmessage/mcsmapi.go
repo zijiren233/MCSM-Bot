@@ -115,6 +115,7 @@ func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
 	var data Data
 	json.Unmarshal(b, &data)
 	b2 := utils.NoColorable(&data.Data).String()
+	colorlog.Debugf("终端信息: %#v", b2)
 	r3, _ := regexp.Compile(`(?m)(` + command + `(\r)+)$`)
 	index := r3.FindAllStringIndex(b2, -1)
 	if len(index) != 0 {
@@ -126,7 +127,6 @@ func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
 			return fmt.Sprintf("[%s] %s", u.Name, b2), nil
 		}
 	}
-	colorlog.Debugf("终端信息: %#v\n", b2)
 	return u.returnResult(command, try-1)
 }
 
