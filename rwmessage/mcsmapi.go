@@ -119,7 +119,7 @@ func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
 	r3, _ := regexp.Compile(`(?m)(` + command + `(\r)+)$`)
 	index := r3.FindAllStringIndex(b2, -1)
 	if len(index) != 0 {
-		if len(b) == index[len(index)-1][1] {
+		if len(b2)-1 == index[len(index)-1][1] {
 			return u.returnResult(command, try-1)
 		} else {
 			utils.Handle_End_Newline(&b2)
