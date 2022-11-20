@@ -11,7 +11,7 @@ import (
 	"github.com/zijiren233/go-colorlog"
 )
 
-const version = "v1.6.9"
+const version = "v1.6.11"
 
 func Main() {
 	fmt.Printf("%s|\033[97;42m %s \033[0m| MCSM-BOT Version:%s\n", time.Now().Format("[2006-01-02 15:04:05] "), "INFO", version)

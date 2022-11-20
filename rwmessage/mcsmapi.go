@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
+	"strings"
 	"time"
 
 	"github.com/zijiren233/MCSM-Bot/utils"
@@ -114,17 +114,14 @@ func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
 	b, _ := io.ReadAll(r.Body)
 	var data Data
 	json.Unmarshal(b, &data)
-	b2 := utils.NoColorable(&data.Data).String()
-	colorlog.Debugf("终端信息: %#v", b2)
-	r3, _ := regexp.Compile(`(?m)(` + command + `(\r)+)$`)
-	index := r3.FindAllStringIndex(b2, -1)
-	if len(index) != 0 {
-		if len(b2)-1 == index[len(index)-1][1] {
-			return u.returnResult(command, try-1)
-		} else {
-			utils.Handle_End_Newline(&b2)
-			return fmt.Sprintf("[%s] %s", u.Name, b2[index[len(index)-1][0]:]), nil
-		}
+	dataString := utils.NoColorable(&data.Data).String()
+	colorlog.Debugf("终端信息: %#v", dataString)
+	if index := strings.LastIndex(dataString, command+"\r\n"); index != -1 {
+		utils.Handle_End_Newline(&dataString)
+		return fmt.Sprintf("[%s]\n%s", u.Name, dataString[index:]), nil
+	} else if index = strings.LastIndex(dataString, command+"\r\r\n"); index != -1 {
+		utils.Handle_End_Newline(&dataString)
+		return fmt.Sprintf("[%s]\n%s", u.Name, dataString[index:]), nil
 	}
 	return u.returnResult(command, try-1)
 }

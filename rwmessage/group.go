@@ -2,7 +2,7 @@ package rwmessage
 
 import (
 	"fmt"
-	"strings"
+	"regexp"
 	"sync"
 	"time"
 
@@ -28,6 +28,7 @@ type config struct {
 	Apikey      string
 	Group_list  []int
 	UserCmd     []string
+	ReList      []*regexp.Regexp
 	Adminlist   []int
 }
 
@@ -75,8 +76,17 @@ func NewHdGroup(id int, serveSend chan *SendData) *HdGroup {
 			Apikey:      Mconfig.McsmData[IdToOd[id]].Apikey,
 			Group_list:  Mconfig.McsmData[IdToOd[id]].Group_list,
 			UserCmd:     Mconfig.McsmData[IdToOd[id]].User_allows_commands,
+			ReList:      []*regexp.Regexp{},
 			Adminlist:   Mconfig.McsmData[IdToOd[id]].Adminlist},
 		SendChan: serveSend,
+	}
+	for _, v := range u.UserCmd {
+		r, err := regexp.Compile(v)
+		if err != nil {
+			colorlog.Errorf("Parse User Cmd Regexp err: %v", err)
+			continue
+		}
+		u.ReList = append(u.ReList, r)
 	}
 	err := u.getStatusInfo()
 	if err != nil {
@@ -115,7 +125,7 @@ func (u *HdGroup) hdChMessage() {
 		msg = <-u.ChGroupMsg
 		if utils.InInt(msg.Group_id, u.Group_list) {
 			u.lock.RLock()
-			if u.isAdmin(msg.User_id) || utils.InString(strings.Split(msg.Params[2], " ")[0], u.UserCmd) {
+			if u.isAdmin(msg.User_id) || u.detectUserCmd(msg.Params[2]) {
 				go func(msg *MsgData) {
 					u.Send_group_msg(msg.Group_id, u.runCMD(msg))
 				}(msg)
@@ -126,6 +136,17 @@ func (u *HdGroup) hdChMessage() {
 			u.lock.RUnlock()
 		}
 	}
+}
+
+func (u *HdGroup) detectUserCmd(cmd string) bool {
+	for _, v := range u.ReList {
+		if v.FindString(cmd) == "" {
+			continue
+		} else {
+			return true
+		}
+	}
+	return false
 }
 
 func (u *HdGroup) isAdmin(user_id int) bool {
