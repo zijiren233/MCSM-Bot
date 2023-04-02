@@ -13,7 +13,7 @@ func Update(version string) {
 	for {
 		gaj, err := utils.UpdateVersion(version)
 		if err != nil {
-			colorlog.Warringf("获取最新版失败! err: %v", err)
+			colorlog.Warningf("获取最新版失败! err: %v", err)
 		} else if chackVersion(version[1:], gaj.Tag_name[1:]) {
 			colorlog.Infof("当前版本: %s 获取到最新版: %s 下载地址: %s", version, gaj.Tag_name, gaj.Html_url)
 		}

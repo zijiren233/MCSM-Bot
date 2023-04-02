@@ -24,7 +24,7 @@ func (u *HdGroup) Start() (string, error) {
 	if u.EndTime != "" {
 		t, _ := time.Parse("2006/1/2", u.EndTime)
 		if t.Before(time.Now()) {
-			colorlog.Warringf("实例ID: %d ,NAME: %s 已到期,启动失败!", u.Id, u.Name)
+			colorlog.Warningf("实例ID: %d ,NAME: %s 已到期,启动失败!", u.Id, u.Name)
 			return fmt.Sprintf("实例ID: %d ,NAME: %s 已到期,启动失败!", u.Id, u.Name), nil
 		}
 	}
@@ -39,7 +39,7 @@ func (u *HdGroup) Start() (string, error) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		colorlog.Warringf("实例: %s 运行启动命令失败,可能是网络问题!", u.Name)
+		colorlog.Warningf("实例: %s 运行启动命令失败,可能是网络问题!", u.Name)
 		return "", err
 	}
 	return fmt.Sprintf("实例: %s 正在启动!", u.Name), nil
@@ -60,7 +60,7 @@ func (u *HdGroup) Stop() (string, error) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		colorlog.Warringf("实例: %s 运行关闭命令失败,可能是网络问题!", u.Name)
+		colorlog.Warningf("实例: %s 运行关闭命令失败,可能是网络问题!", u.Name)
 		return "", err
 	}
 	return fmt.Sprintf("实例: %s 正在关闭!", u.Name), nil
@@ -138,7 +138,7 @@ func (u *HdGroup) Restart() (string, error) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		colorlog.Warringf("实例: %s 运行重启命令失败,可能是网络问题!", u.Name)
+		colorlog.Warningf("实例: %s 运行重启命令失败,可能是网络问题!", u.Name)
 		return fmt.Sprintf("实例: %s 运行重启命令失败,可能是网络问题!", u.Name), err
 	}
 	return fmt.Sprintf("实例: %s 重启中!", u.Name), nil
@@ -156,7 +156,7 @@ func (u *HdGroup) Kill() (string, error) {
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
 	_, err := client.Do(r2)
 	if err != nil {
-		colorlog.Warringf("实例: %s 运行终止命令失败,可能是网络问题!", u.Name)
+		colorlog.Warningf("实例: %s 运行终止命令失败,可能是网络问题!", u.Name)
 		return fmt.Sprintf("实例: %s 运行终止命令失败,可能是网络问题!", u.Name), err
 	}
 	return fmt.Sprintf("实例: %s 已经终止!", u.Name), nil

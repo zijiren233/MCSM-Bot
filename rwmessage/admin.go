@@ -90,7 +90,7 @@ func (p *admin) handleMessage(msg *MsgData) {
 		p.Send_private_msg(msg.User_id, GOnlineMap[id].runCMD(msg))
 	} else {
 		p.Send_private_msg(msg.User_id, "请输入正确的ID!")
-		colorlog.Warringf("OP 输入: %d 请输入正确的ID!", msg.User_id, msg.Params[1])
+		colorlog.Warningf("OP 输入: %d 请输入正确的ID!", msg.User_id, msg.Params[1])
 	}
 }
 

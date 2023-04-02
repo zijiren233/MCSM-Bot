@@ -72,7 +72,7 @@ func NewServer(url string) *Server {
 	var err error
 	w.ws, _, err = websocket.DefaultDialer.Dial(w.Url, nil)
 	if err != nil {
-		colorlog.Warringf("Cqhttp 连接失败,正在重连...")
+		colorlog.Warningf("Cqhttp 连接失败,正在重连...")
 		w.retrydial()
 	}
 	colorlog.Infof("Cqhttp 连接成功!")
@@ -201,7 +201,7 @@ func (s *Server) broadCast(msg *MsgData) {
 					return
 				}
 				if !utils.InInt(id, AllId) {
-					colorlog.Warringf("接收的 id: %d 不存在!", id)
+					colorlog.Warningf("接收的 id: %d 不存在!", id)
 					return
 				}
 				GOnlineMap[id].ChGroupMsg <- msg
@@ -221,7 +221,7 @@ func (s *Server) sendMsg() {
 	for {
 		data = <-s.SendMessage
 		if len(data.Params.Message) >= 5000 {
-			colorlog.Warringf("消息过长,将采用分段发送...")
+			colorlog.Warningf("消息过长,将采用分段发送...")
 			s.fragmentSend(data)
 			continue
 		}

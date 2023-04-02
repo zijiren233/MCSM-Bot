@@ -113,7 +113,7 @@ func (u *HdGroup) Run() {
 	GOnlineMap[u.Id] = u
 	colorlog.Infof("监听实例 %s 成功", u.Name)
 	if u.PingIp == "" {
-		colorlog.Warringf("ID: %d ,NAME: %s 未开启 状态查询,请开启 状态查询 以获得完整体验", u.Id, u.Name)
+		colorlog.Warningf("ID: %d ,NAME: %s 未开启 状态查询,请开启 状态查询 以获得完整体验", u.Id, u.Name)
 	}
 	go u.reportStatus()
 	go u.hdChMessage()
@@ -130,7 +130,7 @@ func (u *HdGroup) hdChMessage() {
 					u.Send_group_msg(msg.Group_id, u.runCMD(msg))
 				}(msg)
 			} else {
-				colorlog.Warringf("权限不足:群组: %d,用户: %d,命令: %#v, 实例: %s", msg.Group_id, msg.User_id, msg.Params[0], u.Name)
+				colorlog.Warningf("权限不足:群组: %d,用户: %d,命令: %#v, 实例: %s", msg.Group_id, msg.User_id, msg.Params[0], u.Name)
 				u.Send_group_msg(msg.Group_id, "[CQ:reply,id=%d]权限不足!", msg.Message_id)
 			}
 			u.lock.RUnlock()
