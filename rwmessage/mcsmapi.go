@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zijiren233/MCSM-Bot/utils"
+	"github.com/zijiren233/go-colorable"
 	"github.com/zijiren233/go-colorlog"
 )
 
@@ -37,11 +37,12 @@ func (u *HdGroup) Start() (string, error) {
 	q.Add("remote_uuid", u.Remote_uuid)
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	_, err := client.Do(r2)
+	r, err := client.Do(r2)
 	if err != nil {
 		colorlog.Warningf("实例: %s 运行启动命令失败,可能是网络问题!", u.Name)
 		return "", err
 	}
+	r.Body.Close()
 	return fmt.Sprintf("实例: %s 正在启动!", u.Name), nil
 }
 
@@ -58,20 +59,21 @@ func (u *HdGroup) Stop() (string, error) {
 	q.Add("remote_uuid", u.Remote_uuid)
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	_, err := client.Do(r2)
+	r, err := client.Do(r2)
 	if err != nil {
 		colorlog.Warningf("实例: %s 运行关闭命令失败,可能是网络问题!", u.Name)
 		return "", err
 	}
+	r.Body.Close()
 	return fmt.Sprintf("实例: %s 正在关闭!", u.Name), nil
 }
 
 // 返回控制台结果，如果未查询到则返回 "运行成功"
-func (u *HdGroup) RunCmd(commd string) (string, error) {
+func (u *HdGroup) RunCmd(cmd string) (string, error) {
 	if u.Status != 2 && u.Status != 3 {
 		return fmt.Sprintf("实例: %s 未运行!", u.Name), nil
 	}
-	if commd == "" {
+	if cmd == "" {
 		return "运行命令为空!", nil
 	}
 	client := &http.Client{}
@@ -81,16 +83,17 @@ func (u *HdGroup) RunCmd(commd string) (string, error) {
 	q.Add("apikey", u.Apikey)
 	q.Add("uuid", u.Uuid)
 	q.Add("remote_uuid", u.Remote_uuid)
-	q.Add("command", commd)
+	q.Add("command", cmd)
 	r2.URL.RawQuery = q.Encode()
 	r2.Header.Set("x-requested-with", "xmlhttprequest")
-	_, err := client.Do(r2)
+	r, err := client.Do(r2)
 	if err != nil {
-		colorlog.Errorf("运行命令 %s 失败！%v", commd, err)
-		return fmt.Sprintf("运行命令 %s 失败！", commd), err
+		colorlog.Errorf("运行命令 %s 失败！%v", cmd, err)
+		return fmt.Sprintf("运行命令 %s 失败！", cmd), err
 	}
+	r.Body.Close()
 	time.Sleep(500 * time.Millisecond)
-	return u.returnResult(commd, 2)
+	return u.returnResult(cmd, 2)
 }
 
 func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
@@ -111,11 +114,17 @@ func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
 		colorlog.Errorf("获取实例 %s 命令 %s 运行结果失败！", u.Name, command)
 		return u.returnResult(command, try-1)
 	}
-	b, _ := io.ReadAll(r.Body)
+	defer r.Body.Close()
 	var data Data
-	json.Unmarshal(b, &data)
-	dataString := utils.NoColorable(&data.Data).String()
-	colorlog.Debugf("终端信息: %#v", dataString)
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		return u.returnResult(command, try-1)
+	}
+	d, err := io.ReadAll(colorable.NewNonColorableReader(strings.NewReader(data.Data)))
+	if err != nil {
+		return u.returnResult(command, try-1)
+	}
+	dataString := string(d)
+	colorlog.Debugf("终端信息: %s", dataString)
 	if index := strings.LastIndex(dataString, command+"\r\n"); index != -1 {
 		return fmt.Sprintf("[%s]\n%s", u.Name, strings.TrimRight(dataString, "\r\n")[index:]), nil
 	} else if index = strings.LastIndex(dataString, command+"\r\r\n"); index != -1 {

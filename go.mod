@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/gorilla/websocket v1.5.0
+	github.com/zijiren233/go-colorable v0.0.0-20230522040028-05f4e204585c
 	github.com/zijiren233/go-colorlog v1.2.4
 	gopkg.in/yaml.v3 v3.0.1
 )

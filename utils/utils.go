@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,40 +21,6 @@ func InInt(target int, str_array []int) bool {
 		}
 	}
 	return false
-}
-
-func NoColorable(data *string) *bytes.Buffer {
-	er := bytes.NewReader([]byte(*data))
-	plaintext := bytes.NewBuffer(nil)
-loop:
-	for {
-		c1, err := er.ReadByte()
-		if err != nil {
-			break loop
-		}
-		if c1 != 0x1b {
-			plaintext.WriteByte(c1)
-			continue
-		}
-		c2, err := er.ReadByte()
-		if err != nil {
-			break loop
-		}
-		if c2 != 0x5b {
-			continue
-		}
-
-		for {
-			c, err := er.ReadByte()
-			if err != nil {
-				break loop
-			}
-			if ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '@' {
-				break
-			}
-		}
-	}
-	return plaintext
 }
 
 func IsListDuplicated(list []int) (string, bool) {
