@@ -117,11 +117,9 @@ func (u *HdGroup) returnResult(command string, try uint8) (string, error) {
 	dataString := utils.NoColorable(&data.Data).String()
 	colorlog.Debugf("终端信息: %#v", dataString)
 	if index := strings.LastIndex(dataString, command+"\r\n"); index != -1 {
-		utils.Handle_End_Newline(&dataString)
-		return fmt.Sprintf("[%s]\n%s", u.Name, dataString[index:]), nil
+		return fmt.Sprintf("[%s]\n%s", u.Name, strings.TrimRight(dataString, "\r\n")[index:]), nil
 	} else if index = strings.LastIndex(dataString, command+"\r\r\n"); index != -1 {
-		utils.Handle_End_Newline(&dataString)
-		return fmt.Sprintf("[%s]\n%s", u.Name, dataString[index:]), nil
+		return fmt.Sprintf("[%s]\n%s", u.Name, strings.TrimRight(dataString, "\r\n")[index:]), nil
 	}
 	return u.returnResult(command, try-1)
 }

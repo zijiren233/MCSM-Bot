@@ -24,15 +24,6 @@ func InInt(target int, str_array []int) bool {
 	return false
 }
 
-func InString(target string, str_array []string) bool {
-	for _, element := range str_array {
-		if target == element {
-			return true
-		}
-	}
-	return false
-}
-
 func NoColorable(data *string) *bytes.Buffer {
 	er := bytes.NewReader([]byte(*data))
 	plaintext := bytes.NewBuffer(nil)
@@ -65,22 +56,6 @@ loop:
 		}
 	}
 	return plaintext
-}
-
-func Handle_End_Newline(msg *string) {
-	*msg = (*msg)[:find_End_Newline(msg)]
-}
-
-func find_End_Newline(msg *string) int {
-	lens := len(*msg)
-	var i int
-	for i = 0; i < lens; i++ {
-		if (*msg)[lens-i-1:lens-i] == "\n" || (*msg)[lens-i-1:lens-i] == "\r" {
-			continue
-		}
-		break
-	}
-	return lens - i
 }
 
 func IsListDuplicated(list []int) (string, bool) {

@@ -28,7 +28,6 @@ var (
 	// map[id](config index)
 	IdToOd  = make(map[int]int)
 	Mconfig = gconfig.Mconfig
-	Qconfig = gconfig.Qconfig
 	AllId   = gconfig.GetAllId()
 )
 
@@ -136,24 +135,23 @@ func (s *Server) send_private_msg(user_id int, msg string, a ...interface{}) {
 }
 
 func help(msgdata *MsgData) string {
-	var msg string
+	msg := &strings.Builder{}
+	msg.WriteString(fmt.Sprintf("[CQ:reply,id=%d]", msgdata.Message_id))
 	switch msgdata.Params[2] {
 	case "help":
-		msg = "run list : 查看实例列表\nrun status : 查看实例状态\nrun id start : 启动实例\nrun id stop : 关闭实例\nrun id restart : 重启实例\nrun id kill : 终止实例\nrun id 控制台命令 : 运行实例命令"
-		msg += "\n\n普通用户可用命令:\n请输入 run id help 查询"
-		utils.Handle_End_Newline(&msg)
+		msg.WriteString("run list : 查看实例列表\nrun status : 查看实例状态\nrun id start : 启动实例\nrun id stop : 关闭实例\nrun id restart : 重启实例\nrun id kill : 终止实例\nrun id 控制台命令 : 运行实例命令\n\n普通用户可用命令:\n请输入 run id help 查询")
 	default:
-		msg += "实例列表:\n"
+		msg.WriteString("实例列表:\n")
 		for _, v := range GroupToId[msgdata.Group_id] {
 			if GOnlineMap[v].Status == 2 || GOnlineMap[v].Status == 3 {
-				msg += fmt.Sprintf("%s (id:%d) | 运行中\n", GOnlineMap[v].Name, GOnlineMap[v].Id)
+				msg.WriteString(fmt.Sprintf("%s (id:%d) | 运行中\n", GOnlineMap[v].Name, GOnlineMap[v].Id))
 			} else {
-				msg += fmt.Sprintf("%s (id:%d) | 已停止\n", GOnlineMap[v].Name, GOnlineMap[v].Id)
+				msg.WriteString(fmt.Sprintf("%s (id:%d) | 已停止\n", GOnlineMap[v].Name, GOnlineMap[v].Id))
 			}
 		}
-		msg += fmt.Sprintf("查询具体实例请输入 run id %s", msgdata.Params[2])
+		msg.WriteString(fmt.Sprintf("查询具体实例请输入 run id %s", msgdata.Params[2]))
 	}
-	return fmt.Sprintf("[CQ:reply,id=%d]%s", msgdata.Message_id, msg)
+	return msg.String()
 }
 
 func (s *Server) retrydial() {
